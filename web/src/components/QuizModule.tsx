@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChoiceQuestion, FillQuestion, ModuleStatus, Question, TranslateQuestion } from '../types/domain';
 import { getModuleAnswers, saveAiGrade, saveAnswer, saveGradedAnswer } from '../repositories/answerRepository';
 import { updateModuleStatus } from '../repositories/courseRepository';
-import { gradeAnswer } from '../services/aiClient';
+import { gradeOrQueue, listPendingGrades } from '../services/aiQueue';
 import { AiError } from '../services/aiClient';
 import { recordKnowledgeAttempt } from '../services/knowledgeUpdate';
 import { gradeChoice, gradeFill, isAnswered } from '../utils/grading';
@@ -24,6 +24,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
   const [values, setValues] = useState<Record<string, string>>({});
   const [grades, setGrades] = useState<Record<string, QuestionGrade>>({});
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
+  const [queuedIds, setQueuedIds] = useState<Set<string>>(() => new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [grading, setGrading] = useState(false);
@@ -35,8 +36,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
 
   useEffect(() => {
     let active = true;
-    void getModuleAnswers(courseId, moduleId)
-      .then(({ answers, grades: storedGrades }) => {
+    void Promise.all([getModuleAnswers(courseId, moduleId), listPendingGrades()]).then(([{ answers, grades: storedGrades }, pending]) => {
         if (!active) return;
         const restoredValues: Record<string, string> = {};
         const restoredGrades: Record<string, QuestionGrade> = {};
@@ -50,6 +50,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
         setValues(restoredValues);
         setGrades(restoredGrades);
         setSavedIds(restoredSaved);
+        setQueuedIds(new Set(pending.filter(item => item.status === 'pending' && item.moduleId === moduleId).map(item => item.questionId)));
         setLoaded(true);
       })
       .catch(reason => {
@@ -216,18 +217,30 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
       return next;
     });
     try {
-      const result = await gradeAnswer({
+      const outcome = await gradeOrQueue({
         courseId,
         moduleId,
         questionId: item.id,
         prompt: item.prompt,
         reference: item.reference,
         answer: value,
-        keyPoints: item.keyPoints
+        keyPoints: item.keyPoints,
+        knowledgeIds: item.knowledgeIds
       });
+      if (outcome.queued || !outcome.grade) {
+        setQueuedIds(current => new Set(current).add(item.id));
+        return;
+      }
+      const result = outcome.grade;
       await saveAiGrade({ courseId, moduleId, question: item, value, status: result.status, feedback: result.feedback });
       if (result.status === 'correct') await recordKnowledgeAttempt(item, 'correct');
       else if (result.status === 'partial') await recordKnowledgeAttempt(item, 'wrong');
+      setQueuedIds(current => {
+        if (!current.has(item.id)) return current;
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
       setGrades(current => ({ ...current, [item.id]: { status: result.status, feedback: result.feedback } }));
       setSavedIds(current => new Set(current).add(item.id));
       await markDraft();
@@ -269,6 +282,10 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
         onSubmitText={question.kind === 'fill' ? () => { void submitFill(question); } : undefined}
         onAiGrade={question.kind === 'translate' ? () => { void requestAiGrade(question); } : undefined}
       />
+
+      {queuedIds.has(question.id) && (
+        <p className="notice">批改已排队：当前无法连接 AI，联网后会自动批改并记录。</p>
+      )}
 
       <nav className="module-nav">
         <button type="button" className="ghost-button" onClick={() => setIndex(value => Math.max(0, value - 1))} disabled={isFirst}>

@@ -9,6 +9,7 @@ import type {
   HistoryDay,
   KnowledgePoint,
   Mistake,
+  PendingAiGrade,
   ReviewItem,
   StudyDay
 } from '../types/domain';
@@ -26,6 +27,7 @@ export const db = new Dexie(DB_NAME) as Dexie & {
   studyDays: EntityTable<StudyDay, 'dateKey'>;
   aiUsage: EntityTable<AiUsageRecord, 'id'>;
   historyDays: EntityTable<HistoryDay, 'id'>;
+  pendingAi: EntityTable<PendingAiGrade, 'id'>;
   settings: EntityTable<AppSettings, 'id'>;
 };
 
@@ -54,5 +56,20 @@ db.version(2).stores({
   studyDays: '&dateKey',
   aiUsage: '&id, dateKey, kind',
   historyDays: '&id, dayNumber, source',
+  settings: '&id'
+});
+
+db.version(3).stores({
+  courses: '&id, status, source, startedDate, createdAt',
+  courseModules: '&id, courseId, [courseId+order], status',
+  answers: '&id, courseId, moduleId, updatedAt',
+  grades: '&id, answerId, status',
+  knowledge: '&id, status, nextReviewDate, [status+nextReviewDate]',
+  reviews: '&id, knowledgeId, dueDate, [state+dueDate]',
+  mistakes: '&id, knowledgeId, courseId, createdAt',
+  studyDays: '&dateKey',
+  aiUsage: '&id, dateKey, kind',
+  historyDays: '&id, dayNumber, source',
+  pendingAi: '&id, status, createdAt',
   settings: '&id'
 });

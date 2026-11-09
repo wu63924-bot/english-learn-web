@@ -760,6 +760,30 @@ button {
   font-size: 0.82rem;
 }
 
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 20px 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--accent-pale);
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.update-banner button {
+  flex: none;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 .status-text a {
   color: var(--accent);
 }

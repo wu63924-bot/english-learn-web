@@ -147,6 +147,21 @@ export interface HistoryDay {
   createdAt: Timestamp;
 }
 
+export interface PendingAiGrade {
+  id: string;
+  courseId: string;
+  moduleId: string;
+  questionId: string;
+  prompt: string;
+  reference: string;
+  answer: string;
+  keyPoints?: string[];
+  knowledgeIds?: string[];
+  status: 'pending' | 'failed';
+  createdAt: Timestamp;
+  error?: string;
+}
+
 export type ReviewState = 'pending' | 'done';
 
 export interface ReviewItem {
@@ -214,6 +229,7 @@ export interface BackupData {
   studyDays: StudyDay[];
   aiUsage: AiUsageRecord[];
   historyDays: HistoryDay[];
+  pendingAi: PendingAiGrade[];
   settings: AppSettings[];
 }
 

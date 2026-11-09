@@ -18,10 +18,19 @@ describe('backup service', () => {
   it('exports data that its own parser accepts', async () => {
     const backup = await createBackup();
     expect(backup.app).toBe('EnglishLearn');
-    expect(backup.version).toBe(2);
+    expect(backup.version).toBe(3);
     expect(backup.data.courses).toHaveLength(2);
     const parsed = parseBackup(JSON.stringify(backup));
     expect(backupCounts(parsed)).toEqual({ courses: 2, answers: 0, mistakes: 0, studyDays: 0, historyDays: 0 });
+  });
+
+  it('accepts a version 2 backup and fills the pending queue table', async () => {
+    const legacy = JSON.parse(await freshBackupText());
+    legacy.version = 2;
+    delete legacy.data.pendingAi;
+    const parsed = parseBackup(JSON.stringify(legacy));
+    expect(parsed.version).toBe(3);
+    expect(parsed.data.pendingAi).toEqual([]);
   });
 
   it('accepts a version 1 backup and fills the new table', async () => {
@@ -29,7 +38,7 @@ describe('backup service', () => {
     legacy.version = 1;
     delete legacy.data.historyDays;
     const parsed = parseBackup(JSON.stringify(legacy));
-    expect(parsed.version).toBe(2);
+    expect(parsed.version).toBe(3);
     expect(parsed.data.historyDays).toEqual([]);
   });
 

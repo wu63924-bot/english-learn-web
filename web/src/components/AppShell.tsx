@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router';
+import { UpdateBanner } from './UpdateBanner';
 
 const tabs = [
   { to: '/', label: '今日', icon: TodayIcon },
@@ -16,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <SettingsIcon />
         </NavLink>
       </header>
+      <UpdateBanner />
       <main className="app-main">{children}</main>
       <nav className="tab-bar" aria-label="主导航">
         {tabs.map(tab => (

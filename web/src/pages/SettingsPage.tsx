@@ -7,6 +7,7 @@ import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport'
 import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
+import { pendingGradeCount, processPendingGrades } from '../services/aiQueue';
 import {
   applyHistoryImport,
   getHistorySummary,
@@ -49,16 +50,18 @@ export function SettingsPage() {
   const [bridgeError, setBridgeError] = useState('');
   const [historyText, setHistoryText] = useState('');
   const [weakLabels, setWeakLabels] = useState<string[]>([]);
+  const [pendingGrades, setPendingGrades] = useState(0);
 
   useEffect(() => {
     let active = true;
-    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary(), listWeakLabels()]).then(([healthResult, usageResult, number, historyResult, weak]) => {
+    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary(), listWeakLabels(), pendingGradeCount()]).then(([healthResult, usageResult, number, historyResult, weak, pending]) => {
       if (!active) return;
       setHealth(healthResult);
       setUsage(usageResult);
       setNextNumber(number);
       setHistorySummary(historyResult);
       setWeakLabels(weak);
+      setPendingGrades(pending);
     });
     return () => {
       active = false;
@@ -355,6 +358,19 @@ export function SettingsPage() {
             : '未连接（先运行 npm run dev:api）'}
         </p>
         <p className="muted">本机今日记录：{usage.requests} 次调用 · {usage.tokens} tokens</p>
+        {pendingGrades > 0 && (
+          <p className="ai-status">
+            待批改 {pendingGrades} 条（离线排队）。联网后会自动处理。
+            <button
+              type="button"
+              className="ghost-button"
+              style={{ marginLeft: 8, minHeight: 34, padding: '0 10px' }}
+              onClick={() => { void processPendingGrades().then(async () => setPendingGrades(await pendingGradeCount())); }}
+            >
+              立即处理
+            </button>
+          </p>
+        )}
 
         <div className="ai-form">
           <label className="form-field">

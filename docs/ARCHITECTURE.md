@@ -11,7 +11,7 @@
 | 构建 | Vite 8 + TypeScript | FitFlow 已实证 |
 | UI | React 19 + react-router 8 | FitFlow 已实证 |
 | 存储 | Dexie 4 over IndexedDB | FitFlow 已实证 |
-| PWA | vite-plugin-pwa 1.3（Workbox，`autoUpdate`） | FitFlow 已实证 |
+| PWA | vite-plugin-pwa 1.3（Workbox，提示更新） | FitFlow 已实证 |
 | 后端代理 | Node 原生 `http`，独立进程，无框架 | FitFlow 已实证 |
 | AI | DeepSeek OpenAI 兼容接口（`https://api.deepseek.com`，`deepseek-flash`） | 官方文档已核对，见 §5 |
 
@@ -48,6 +48,7 @@ mistakes       id, knowledgeId, courseId, itemId, reason, createdAt
 historyDays    id, dayNumber, topic, source, evidence(studied|listed_only), answerCount, confirmed
 studyDays      dateKey(主键), seconds, coursesCompleted, firstActiveAt
 aiUsage        id, dateKey, kind, model, tokensIn, tokensOut, status, costEstimate
+pendingAi      id, courseId, moduleId, questionId, answer, status(pending|failed), createdAt
 settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedAt
 ```
 
@@ -70,11 +71,11 @@ settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedA
 - 已掌握：学习中连续答对 3 次进入；连续答错 2 次才回落。
 - 间隔：1 → 3 → 7 天（学习中），已掌握 14 天；答错次日复习。
 - 实现为纯函数 `src/services/reviewRules.ts`，多日行为由单元测试固定。
-- 已知缺口：题目尚无知识点映射，普通课程作答不驱动状态更新，只有复习练习会。
+- 题目通过 `knowledgeIds` 关联知识点；课程作答与复习练习都会更新状态。
 - 客观题：本地比对，纯函数，`utils/` 内实现，可单测。
 - 开放题：P1 显示“待批改”；P2 由代理批改，返回 `correct | partial | uncertain`，`uncertain` 显示“暂无法判断”。
-- 代理接口（已实现，默认 mock）：`POST /api/course/generate`、`POST /api/grade`、`POST /api/tutor`、`GET /health`。
-- 代理约束（已实现）：CORS 白名单、64KB 请求体上限、30s 超时、失败重试 1 次、每分钟限流、并发上限、结构化日志（不记录密钥与作答内容）、请求参数逐项限长。
+- 代理接口（已实现，默认 mock）：`POST /api/course/generate`、`POST /api/grade`、`POST /api/tutor`、`POST /api/drill`、`GET /health`。
+- 代理约束（已实现）：CORS 白名单（`ALLOWED_ORIGINS`，部署时必须加入实际站点来源）、64KB 请求体上限、30s 超时、失败重试 1 次、每分钟限流、并发上限、结构化日志（不记录密钥与作答内容）、请求参数逐项限长。
 - 密钥只在后端进程环境变量；前端仅持有公开 API 地址。
 - 去重（已实现）：前端按请求键单飞合并；服务端按 `Idempotency-Key` 缓存 10 分钟；课程写入使用确定性 id `ai-<课号>`，重复保存返回已有课程。
 - 预算（已实现，进程内）：每日请求数与 token 上限，超限返回 402；本地 `aiUsage` 表持久记录本机用量。进程重启后服务端计数清零。
@@ -89,11 +90,13 @@ settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedA
   - 已用真实密钥验证：生成、批改、提问均成功；样本 token 与耗时见 `PROGRESS.md`。
   - 课程 JSON 输出较长，`AI_MAX_OUTPUT_TOKENS` 默认 6000；`finish_reason=length` 视为失败。
 
-## 6. PWA
+## 6. PWA（已实现，实机待验收）
 
-- precache：HTML、JS、CSS、图标、字体；**不缓存** API 响应。
-- `autoUpdate` 存在“页面打开期间被新版本接管”的风险，P5 必须实测数据库与未保存答案是否受影响；必要时改为提示更新。
-- 离线：已缓存课程可打开与作答；AI 请求进入待处理队列，联网后继续。
+- DB v3：新增 `pendingAi` 队列表；备份升到 v3，仍接受 v1 / v2。
+- precache：HTML、JS、CSS、PNG / SVG 图标、字体；**不缓存** API 响应。
+- 更新策略：`registerType: 'prompt'`。新版本就绪时顶部显示“有新版本可用”，用户点击后才重载，避免页面打开期间被接管。
+- 图标：`icon-192.png`、`icon-512.png`（含 maskable）；manifest 使用 PNG，兼容 iOS 主屏图标。
+- 离线：应用外壳由 Service Worker 提供；课程与作答数据在 IndexedDB，可离线打开与作答。AI 批改在断网或超时时写入 `pendingAi`，启动或恢复联网时自动重试，设置页可手动“立即处理”。
 - iOS Safari 存储可能被系统回收，因此提供手动导出备份与提醒文案。
 
 ## 7. 备份与恢复
@@ -104,7 +107,7 @@ settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedA
 2. 导入时逐字段校验，再校验主键唯一与引用完整。
 3. 恢复在**单个读写事务**内清空并写入，失败整体回滚。
 4. 恢复前自动导出当前数据为“恢复前备份”。
-5. 版本升级路径在 `parseBackup` 内归一化旧版本。
+5. 版本升级路径在 `parseBackup` 内归一化旧版本；v3 新增待批改队列，v2 / v1 导入时补空表。
 
 ## 8. 已知风险
 

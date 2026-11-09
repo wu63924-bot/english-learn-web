@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { AppShell } from './components/AppShell';
 import { ErrorState, LoadingState } from './components/UI';
 import { initializeDatabase } from './db/seed';
+import { processPendingGrades } from './services/aiQueue';
 import { TodayPage } from './pages/TodayPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { RecordsPage } from './pages/RecordsPage';
@@ -18,11 +19,22 @@ function App() {
 
   useEffect(() => {
     void initializeDatabase()
-      .then(() => setState('ready'))
+      .then(() => {
+        setState('ready');
+        void processPendingGrades();
+      })
       .catch(reason => {
         setMessage(reason instanceof Error ? reason.message : '未知错误');
         setState('error');
       });
+  }, []);
+
+  useEffect(() => {
+    const onOnline = () => {
+      void processPendingGrades();
+    };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
   }, []);
 
   if (state === 'loading') return <div className="app-shell"><LoadingState /></div>;
