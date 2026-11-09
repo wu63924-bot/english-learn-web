@@ -22,3 +22,11 @@ export function Card({ title, children }: { title?: string; children: ReactNode 
 export function Notice({ children }: { children: ReactNode }) {
   return <p className="notice">{children}</p>;
 }
+
+export function LoadingState() {
+  return <div className="loading-state"><span className="spinner" aria-hidden="true" />正在打开本地数据…</div>;
+}
+
+export function ErrorState({ message }: { message: string }) {
+  return <div className="card error-state">{message}</div>;
+}

@@ -1,7 +1,9 @@
-import { StrictMode } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { AppShell } from './components/AppShell';
+import { ErrorState, LoadingState } from './components/UI';
+import { initializeDatabase } from './db/seed';
 import { TodayPage } from './pages/TodayPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { RecordsPage } from './pages/RecordsPage';
@@ -9,6 +11,21 @@ import { SettingsPage } from './pages/SettingsPage';
 import './styles.css';
 
 function App() {
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    void initializeDatabase()
+      .then(() => setState('ready'))
+      .catch(reason => {
+        setMessage(reason instanceof Error ? reason.message : '未知错误');
+        setState('error');
+      });
+  }, []);
+
+  if (state === 'loading') return <div className="app-shell"><LoadingState /></div>;
+  if (state === 'error') return <div className="app-shell"><ErrorState message={`无法打开本地数据库：${message}`} /></div>;
+
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AppShell>
