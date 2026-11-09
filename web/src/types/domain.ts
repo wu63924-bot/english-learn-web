@@ -138,11 +138,14 @@ export interface ReviewItem {
 
 export interface Mistake {
   id: string;
-  knowledgeId: string;
   courseId: string;
+  moduleId: string;
   questionId: string;
+  knowledgeId?: string;
+  wrongValue: string;
   reason: string;
   createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface StudyDay {
@@ -175,4 +178,24 @@ export interface AppSettings {
   dailyGoalMinutes?: number;
   aiDailyBudget?: number;
   updatedAt: Timestamp;
+}
+
+export interface BackupData {
+  courses: Course[];
+  courseModules: CourseModule[];
+  answers: AnswerRecord[];
+  grades: Grade[];
+  knowledge: KnowledgePoint[];
+  reviews: ReviewItem[];
+  mistakes: Mistake[];
+  studyDays: StudyDay[];
+  aiUsage: AiUsageRecord[];
+  settings: AppSettings[];
+}
+
+export interface BackupFile {
+  app: string;
+  version: number;
+  exportedAt: string;
+  data: BackupData;
 }

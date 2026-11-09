@@ -61,4 +61,12 @@ describe('course repository', () => {
     await completeCourse('sample-1');
     expect((await db.courses.get('sample-1'))?.completedDate).toBe(todayKey());
   });
+
+  it('keeps an unfinished course across days', async () => {
+    const started = await startCourse('sample-1');
+    await db.courses.put({ ...started!, startedDate: '2026-01-01' });
+    const current = await getCurrentCourse();
+    expect(current?.id).toBe('sample-1');
+    expect(current?.startedDate).toBe('2026-01-01');
+  });
 });

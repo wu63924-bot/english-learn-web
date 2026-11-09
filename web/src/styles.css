@@ -539,6 +539,132 @@ button {
   font-size: 0.8rem;
 }
 
+.course-stats {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.record-list,
+.mistake-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.record-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.record-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.record-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.record-title {
+  font-size: 0.94rem;
+}
+
+.record-title .badge {
+  margin-left: 8px;
+}
+
+.record-meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.record-item:hover .record-title {
+  color: var(--accent);
+}
+
+.mistake-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.mistake-item:last-child {
+  border-bottom: 0;
+}
+
+.mistake-prompt {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.mistake-answer {
+  margin: 2px 0;
+  color: #8b4539;
+  font-size: 0.85rem;
+}
+
+.mistake-answer.correct {
+  color: #215f3f;
+}
+
+.mistake-source {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.button-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.button-row .ghost-button {
+  flex: 1;
+}
+
+.button-row .primary-button {
+  flex: 1;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.restore-panel {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--accent-pale);
+}
+
+.restore-title {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.restore-panel .muted {
+  margin-bottom: 8px;
+}
+
+.status-text {
+  margin: 12px 0 0;
+  color: #215f3f;
+  font-size: 0.85rem;
+}
+
 .word-card {
   padding: 24px 20px;
 }

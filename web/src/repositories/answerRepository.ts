@@ -43,20 +43,35 @@ export interface SaveGradedAnswerInput extends SaveAnswerInput {
   knowledgeIds?: string[];
 }
 
-/** Saves the answer and its local grade in one transaction. */
+/** Saves the answer and its local grade in one transaction. Wrong answers enter the mistake list; a correct answer clears the old mistake. */
 export async function saveGradedAnswer(input: SaveGradedAnswerInput): Promise<{ answer: AnswerRecord; grade: Grade }> {
   const answer = recordOf(input);
+  const now = Date.now();
   const grade: Grade = {
     id: gradeRecordId(answer.id),
     answerId: answer.id,
     status: input.status,
     source: 'local',
-    gradedAt: Date.now(),
+    gradedAt: now,
     knowledgeIds: input.knowledgeIds ?? []
   };
-  await db.transaction('rw', [db.answers, db.grades], async () => {
+  await db.transaction('rw', [db.answers, db.grades, db.mistakes], async () => {
     await db.answers.put(answer);
     await db.grades.put(grade);
+    if (input.status === 'incorrect') {
+      await db.mistakes.put({
+        id: answer.id,
+        courseId: answer.courseId,
+        moduleId: answer.moduleId,
+        questionId: answer.questionId,
+        wrongValue: input.value,
+        reason: '作答错误',
+        createdAt: now,
+        updatedAt: now
+      });
+    } else {
+      await db.mistakes.delete(answer.id);
+    }
   });
   return { answer, grade };
 }

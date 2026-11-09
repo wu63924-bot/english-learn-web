@@ -20,11 +20,15 @@ FitFlow（`C:\Users\wy\Documents\ChatGPT\健身小程序`）为只读参考实�
 
 ## 运行
 
-P1 建立工程后补充。计划命令（尚未存在）：
+在 `web/` 目录：
 
 ```sh
 npm install
-npm run dev
-npm run typecheck
-npm run build
+npm run dev          # 本地开发，默认 http://localhost:5173/
+npm run typecheck    # 类型检查
+npm test             # Vitest（数据库、判分、备份、学习日）
+npm run build        # 生产构建，输出 dist/
+npm run preview      # 预览构建结果
 ```
+
+数据保存在浏览器 IndexedDB（`EnglishLearnDB`）。换浏览器、换端口或清理站点数据前，先在“设置 → 导出备份”保存 JSON。

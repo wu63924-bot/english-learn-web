@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Badge, Card, ErrorState, LoadingState, Notice, PageHeader } from '../components/UI';
 import { getCourseModules, getCurrentCourse, startCourse } from '../repositories/courseRepository';
+import { getStudySummary } from '../repositories/studyRepository';
+import type { StudySummary } from '../repositories/studyRepository';
 import type { Course, CourseModule } from '../types/domain';
 import { moduleLabels, moduleProgress, moduleStatusLabels } from '../utils/course';
 
@@ -11,6 +13,7 @@ export function TodayPage() {
   const [error, setError] = useState('');
   const [course, setCourse] = useState<Course>();
   const [modules, setModules] = useState<CourseModule[]>([]);
+  const [summary, setSummary] = useState<StudySummary>({ todaySeconds: 0, todayMinutes: 0, activeDays: 0 });
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
@@ -18,10 +21,14 @@ export function TodayPage() {
     void (async () => {
       try {
         const current = await getCurrentCourse();
-        const list = current ? await getCourseModules(current.id) : [];
+        const [list, study] = await Promise.all([
+          current ? getCourseModules(current.id) : Promise.resolve([]),
+          getStudySummary()
+        ]);
         if (!active) return;
         setCourse(current);
         setModules(list);
+        setSummary(study);
       } catch (reason) {
         if (active) setError(reason instanceof Error ? reason.message : '读取课程失败');
       } finally {
@@ -77,6 +84,10 @@ export function TodayPage() {
         <h2 className="course-title">{course.title}</h2>
         <p className="course-topic">{course.topic}</p>
         <p className="course-goal">目标：{course.goal}</p>
+        <p className="course-stats">
+          今日已学 {summary.todaySeconds === 0 ? '0 分钟' : summary.todayMinutes < 1 ? '不到 1 分钟' : `${summary.todayMinutes} 分钟`}
+          {' · '}有效学习 {summary.activeDays} 天
+        </p>
       </section>
 
       <Card title="模块进度">

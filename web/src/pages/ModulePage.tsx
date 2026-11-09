@@ -6,6 +6,8 @@ import { GrammarModule } from '../components/GrammarModule';
 import { ReadingModule } from '../components/ReadingModule';
 import { ReviewModule } from '../components/ReviewModule';
 import { completeCourse, getCourse, getCourseModule, getCourseModules, updateModuleStatus } from '../repositories/courseRepository';
+import { addCompletedCourse, addStudySeconds } from '../repositories/studyRepository';
+import { useStudyTimer } from '../hooks/useStudyTimer';
 import type { Course, CourseModule, ModuleKind } from '../types/domain';
 import { isModuleKind, moduleLabels, moduleOrder } from '../utils/course';
 
@@ -18,6 +20,7 @@ export function ModulePage() {
   const [module, setModule] = useState<CourseModule>();
   const [busy, setBusy] = useState(false);
   const validKind: ModuleKind | undefined = isModuleKind(kind) ? kind : undefined;
+  useStudyTimer(Boolean(module));
 
   useEffect(() => {
     let active = true;
@@ -63,9 +66,14 @@ export function ModulePage() {
     if (!module || busy) return;
     setBusy(true);
     try {
+      const wasGraded = module.status === 'graded';
       await updateModuleStatus(module.id, 'graded');
+      if (!wasGraded) await addStudySeconds(0, 1);
       const modules = await getCourseModules(module.courseId);
-      if (modules.every(item => item.status === 'graded')) await completeCourse(module.courseId);
+      if (modules.every(item => item.status === 'graded')) {
+        await completeCourse(module.courseId);
+        await addCompletedCourse();
+      }
       navigate(`/course/${module.courseId}`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '保存模块状态失败');
