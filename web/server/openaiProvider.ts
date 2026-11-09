@@ -94,8 +94,16 @@ export class OpenAiProvider implements AiProvider {
       if (choice?.finish_reason === 'length') {
         throw new ApiError('AI_BAD_RESPONSE', 'AI 输出被截断，请提高 AI_MAX_OUTPUT_TOKENS');
       }
+      let parsed: unknown;
+      try {
+        parsed = extractJson(content);
+      } catch (reason) {
+        // A malformed or half-closed JSON object is worth one fresh attempt.
+        if (attempt === 0) continue;
+        throw reason;
+      }
       return {
-        json: extractJson(content),
+        json: parsed,
         usage: {
           inputTokens: tokenCount(payload.usage?.prompt_tokens),
           outputTokens: tokenCount(payload.usage?.completion_tokens)

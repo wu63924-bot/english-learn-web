@@ -76,7 +76,9 @@ settings       id='app', aiBudget, currentCourseId, appVersion
   - `finish_reason=length` 视为失败并提示提高 `AI_MAX_OUTPUT_TOKENS`（默认 6000）。
   - 默认关闭思考模式（`thinking: {"type":"disabled"}`），省钱且降低延迟；思考模式会忽略 `temperature`。
   - 官方未提供严格 JSON Schema 保证，因此服务端逐字段校验仍是唯一准入。
-  - 尚未做真实调用，参数有效性待首次小样本验证。
+  - 实测：嵌套 schema 下模型会漏闭合括号，已改为扁平 schema；JSON 解析失败重试一次。
+  - 已用真实密钥验证：生成、批改、提问均成功；样本 token 与耗时见 `PROGRESS.md`。
+  - 课程 JSON 输出较长，`AI_MAX_OUTPUT_TOKENS` 默认 6000；`finish_reason=length` 视为失败。
 
 ## 6. PWA
 

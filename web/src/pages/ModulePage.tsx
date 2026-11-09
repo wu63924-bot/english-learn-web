@@ -126,7 +126,17 @@ export function ModulePage() {
         />
       )}
 
-      <TutorPanel context={`第 ${course.number} 课《${course.title}》· ${moduleLabels[module.kind]}`} />
+      <TutorPanel context={tutorContext(course, module)} />
     </>
   );
+}
+
+function tutorContext(course: Course, module: CourseModule): string {
+  const head = `第 ${course.number} 课《${course.title}》· ${moduleLabels[module.kind]}`;
+  const content = module.content;
+  let detail = '';
+  if ('passage' in content) detail = content.passage;
+  else if ('sections' in content) detail = content.sections.map(section => `${section.title}：${section.body}`).join('\n');
+  else if ('words' in content) detail = content.words.map(word => `${word.term}：${word.meanings.join('；')}`).join('\n');
+  return `${head}\n${detail}`.trim().slice(0, 1500);
 }

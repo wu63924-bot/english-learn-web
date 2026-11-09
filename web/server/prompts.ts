@@ -15,22 +15,16 @@ const COURSE_SCHEMA = `{
   "words": [
     { "term": "英文单词或短语", "phonetic": "国际音标，含斜杠", "meanings": ["词性与中文释义"], "example": "英文例句", "exampleTranslation": "中文译文" }
   ],
-  "grammar": {
-    "sections": [{ "title": "要点标题", "body": "中文讲解，2-4 句" }],
-    "questions": [{ "kind": "choice", "prompt": "题干", "options": ["选项A","选项B","选项C","选项D"], "answerIndex": 0, "explanation": "中文解析" }]
-  },
-  "reading": {
-    "passage": "英文短文，90-140 词",
-    "passageTranslation": "中文译文",
-    "questions": [
-      { "kind": "choice", "prompt": "英文题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析" },
-      { "kind": "translate", "prompt": "把这句话译成中文：……", "reference": "参考译文", "keyPoints": ["要点1","要点2"] }
-    ]
-  },
-  "review": {
-    "knowledgeLabels": ["本节知识点，中文短句"],
-    "questions": [{ "kind": "choice", "prompt": "题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析" }]
-  }
+  "grammarSections": [{ "title": "要点标题", "body": "中文讲解，2-4 句" }],
+  "grammarQuestions": [{ "kind": "choice", "prompt": "题干", "options": ["选项A","选项B","选项C","选项D"], "answerIndex": 0, "explanation": "中文解析" }],
+  "passage": "英文短文，90-140 词",
+  "passageTranslation": "中文译文",
+  "readingQuestions": [
+    { "kind": "choice", "prompt": "英文题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析" },
+    { "kind": "translate", "prompt": "把这句话译成中文：……", "reference": "参考译文", "keyPoints": ["要点1","要点2"] }
+  ],
+  "knowledgeLabels": ["本节知识点，中文短句"],
+  "reviewQuestions": [{ "kind": "choice", "prompt": "题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析" }]
 }`;
 
 export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
@@ -42,11 +36,13 @@ export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
     '',
     '硬性要求：',
     '- words 恰好 5 个，音标用国际音标并带斜杠，例句难度与等级匹配；',
-    '- grammar.sections 2 段，grammar.questions 4 道单选题，每题 4 个选项，answerIndex 是正确选项下标（0-3）；',
-    '- reading.passage 90-140 词，配中文译文；reading.questions 包含 1 道选择题和 1 道翻译题；',
-    '- review.knowledgeLabels 3 条，review.questions 2 道单选题，覆盖本节知识点；',
+    '- grammarSections 2 段，grammarQuestions 4 道单选题，每题 4 个选项，answerIndex 是正确选项下标（0-3）；',
+    '- passage 90-140 词，配中文译文；readingQuestions 包含 1 道选择题和 1 道翻译题；',
+    '- knowledgeLabels 3 条，reviewQuestions 2 道单选题，覆盖本节知识点；',
     '- 所有题目只有一个明确正确答案，解析说明原因，不要出现歧义或超出本课内容的题；',
-    '- 不要输出 id 字段，服务器会统一生成。',
+    '- 不要输出 id 字段，服务器会统一生成；',
+    '- 所有字段扁平放在顶层，不要额外嵌套对象；',
+    '- 必须输出完整且可解析的 JSON：每个 { 和 [ 都要有对应的 } 和 ]，不要在末尾截断。',
     '',
     '输出 JSON 结构：',
     COURSE_SCHEMA

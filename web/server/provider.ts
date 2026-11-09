@@ -69,9 +69,13 @@ export interface RawCourse {
   goal: string;
   level?: string;
   words: { term: string; phonetic?: string; meanings: string[]; example: string; exampleTranslation: string }[];
-  grammar: { sections: { title: string; body: string }[]; questions: RawQuestion[] };
-  reading: { passage: string; passageTranslation?: string; questions: RawQuestion[] };
-  review: { knowledgeLabels: string[]; questions: RawQuestion[] };
+  grammarSections: { title: string; body: string }[];
+  grammarQuestions: RawQuestion[];
+  passage: string;
+  passageTranslation?: string;
+  readingQuestions: RawQuestion[];
+  knowledgeLabels: string[];
+  reviewQuestions: RawQuestion[];
 }
 
 export interface TokenUsage {

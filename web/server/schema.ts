@@ -162,31 +162,29 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
     });
   });
 
-  const grammar = raw.grammar;
-  if (!grammar || typeof grammar !== 'object' || !Array.isArray(grammar.sections) || grammar.sections.length < 1 || grammar.sections.length > LIMITS.sections) badOutput();
-  if (!Array.isArray(grammar.questions) || grammar.questions.length < 2 || grammar.questions.length > LIMITS.questions) badOutput();
-  const grammarSections = grammar.sections.map(section => {
+  const grammarSectionsRaw = raw.grammarSections;
+  if (!Array.isArray(grammarSectionsRaw) || grammarSectionsRaw.length < 1 || grammarSectionsRaw.length > LIMITS.sections) badOutput();
+  if (!Array.isArray(raw.grammarQuestions) || raw.grammarQuestions.length < 2 || raw.grammarQuestions.length > LIMITS.questions) badOutput();
+  const grammarSections = grammarSectionsRaw.map(section => {
     if (!section || typeof section !== 'object') badOutput();
     const item = section as Record<string, unknown>;
     return { title: text(item.title, '语法标题', 60, false), body: text(item.body, '语法讲解', 600, false) };
   });
-  const grammarQuestions = grammar.questions.map((question, index) => {
+  const grammarQuestions = raw.grammarQuestions.map((question, index) => {
     const normalized = rawQuestion(question, `${prefix}-gq${index + 1}`, false);
     if (normalized.kind !== 'choice') badOutput();
     return normalized;
   });
 
-  const reading = raw.reading;
-  if (!reading || typeof reading !== 'object' || !Array.isArray(reading.questions)) badOutput();
-  if (reading.questions.length < 1 || reading.questions.length > LIMITS.questions) badOutput();
-  const readingQuestions = reading.questions.map((question, index) =>
+  if (!Array.isArray(raw.readingQuestions)) badOutput();
+  if (raw.readingQuestions.length < 1 || raw.readingQuestions.length > LIMITS.questions) badOutput();
+  const readingQuestions = raw.readingQuestions.map((question, index) =>
     rawQuestion(question, `${prefix}-rq${index + 1}`, true));
 
-  const review = raw.review;
-  if (!review || typeof review !== 'object' || !Array.isArray(review.questions) || !Array.isArray(review.knowledgeLabels)) badOutput();
-  if (review.questions.length < 1 || review.questions.length > LIMITS.questions) badOutput();
-  if (review.knowledgeLabels.length < 1 || review.knowledgeLabels.length > LIMITS.words) badOutput();
-  const reviewQuestions = review.questions.map((question, index) =>
+  if (!Array.isArray(raw.reviewQuestions) || !Array.isArray(raw.knowledgeLabels)) badOutput();
+  if (raw.reviewQuestions.length < 1 || raw.reviewQuestions.length > LIMITS.questions) badOutput();
+  if (raw.knowledgeLabels.length < 1 || raw.knowledgeLabels.length > LIMITS.words) badOutput();
+  const reviewQuestions = raw.reviewQuestions.map((question, index) =>
     rawQuestion(question, `${prefix}-vq${index + 1}`, true));
 
   return {
@@ -197,10 +195,10 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
     words,
     grammarSections,
     grammarQuestions,
-    passage: text(reading.passage, '短文', 4000, false),
-    passageTranslation: optionalText(reading.passageTranslation, 4000, false),
+    passage: text(raw.passage, '短文', 4000, false),
+    passageTranslation: optionalText(raw.passageTranslation, 4000, false),
     readingQuestions,
-    knowledgeLabels: review.knowledgeLabels.map(label => text(label, '知识点', 80, false)),
+    knowledgeLabels: raw.knowledgeLabels.map(label => text(label, '知识点', 80, false)),
     reviewQuestions
   };
 }

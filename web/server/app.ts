@@ -60,6 +60,8 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotency-Key');
         res.setHeader('Access-Control-Max-Age', '600');
+        status = 204;
+        code = 'PREFLIGHT';
         res.writeHead(204).end();
         return;
       }
