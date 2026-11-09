@@ -11,6 +11,12 @@ export function gradeRecordId(answerId: string): string {
   return `grade:${answerId}`;
 }
 
+/** The module with the most recent saved answer, used to resume where the user left off. */
+export async function getLastAnsweredModuleId(courseId: string): Promise<string | undefined> {
+  const records = await db.answers.where('courseId').equals(courseId).toArray();
+  return records.sort((a, b) => b.updatedAt - a.updatedAt)[0]?.moduleId;
+}
+
 export interface SaveAnswerInput {
   courseId: string;
   moduleId: string;

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Badge, Card, ErrorState, LoadingState, Notice, PageHeader } from '../components/UI';
 import { getCourseModules, getCurrentCourse, startCourse } from '../repositories/courseRepository';
+import { getLastAnsweredModuleId } from '../repositories/answerRepository';
 import { getStudySummary } from '../repositories/studyRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
 import { generateCourse } from '../services/aiClient';
@@ -92,7 +93,9 @@ export function TodayPage() {
     setStarting(true);
     try {
       await startCourse(course.id);
-      const resumed = modules.find(module => module.status === 'draft' || module.status === 'answered');
+      const lastModuleId = await getLastAnsweredModuleId(course.id);
+      const resumed = modules.find(module => module.id === lastModuleId)
+        ?? modules.find(module => module.status === 'draft' || module.status === 'answered');
       const nextModule = resumed ?? modules.find(module => module.status !== 'graded') ?? modules[0];
       navigate(nextModule ? `/course/${course.id}/module/${nextModule.kind}` : `/course/${course.id}`);
     } catch (reason) {
