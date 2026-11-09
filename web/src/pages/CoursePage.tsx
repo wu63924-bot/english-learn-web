@@ -81,7 +81,7 @@ export function CoursePage() {
         </ol>
       </Card>
 
-      <Notice>模块作答界面将在下一步接入。当前进度已保存，刷新后仍会回到这节课。</Notice>
+      <Notice>单词与语法已完成；阅读与翻译、巩固复习界面将在下一步接入。当前进度已保存，刷新后仍会回到这节课。</Notice>
     </>
   );
 }

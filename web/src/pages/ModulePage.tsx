@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Card, ErrorState, LoadingState } from '../components/UI';
 import { WordModule } from '../components/WordModule';
+import { GrammarModule } from '../components/GrammarModule';
 import { getCourse, getCourseModule, updateModuleStatus } from '../repositories/courseRepository';
 import type { Course, CourseModule, ModuleKind } from '../types/domain';
 import { isModuleKind, moduleLabels, moduleOrder } from '../utils/course';
@@ -56,7 +57,7 @@ export function ModulePage() {
 
   const order = moduleOrder.indexOf(module.kind) + 1;
 
-  async function handleFinishWord() {
+  async function completeModule() {
     if (!module || busy) return;
     setBusy(true);
     try {
@@ -84,11 +85,19 @@ export function ModulePage() {
           module={module as CourseModule<'word'>}
           alreadyDone={module.status === 'graded'}
           busy={busy}
-          onFinish={handleFinishWord}
+          onFinish={completeModule}
         />
       )}
 
-      {module.kind !== 'word' && (
+      {module.kind === 'grammar' && (
+        <GrammarModule
+          module={module as CourseModule<'grammar'>}
+          onFinish={completeModule}
+          finishing={busy}
+        />
+      )}
+
+      {module.kind !== 'word' && module.kind !== 'grammar' && (
         <Card>
           <p className="muted">{moduleLabels[module.kind]}界面将在下一步接入。</p>
           <button type="button" className="ghost-button" onClick={() => navigate(`/course/${course.id}`)}>回到课程</button>
