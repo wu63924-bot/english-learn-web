@@ -24,7 +24,8 @@ function payload(title: string): GeneratedCoursePayload {
         prompt: 'She ___ every day.',
         options: [{ id: 'gq1-o0', label: 'test' }, { id: 'gq1-o1', label: 'tests' }],
         answerId: 'gq1-o1',
-        explanation: '第三人称单数。'
+        explanation: '第三人称单数。',
+        knowledgeIndex: 0
       },
       {
         kind: 'choice',
@@ -32,7 +33,8 @@ function payload(title: string): GeneratedCoursePayload {
         prompt: 'They ___ here.',
         options: [{ id: 'gq2-o0', label: 'work' }, { id: 'gq2-o1', label: 'works' }],
         answerId: 'gq2-o0',
-        explanation: '复数用原形。'
+        explanation: '复数用原形。',
+        knowledgeIndex: 1
       }
     ],
     passage: 'This is a test passage for the generated course.',
@@ -82,6 +84,11 @@ describe('generated course import', () => {
     expect(knowledge.map(point => point.id).sort()).toEqual(['ai-3-k1', 'ai-3-k2']);
     const review = modules.find(module => module.kind === 'review');
     expect(review && 'knowledgeIds' in review.content ? review.content.knowledgeIds : []).toEqual(['ai-3-k1', 'ai-3-k2']);
+
+    const grammar = modules.find(module => module.kind === 'grammar');
+    const grammarQuestions = grammar && 'questions' in grammar.content ? grammar.content.questions : [];
+    expect(grammarQuestions.map(question => question.knowledgeIds)).toEqual([['ai-3-k1'], ['ai-3-k2']]);
+    expect(grammarQuestions.every(question => question.knowledgeIndex === undefined)).toBe(true);
   });
 
   it('returns the stored course instead of creating a duplicate', async () => {

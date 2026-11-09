@@ -1,5 +1,5 @@
 import { db } from '../db/db';
-import type { Course, CourseModule, KnowledgePoint } from '../types/domain';
+import type { Course, CourseModule, KnowledgePoint, Question } from '../types/domain';
 import type { GeneratedCoursePayload } from './coursePayload';
 
 export async function nextCourseNumber(): Promise<number> {
@@ -59,7 +59,7 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
         kind: 'grammar',
         order: 2,
         status: 'todo',
-        content: { sections: payload.grammarSections, questions: payload.grammarQuestions }
+        content: { sections: payload.grammarSections, questions: withKnowledge(payload.grammarQuestions, id) }
       },
       {
         id: `${id}-reading`,
@@ -70,7 +70,7 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
         content: {
           passage: payload.passage,
           passageTranslation: payload.passageTranslation,
-          questions: payload.readingQuestions
+          questions: withKnowledge(payload.readingQuestions, id)
         }
       },
       {
@@ -79,7 +79,7 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
         kind: 'review',
         order: 4,
         status: 'todo',
-        content: { knowledgeIds: knowledge.map(point => point.id), questions: payload.reviewQuestions }
+        content: { knowledgeIds: knowledge.map(point => point.id), questions: withKnowledge(payload.reviewQuestions, id) }
       }
     ];
 
@@ -87,5 +87,16 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
     await db.courseModules.bulkPut(modules);
     await db.knowledge.bulkPut(knowledge);
     return { course, existing: false };
+  });
+}
+
+/** Maps the AI's knowledge index to the knowledge ids created for this course. */
+function withKnowledge<Q extends Question>(questions: Q[], courseId: string): Q[] {
+  return questions.map(question => {
+    const index = question.knowledgeIndex;
+    const clone = { ...question };
+    delete (clone as { knowledgeIndex?: number }).knowledgeIndex;
+    if (index !== undefined) clone.knowledgeIds = [`${courseId}-k${index + 1}`];
+    return clone;
   });
 }

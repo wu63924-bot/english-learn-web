@@ -111,13 +111,17 @@ function rawChoice(value: Record<string, unknown>, prefix: string): ChoiceQuesti
     id: `${prefix}-o${index}`,
     label: text(option, '选项', 120, false)
   }));
+  const knowledge = typeof value.knowledge === 'number' && Number.isSafeInteger(value.knowledge) && value.knowledge >= 0
+    ? value.knowledge
+    : undefined;
   return {
     kind: 'choice',
     id: prefix,
     prompt: text(value.prompt, '题目', 400, false),
     options,
     answerId: `${prefix}-o${value.answerIndex}`,
-    explanation: text(value.explanation, '解析', 600, false)
+    explanation: text(value.explanation, '解析', 600, false),
+    ...(knowledge === undefined ? {} : { knowledgeIndex: knowledge })
   };
 }
 
@@ -126,11 +130,15 @@ function rawTranslate(value: Record<string, unknown>, prefix: string): Question 
   const keyPoints = Array.isArray(value.keyPoints)
     ? value.keyPoints.slice(0, 8).map(point => text(point, '要点', 80, false))
     : undefined;
+  const knowledge = typeof value.knowledge === 'number' && Number.isSafeInteger(value.knowledge) && value.knowledge >= 0
+    ? value.knowledge
+    : undefined;
   return {
     kind: 'translate',
     id: prefix,
     prompt: text(value.prompt, '题目', 400, false),
     reference: text(value.reference, '参考译文', 600, false),
+    ...(knowledge === undefined ? {} : { knowledgeIndex: knowledge }),
     ...(keyPoints && keyPoints.length ? { keyPoints } : {})
   };
 }
@@ -188,6 +196,10 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
   if (raw.knowledgeLabels.length < 1 || raw.knowledgeLabels.length > LIMITS.words) badOutput();
   const reviewQuestions = raw.reviewQuestions.map((question, index) =>
     rawQuestion(question, `${prefix}-vq${index + 1}`, true));
+  const knowledgeLabels = raw.knowledgeLabels.map(label => text(label, '知识点', 80, false));
+  for (const question of [...grammarQuestions, ...readingQuestions, ...reviewQuestions]) {
+    if (question.knowledgeIndex !== undefined && question.knowledgeIndex >= knowledgeLabels.length) badOutput();
+  }
 
   return {
     title: text(raw.title, 'title', LIMITS.title, false),
@@ -200,7 +212,7 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
     passage: text(raw.passage, '短文', 4000, false),
     passageTranslation: optionalText(raw.passageTranslation, 4000, false),
     readingQuestions,
-    knowledgeLabels: raw.knowledgeLabels.map(label => text(label, '知识点', 80, false)),
+    knowledgeLabels,
     reviewQuestions
   };
 }

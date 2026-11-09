@@ -64,6 +64,7 @@ export interface RawChoiceQuestion {
   options: string[];
   answerIndex: number;
   explanation: string;
+  knowledge?: number;
 }
 
 export interface RawTranslateQuestion {
@@ -71,6 +72,7 @@ export interface RawTranslateQuestion {
   prompt: string;
   reference: string;
   keyPoints?: string[];
+  knowledge?: number;
 }
 
 export type RawQuestion = RawChoiceQuestion | RawTranslateQuestion;

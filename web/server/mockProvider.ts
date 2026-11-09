@@ -135,10 +135,10 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
       { title: '频率副词', body: 'always、usually、often、sometimes、never 放在实义动词之前、be 动词之后。' }
     ],
     grammarQuestions: [
-      { kind: 'choice', prompt: 'She ___ English every morning.', options: ['practice', 'practices', 'practicing', 'practiced'], answerIndex: 1, explanation: '主语 she 是第三人称单数，动词加 -s。' },
-      { kind: 'choice', prompt: 'He doesn’t ___ time for TV.', options: ['has', 'have', 'having', 'had'], answerIndex: 1, explanation: 'doesn’t 后用动词原形。' },
-      { kind: 'choice', prompt: 'I ___ review my notes before class.', options: ['always', 'am always', 'always am', 'review always'], answerIndex: 0, explanation: '频率副词放在实义动词前。' },
-      { kind: 'choice', prompt: 'They ___ study on Sundays.', options: ['don’t', 'doesn’t', 'aren’t', 'not'], answerIndex: 0, explanation: '复数主语用 don’t 加动词原形。' }
+      { kind: 'choice', prompt: 'She ___ English every morning.', options: ['practice', 'practices', 'practicing', 'practiced'], answerIndex: 1, explanation: '主语 she 是第三人称单数，动词加 -s。', knowledge: 0 },
+      { kind: 'choice', prompt: 'He doesn’t ___ time for TV.', options: ['has', 'have', 'having', 'had'], answerIndex: 1, explanation: 'doesn’t 后用动词原形。', knowledge: 0 },
+      { kind: 'choice', prompt: 'I ___ review my notes before class.', options: ['always', 'am always', 'always am', 'review always'], answerIndex: 0, explanation: '频率副词放在实义动词前。', knowledge: 1 },
+      { kind: 'choice', prompt: 'They ___ study on Sundays.', options: ['don’t', 'doesn’t', 'aren’t', 'not'], answerIndex: 0, explanation: '复数主语用 don’t 加动词原形。', knowledge: 0 }
     ],
     passage: 'Mia practices English for twenty minutes every morning. She usually reads a short article and writes down three new words. Before class, she reviews her notes for five minutes. She does not study for long hours; instead, she keeps a steady habit. On busy days, she listens to a podcast while walking to work. Her teacher says progress comes from small steps, not from one long night of study.',
     passageTranslation: '米娅每天早上练二十分钟英语。她通常读一篇短文，记下三个新词。上课前，她用五分钟复习笔记。她不会长时间学习，而是保持稳定的习惯。忙碌的日子里，她走路去上班时听播客。老师说，进步来自小步积累，而不是熬一个长夜。',
@@ -148,19 +148,21 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
         prompt: 'What does Mia usually do in the morning?',
         options: ['She writes three articles.', 'She reads and notes new words.', 'She goes to class.', 'She sleeps longer.'],
         answerIndex: 1,
-        explanation: '文中说她读一篇短文并记下三个新词。'
+        explanation: '文中说她读一篇短文并记下三个新词。',
+        knowledge: 2
       },
       {
         kind: 'translate',
         prompt: '把这句话译成中文：Progress comes from small steps, not from one long night of study.',
         reference: '进步来自小步积累，而不是熬一个长夜学习。',
-        keyPoints: ['progress 进步', 'small steps 小步', 'not from 而不是']
+        keyPoints: ['progress 进步', 'small steps 小步', 'not from 而不是'],
+        knowledge: 2
       }
     ],
     knowledgeLabels: ['一般现在时第三人称单数', '频率副词的位置', '保持稳定的学习习惯'],
     reviewQuestions: [
-      { kind: 'choice', prompt: 'She ___ a podcast every day.', options: ['listen', 'listens', 'listening', 'listened'], answerIndex: 1, explanation: '第三人称单数用 listens。' },
-      { kind: 'choice', prompt: 'We ___ study for long hours.', options: ['don’t', 'doesn’t', 'aren’t', 'not'], answerIndex: 0, explanation: '复数主语用 don’t。' }
+      { kind: 'choice', prompt: 'She ___ a podcast every day.', options: ['listen', 'listens', 'listening', 'listened'], answerIndex: 1, explanation: '第三人称单数用 listens。', knowledge: 0 },
+      { kind: 'choice', prompt: 'We ___ study for long hours.', options: ['don’t', 'doesn’t', 'aren’t', 'not'], answerIndex: 0, explanation: '复数主语用 don’t。', knowledge: 0 }
     ]
   };
 }

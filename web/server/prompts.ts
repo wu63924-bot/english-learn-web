@@ -16,15 +16,15 @@ const COURSE_SCHEMA = `{
     { "term": "英文单词或短语", "phonetic": "国际音标，含斜杠", "meanings": ["词性与中文释义"], "example": "英文例句", "exampleTranslation": "中文译文" }
   ],
   "grammarSections": [{ "title": "要点标题", "body": "中文讲解，2-4 句" }],
-  "grammarQuestions": [{ "kind": "choice", "prompt": "题干", "options": ["选项A","选项B","选项C","选项D"], "answerIndex": 0, "explanation": "中文解析" }],
+  "grammarQuestions": [{ "kind": "choice", "prompt": "题干", "options": ["选项A","选项B","选项C","选项D"], "answerIndex": 0, "explanation": "中文解析", "knowledge": 0 }],
   "passage": "英文短文，90-140 词",
   "passageTranslation": "中文译文",
   "readingQuestions": [
-    { "kind": "choice", "prompt": "英文题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析" },
-    { "kind": "translate", "prompt": "把这句话译成中文：……", "reference": "参考译文", "keyPoints": ["要点1","要点2"] }
+    { "kind": "choice", "prompt": "英文题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析", "knowledge": 1 },
+    { "kind": "translate", "prompt": "把这句话译成中文：……", "reference": "参考译文", "keyPoints": ["要点1","要点2"], "knowledge": 1 }
   ],
   "knowledgeLabels": ["本节知识点，中文短句"],
-  "reviewQuestions": [{ "kind": "choice", "prompt": "题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析" }]
+  "reviewQuestions": [{ "kind": "choice", "prompt": "题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析", "knowledge": 2 }]
 }`;
 
 export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
@@ -40,6 +40,7 @@ export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
     '- passage 90-140 词，配中文译文；readingQuestions 包含 1 道选择题和 1 道翻译题；',
     '- knowledgeLabels 3 条，reviewQuestions 2 道单选题，覆盖本节知识点；',
     '- 所有题目只有一个明确正确答案，解析说明原因，不要出现歧义或超出本课内容的题；',
+    '- 每道题带 "knowledge" 字段：它是 knowledgeLabels 的下标（0 开始），表示这道题考哪个知识点；',
     '- 不要输出 id 字段，服务器会统一生成；',
     '- 所有字段扁平放在顶层，不要额外嵌套对象；',
     '- 必须输出完整且可解析的 JSON：每个 { 和 [ 都要有对应的 } 和 ]，不要在末尾截断。',

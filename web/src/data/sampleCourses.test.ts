@@ -82,4 +82,17 @@ describe('sample course data', () => {
       expect(word.exampleTranslation.trim()).not.toBe('');
     }
   });
+
+  it('maps every sample question to a knowledge point', () => {
+    for (const bundle of sampleCourseBundles) {
+      const known = new Set(bundle.knowledge.map(point => point.id));
+      for (const module of bundle.modules) {
+        if (!('questions' in module.content)) continue;
+        for (const question of module.content.questions) {
+          expect(question.knowledgeIds?.length).toBeGreaterThan(0);
+          for (const id of question.knowledgeIds ?? []) expect(known.has(id)).toBe(true);
+        }
+      }
+    }
+  });
 });

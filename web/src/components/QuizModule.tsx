@@ -4,6 +4,7 @@ import { getModuleAnswers, saveAiGrade, saveAnswer, saveGradedAnswer } from '../
 import { updateModuleStatus } from '../repositories/courseRepository';
 import { gradeAnswer } from '../services/aiClient';
 import { AiError } from '../services/aiClient';
+import { recordKnowledgeAttempt } from '../services/knowledgeUpdate';
 import { gradeChoice, gradeFill, isAnswered } from '../utils/grading';
 import { QuestionCard, type QuestionGrade } from './QuestionCard';
 
@@ -168,6 +169,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
     setGrades(current => ({ ...current, [item.id]: { status } }));
     try {
       await saveGradedAnswer({ courseId, moduleId, question: item, value: optionId, status });
+      await recordKnowledgeAttempt(item, status === 'correct' ? 'correct' : 'wrong');
       await markDraft();
     } catch (reason) {
       setErrors(current => ({ ...current, [item.id]: reason instanceof Error ? reason.message : '保存失败，请重试' }));
@@ -189,6 +191,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
     setGrades(current => ({ ...current, [item.id]: { status } }));
     try {
       await saveGradedAnswer({ courseId, moduleId, question: item, value, status });
+      await recordKnowledgeAttempt(item, status === 'correct' ? 'correct' : 'wrong');
       setSavedIds(current => new Set(current).add(item.id));
       await markDraft();
     } catch (reason) {
@@ -223,6 +226,8 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
         keyPoints: item.keyPoints
       });
       await saveAiGrade({ courseId, moduleId, question: item, value, status: result.status, feedback: result.feedback });
+      if (result.status === 'correct') await recordKnowledgeAttempt(item, 'correct');
+      else if (result.status === 'partial') await recordKnowledgeAttempt(item, 'wrong');
       setGrades(current => ({ ...current, [item.id]: { status: result.status, feedback: result.feedback } }));
       setSavedIds(current => new Set(current).add(item.id));
       await markDraft();

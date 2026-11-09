@@ -50,6 +50,9 @@ export interface ChoiceQuestion {
   options: { id: string; label: string }[];
   answerId: string;
   explanation: string;
+  knowledgeIds?: string[];
+  /** Only present in AI payloads; mapped to knowledgeIds before saving. */
+  knowledgeIndex?: number;
 }
 
 export interface FillQuestion {
@@ -58,6 +61,8 @@ export interface FillQuestion {
   prompt: string;
   answers: string[];
   explanation: string;
+  knowledgeIds?: string[];
+  knowledgeIndex?: number;
 }
 
 export interface TranslateQuestion {
@@ -66,6 +71,8 @@ export interface TranslateQuestion {
   prompt: string;
   reference: string;
   keyPoints?: string[];
+  knowledgeIds?: string[];
+  knowledgeIndex?: number;
 }
 
 export interface ModuleContentMap {
