@@ -34,7 +34,7 @@ FC 配置：
 | 项 | 值 |
 | --- | --- |
 | 运行环境 | Node 22 或 24 |
-| 启动命令 | `npm run start:api` |
+| 启动命令 | `node index.js` |
 | 监听端口 | `9000` |
 | 请求超时 | ≥ 60 秒（课程生成可能需要 10 秒以上） |
 | 最大实例数 | `1`（个人自用，控制费用与内存限流一致性） |
@@ -61,6 +61,38 @@ AI_DAILY_TOKEN_LIMIT=200000
 - 本地调试可再加 `http://localhost:5173,http://127.0.0.1:5173`。
 - 密钥只存在 FC 环境变量，不要提交到 Git，也不要写进前端变量。
 - 代理无账号鉴权。CORS 与限流只降低误用，无法阻止直接调用；公网长期使用时建议在 FC 前加访问控制，或只给自己使用的网络开放。
+
+### 自动部署（推荐）
+
+`.github/workflows/deploy-fc.yml` 在 `web/server/**`、部署脚本或 workflow 自身变化时自动构建并更新 FC 代码，不会改动 FC 的环境变量与触发器。
+
+仓库 Settings → Secrets and variables → Actions：
+
+| 类型 | 名称 | 值 |
+| --- | --- | --- |
+| Secret | `ALIBABA_CLOUD_ACCESS_KEY_ID` | RAM 用户的 AccessKey ID |
+| Secret | `ALIBABA_CLOUD_ACCESS_KEY_SECRET` | RAM 用户的 AccessKey Secret |
+| Variable | `FC_FUNCTION_NAME` | FC 控制台里的函数名，例如 `englishenin-web` |
+| Variable | `FC_REGION` | `cn-beijing`，可省略 |
+
+RAM 用户只授予更新函数所需的最小权限：
+
+```json
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["fc:GetFunction", "fc:UpdateFunction"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+不要使用主账号 AccessKey。配置好后在 Actions 里手动运行一次 `Deploy AI proxy to Alibaba Cloud FC`，确认输出中的 `environmentPreserved` 为 `true`。
+
+首次创建函数、修改环境变量、启动命令或触发器仍需在 FC 控制台操作；自动部署只更新代码。
 
 部署后检查：
 

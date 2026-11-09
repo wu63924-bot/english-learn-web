@@ -68,6 +68,7 @@
 - AI 离线队列：批改请求遇到断网 / 超时写入 `pendingAi`，页面提示“批改已排队”；启动、恢复联网或设置页手动触发时自动重试。
 - 数据库 v3：新增 `pendingAi` 表；备份升到 v3，仍兼容 v1 / v2 并补空表。
 - 部署配置（沿用 FitFlow）：`build:github` 支持 Pages 子路径 base、`404.html` 与 `.nojekyll`；`build:api` 编译零依赖 FC 代码包到 `api-dist/server`；新增 Pages Actions workflow 与 `docs/DEPLOY.md`。
+- FC 自动部署：`.github/workflows/deploy-fc.yml` 在服务端代码变化时构建并上传代码，使用 RAM AccessKey，更新后校验环境变量未被覆盖。
 - 作答存储：确定性 id `课程:模块:题号`，同一题重复保存为覆盖；答案与批改在同一事务写入。
 - 客观题判分：`utils/grading.ts`，选择题按选项 id 比对；填空题做全半角、大小写、空格、弯引号与句末标点归一化。
 - 示例课程与知识点只在缺失时写入，重复启动不重复插入。
@@ -150,9 +151,10 @@
 
 1. 在手机与 iPad 上打开 `https://wu63924-bot.github.io/english-learn-web/`，完成安装、离线与主屏图标验收。
 2. 在线上设置页导入 Day 1–20，生成第 21 课并确认首页直接进入该课。
-3. 发布第二个版本，验证“有新版本可用 → 更新并重载”。
-4. 轮换曾在对话中暴露的 DeepSeek 密钥，并更新 FC 环境变量。
-5. 为旧课程补题目映射（可选，重新生成或一次性迁移）。
+3. 配置 FC 自动部署的 GitHub Secrets / Variables，运行一次 `Deploy AI proxy to Alibaba Cloud FC`，让 20 词版本生效。
+4. 发布第二个版本，验证“有新版本可用 → 更新并重载”。
+5. 轮换曾在对话中暴露的 DeepSeek 密钥，并更新 FC 环境变量。
+6. 为旧课程补题目映射（可选，重新生成或一次性迁移）。
 
 ## 已知问题与风险
 

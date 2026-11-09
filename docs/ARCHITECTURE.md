@@ -114,7 +114,7 @@ settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedA
 沿用 FitFlow 的两段式部署，详细步骤见 `docs/DEPLOY.md`：
 
 - 前端：GitHub Pages。`build:github` 使用 `GITHUB_PAGES_BASE`（默认 `/<仓库名>/`）生成子路径资源、`404.html` 与 `.nojekyll`；workflow 在推送 `main` 后自动发布，仓库变量名用 `PAGES_BASE`。
-- 后端：阿里云 FC 3.0 Web Function。`build:api` 把 `server/` 编译到 `api-dist/server`，只含 JS 与零依赖 `package.json`；密钥通过 FC 环境变量注入。
+- 后端：阿里云 FC 3.0 Web Function。`build:api` 把 `server/` 编译到 `api-dist/server`，只含 JS 与零依赖 `package.json`；密钥通过 FC 环境变量注入。服务端代码变化时由 `.github/workflows/deploy-fc.yml` 自动更新代码。
 - 连接：前端构建时从 `web/.env.github` 读取 `VITE_AI_API_URL`，写入 FC HTTPS 地址；代理 `ALLOWED_ORIGINS` 加入 Pages 来源。
 - 限制：代理没有账号鉴权，公网使用需要额外的访问控制。
 

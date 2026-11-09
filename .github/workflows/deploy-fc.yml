@@ -1,0 +1,66 @@
+name: Deploy AI proxy to Alibaba Cloud FC
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'web/server/**'
+      - 'web/scripts/deploy-fc.mjs'
+      - '.github/workflows/deploy-fc.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fc-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FC_REGION: ${{ vars.FC_REGION || 'cn-beijing' }}
+      FC_FUNCTION_NAME: ${{ vars.FC_FUNCTION_NAME }}
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Check configuration
+        run: |
+          if [ -z "$FC_FUNCTION_NAME" ]; then
+            echo "缺少仓库变量 FC_FUNCTION_NAME；请填写 FC 控制台里的函数名。"
+            exit 1
+          fi
+          if [ -z "$ALIBABA_CLOUD_ACCESS_KEY_ID" ] || [ -z "$ALIBABA_CLOUD_ACCESS_KEY_SECRET" ]; then
+            echo "缺少 Secrets：ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET。"
+            exit 1
+          fi
+        env:
+          ALIBABA_CLOUD_ACCESS_KEY_ID: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_ID }}
+          ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_SECRET }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build API
+        run: npm run build:api
+
+      - name: Package API
+        run: cd api-dist/server && zip -q -r ../../fc-code.zip .
+
+      - name: Deploy to FC
+        run: node scripts/deploy-fc.mjs
+        env:
+          ALIBABA_CLOUD_ACCESS_KEY_ID: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_ID }}
+          ALIBABA_CLOUD_ACCESS_KEY_SECRET: ${{ secrets.ALIBABA_CLOUD_ACCESS_KEY_SECRET }}
