@@ -100,6 +100,7 @@
 - 本地验证 Pages 构建：`GITHUB_PAGES_BASE=/english-web/ npm run build:github` 生成 `/english-web/` 资源、manifest scope、`404.html` 与 `.nojekyll`；`vite preview --mode github` 下直接打开 `/english-web/records` 正常。
 - 浏览器实测（Chrome，Pages 子路径构建）：停止静态服务器后打开 `/english-web/settings` 仍可渲染，子路径下的 Service Worker 离线外壳生效。
 - 阿里云 FC 已部署：`https://englishenin-web-dwssyeazdk.cn-beijing.fcapp.run/health` 返回 200，`provider=openai`；Pages 来源允许、其他来源 403；真实 DeepSeek 提问返回 112 输入 / 51 输出 tokens。
+- FC 自动部署已跑通：GitHub Actions `Deploy AI proxy to Alibaba Cloud FC` 成功，更新后 `environmentPreserved` 为 true；线上生成课程返回 20 个单词（730 输入 / 2317 输出 tokens）。
 - GitHub Pages 已发布：`https://wu63924-bot.github.io/english-learn-web/` 返回 200；manifest 与 scope 为 `/english-learn-web/`；192/512 图标、`sw.js`、`404.html` 均可访问。
 - 浏览器实测（线上 Pages，Chrome）：设置页显示“已连接 · 真实模型”，代理地址为 FC 域名；首页与路由正常渲染。
 - 浏览器实测（线上 Pages，Chrome）：示例课程阅读翻译题输入“她骑车通勤要花二十分钟。”后请 AI 批改，返回“回答正确”及中文解析，线上 CORS 与 FC 调用链路通过。
@@ -150,11 +151,10 @@
 ## 待办（下一步）
 
 1. 在手机与 iPad 上打开 `https://wu63924-bot.github.io/english-learn-web/`，完成安装、离线与主屏图标验收。
-2. 在线上设置页导入 Day 1–20，生成第 21 课并确认首页直接进入该课。
-3. 配置 FC 自动部署的 GitHub Secrets / Variables，运行一次 `Deploy AI proxy to Alibaba Cloud FC`，让 20 词版本生效。
-4. 发布第二个版本，验证“有新版本可用 → 更新并重载”。
-5. 轮换曾在对话中暴露的 DeepSeek 密钥，并更新 FC 环境变量。
-6. 为旧课程补题目映射（可选，重新生成或一次性迁移）。
+2. 在线上设置页导入 Day 1–20，生成第 21 课并确认首页直接进入该课、单词模块为 20 词。
+3. 发布第二个版本，验证“有新版本可用 → 更新并重载”。
+4. 轮换曾在对话中暴露的 DeepSeek 密钥，并更新 FC 环境变量。
+5. 为旧课程补题目映射（可选，重新生成或一次性迁移）。
 
 ## 已知问题与风险
 
@@ -210,3 +210,5 @@
 | 2026-11-09 | P5 Pages 子路径构建 | `build:github` + `vite preview --mode github` | base、manifest、子路由通过 |
 | 2026-11-09 | P5 Pages 子路径离线 | 停静态服务器后打开 `/english-web/settings` | 通过，SW 生效 |
 | 2026-11-09 | P5 FC 线上 | `/health`、CORS、`/api/tutor` 真实调用 | 200 / 403 / 112+51 tokens |
+| 2026-11-09 | P5 FC 自动部署 | GitHub Actions + Alibaba Cloud SDK | 成功，环境变量保留 |
+| 2026-11-09 | P5 每课 20 词 | 线上 `/api/course/generate` | 20 词，730+2317 tokens |
