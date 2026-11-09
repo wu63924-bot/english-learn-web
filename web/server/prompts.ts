@@ -15,9 +15,9 @@ const COURSE_SCHEMA = `{
   "words": [
     { "term": "英文单词或短语", "phonetic": "国际音标，含斜杠", "meanings": ["词性与中文释义"], "example": "英文例句", "exampleTranslation": "中文译文" }
   ],
-  "grammarSections": [{ "title": "要点标题", "body": "中文讲解，2-4 句" }],
+  "grammarSections": [{ "title": "要点标题", "body": "中文讲解 2-4 句；需要对比时接 Markdown 表格，如：\\n| 主语 | 正确表达 |\\n| --- | --- |\\n| I | I want to study. |" }],
   "grammarQuestions": [{ "kind": "choice", "prompt": "题干", "options": ["选项A","选项B","选项C","选项D"], "answerIndex": 0, "explanation": "中文解析", "knowledge": 0 }],
-  "passage": "英文短文，90-140 词",
+  "passage": "英文短文，120-180 词",
   "passageTranslation": "中文译文",
   "readingQuestions": [
     { "kind": "choice", "prompt": "英文题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析", "knowledge": 1 },
@@ -36,9 +36,10 @@ export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
     '',
     '硬性要求：',
     '- words 恰好 20 个，不重复，音标用国际音标并带斜杠，例句难度与等级匹配；优先四级核心词；',
-    '- grammarSections 2 段，grammarQuestions 4 道单选题，每题 4 个选项，answerIndex 是正确选项下标（0-3）；',
-    '- passage 90-140 词，配中文译文；readingQuestions 包含 1 道选择题和 1 道翻译题；',
-    '- knowledgeLabels 3 条，reviewQuestions 2 道单选题，覆盖本节知识点；',
+    '- grammarSections 2 段：每段用 2-4 句讲清一个规则，需要对比时用 Markdown 表格（例如 | 主语 | 正确表达 |），表格最多 3 列；',
+    '- grammarQuestions 10 道单选题，每题 4 个选项，answerIndex 是正确选项下标（0-3）；',
+    '- passage 120-180 词，配中文译文；readingQuestions 5 道，其中 4 道选择题和 1 道翻译题；',
+    '- knowledgeLabels 3 条，reviewQuestions 5 道单选题，覆盖本节知识点；',
     '- 所有题目只有一个明确正确答案，解析说明原因，不要出现歧义或超出本课内容的题；',
     '- 每道题带 "knowledge" 字段：它是 knowledgeLabels 的下标（0 开始），表示这道题考哪个知识点；',
     '- 不要输出 id 字段，服务器会统一生成；',

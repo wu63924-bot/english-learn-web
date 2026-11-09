@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { CourseModule } from '../types/domain';
+import { parseExplainBody } from '../utils/explain';
 import { QuizModule } from './QuizModule';
 
 interface Props {
@@ -24,7 +25,24 @@ export function GrammarModule({ module, onFinish, finishing }: Props) {
           {sections.map(section => (
             <div key={section.title} className="explain-section">
               <h3 className="explain-title">{section.title}</h3>
-              <p className="explain-body">{section.body}</p>
+              {parseExplainBody(section.body).map((block, index) => (
+                block.type === 'table' ? (
+                  <div key={index} className="explain-table-wrap">
+                    <table className="explain-table">
+                      <thead>
+                        <tr>{block.headers.map((header, cell) => <th key={cell}>{header}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {block.rows.map((row, rowIndex) => (
+                          <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p key={index} className="explain-body">{block.value}</p>
+                )
+              ))}
             </div>
           ))}
         </details>

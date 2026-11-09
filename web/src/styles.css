@@ -373,10 +373,38 @@ button {
 }
 
 .explain-body {
-  margin: 0;
+  margin: 0 0 8px;
   color: var(--ink-soft);
   font-size: 0.88rem;
   line-height: 1.7;
+  white-space: pre-line;
+}
+
+.explain-table-wrap {
+  overflow-x: auto;
+  margin: 8px 0 12px;
+}
+
+.explain-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+}
+
+.explain-table th,
+.explain-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.explain-table th {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--accent-pale);
+  white-space: nowrap;
 }
 
 .question-card {

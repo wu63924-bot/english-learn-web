@@ -59,7 +59,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     dailyTokenLimit: positiveInteger(env.AI_DAILY_TOKEN_LIMIT, 200_000),
     allowedOrigins: origins(env.ALLOWED_ORIGINS),
     mockLatencyMs: positiveInteger(env.MOCK_LATENCY_MS, 0),
-    maxOutputTokens: positiveInteger(env.AI_MAX_OUTPUT_TOKENS, 6000),
+    maxOutputTokens: positiveInteger(env.AI_MAX_OUTPUT_TOKENS, 8000),
     jsonMode: env.AI_JSON_MODE?.trim() !== 'off',
     thinking: env.AI_THINKING?.trim() === 'enabled'
       ? 'enabled'

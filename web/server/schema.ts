@@ -25,7 +25,7 @@ const LIMITS = {
   feedback: 1200,
   words: 20,
   sections: 4,
-  questions: 8
+  questions: 10
 };
 
 function fail(message: string): never {
