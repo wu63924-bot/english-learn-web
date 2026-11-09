@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="英语学习">
+  <rect width="512" height="512" rx="96" fill="#1f2430" />
+  <path d="M150 356 L246 150 L342 356" fill="none" stroke="#f3b562" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M196 286 L296 286" fill="none" stroke="#f3b562" stroke-width="36" stroke-linecap="round" />
+</svg>
