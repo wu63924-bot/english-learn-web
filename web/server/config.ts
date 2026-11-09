@@ -12,6 +12,7 @@ export interface ApiConfig {
   dailyRequestLimit: number;
   dailyTokenLimit: number;
   allowedOrigins: string[];
+  accessToken: string;
   mockLatencyMs: number;
   maxOutputTokens: number;
   jsonMode: boolean;
@@ -58,6 +59,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     dailyRequestLimit: positiveInteger(env.AI_DAILY_REQUEST_LIMIT, 60),
     dailyTokenLimit: positiveInteger(env.AI_DAILY_TOKEN_LIMIT, 200_000),
     allowedOrigins: origins(env.ALLOWED_ORIGINS),
+    accessToken: env.AI_ACCESS_TOKEN?.trim() || '',
     mockLatencyMs: positiveInteger(env.MOCK_LATENCY_MS, 0),
     maxOutputTokens: positiveInteger(env.AI_MAX_OUTPUT_TOKENS, 8000),
     jsonMode: env.AI_JSON_MODE?.trim() !== 'off',

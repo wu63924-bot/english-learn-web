@@ -1,5 +1,6 @@
 import type { AiCallKind, AiCallStatus } from '../types/domain';
 import { recordAiUsage } from '../repositories/aiUsageRepository';
+import { getAiAccessToken } from '../repositories/settingsRepository';
 import { assertGeneratedCourse, type GeneratedCoursePayload } from './coursePayload';
 
 const DEFAULT_BASE_URL = 'http://127.0.0.1:8788';
@@ -7,6 +8,7 @@ const DEFAULT_BASE_URL = 'http://127.0.0.1:8788';
 export type AiErrorCode =
   | 'NETWORK'
   | 'TIMEOUT'
+  | 'UNAUTHORIZED'
   | 'BAD_PAYLOAD'
   | 'BUDGET_EXCEEDED'
   | 'RATE_LIMITED'
@@ -58,9 +60,14 @@ async function call<T>(path: string, body: unknown, options: CallOptions): Promi
     const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 40_000);
     let response: Response;
     try {
+      const accessToken = await getAiAccessToken().catch(() => '');
       response = await (options.fetchImpl ?? fetch)(`${aiBaseUrl()}${path}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': options.idempotencyKey },
+        headers: {
+          'Content-Type': 'application/json',
+          'Idempotency-Key': options.idempotencyKey,
+          ...(accessToken ? { 'X-Access-Token': accessToken } : {})
+        },
         body: JSON.stringify(body),
         signal: controller.signal
       });
@@ -104,6 +111,8 @@ function mapError(code: string | undefined, message: string | undefined): AiErro
   switch (code) {
     case 'BUDGET_EXCEEDED':
       return new AiError('BUDGET_EXCEEDED', text || '今日 AI 用量已达上限');
+    case 'UNAUTHORIZED':
+      return new AiError('UNAUTHORIZED', text || '需要访问口令，请在设置中填写');
     case 'RATE_LIMITED':
       return new AiError('RATE_LIMITED', text || '请求太频繁，请稍后再试');
     case 'BUSY':
@@ -198,6 +207,7 @@ export interface AiHealth {
   tokens: number;
   maxRequests: number;
   maxTokens: number;
+  authRequired: boolean;
 }
 
 export interface DrillResult {
@@ -228,13 +238,14 @@ export async function getAiHealth(overrides: AiCallOverrides = {}): Promise<AiHe
   try {
     const response = await (overrides.fetchImpl ?? fetch)(`${aiBaseUrl()}/health`, { signal: controller.signal });
     if (!response.ok) return null;
-    const payload = await response.json() as { provider?: unknown; usage?: { requests?: unknown; tokens?: unknown; maxRequests?: unknown; maxTokens?: unknown } };
+    const payload = await response.json() as { provider?: unknown; authRequired?: unknown; usage?: { requests?: unknown; tokens?: unknown; maxRequests?: unknown; maxTokens?: unknown } };
     return {
       provider: typeof payload.provider === 'string' ? payload.provider : 'unknown',
       requests: numberOrZero(payload.usage?.requests),
       tokens: numberOrZero(payload.usage?.tokens),
       maxRequests: numberOrZero(payload.usage?.maxRequests),
-      maxTokens: numberOrZero(payload.usage?.maxTokens)
+      maxTokens: numberOrZero(payload.usage?.maxTokens),
+      authRequired: payload.authRequired === true
     };
   } catch {
     return null;

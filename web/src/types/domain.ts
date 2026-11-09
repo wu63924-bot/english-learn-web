@@ -214,6 +214,7 @@ export interface AppSettings {
   appVersion: string;
   dailyGoalMinutes?: number;
   aiDailyBudget?: number;
+  aiAccessToken?: string;
   historyImportedAt?: Timestamp;
   updatedAt: Timestamp;
 }

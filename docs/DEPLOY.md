@@ -53,6 +53,13 @@ ALLOWED_ORIGINS=https://<你的 GitHub 用户名>.github.io
 AI_RATE_LIMIT_MAX=20
 AI_DAILY_REQUEST_LIMIT=60
 AI_DAILY_TOKEN_LIMIT=200000
+AI_ACCESS_TOKEN=<随机口令>
+```
+
+`AI_ACCESS_TOKEN` 是个人访问口令。设置后，所有 AI 请求必须带 `X-Access-Token`，设置页也要填同一个口令；留空则不校验，适合本地开发。生成口令：
+
+```powershell
+[Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(24)).ToLower()
 ```
 
 说明：
@@ -60,7 +67,7 @@ AI_DAILY_TOKEN_LIMIT=200000
 - `ALLOWED_ORIGINS` 只写来源，不带仓库路径；例如 `https://wu63924-bot.github.io`，不要写 `/english-web/`。
 - 本地调试可再加 `http://localhost:5173,http://127.0.0.1:5173`。
 - 密钥只存在 FC 环境变量，不要提交到 Git，也不要写进前端变量。
-- 代理无账号鉴权。CORS 与限流只降低误用，无法阻止直接调用；公网长期使用时建议在 FC 前加访问控制，或只给自己使用的网络开放。
+- 代理没有账号鉴权，依赖个人访问口令、CORS 与限流；口令保存在本机 IndexedDB，备份文件会排除它。
 
 ### 自动部署（推荐）
 

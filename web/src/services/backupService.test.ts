@@ -16,10 +16,13 @@ describe('backup service', () => {
   });
 
   it('exports data that its own parser accepts', async () => {
+    await db.settings.update('app', { aiAccessToken: 'secret-token' });
     const backup = await createBackup();
     expect(backup.app).toBe('EnglishLearn');
     expect(backup.version).toBe(3);
     expect(backup.data.courses).toHaveLength(2);
+    expect(backup.data.settings[0]?.aiAccessToken).toBeUndefined();
+    expect((await db.settings.get('app'))?.aiAccessToken).toBe('secret-token');
     const parsed = parseBackup(JSON.stringify(backup));
     expect(backupCounts(parsed)).toEqual({ courses: 2, answers: 0, mistakes: 0, studyDays: 0, historyDays: 0 });
   });

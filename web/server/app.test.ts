@@ -19,6 +19,7 @@ const base: ApiConfig = {
   dailyRequestLimit: 100,
   dailyTokenLimit: 100_000,
   allowedOrigins: ['http://localhost:5173'],
+  accessToken: '',
   mockLatencyMs: 0,
   maxOutputTokens: 1_000,
   jsonMode: true,
@@ -75,6 +76,24 @@ describe('AI proxy', () => {
       expect(payload.data.readingQuestions.map(question => question.kind)).toEqual(['choice', 'translate']);
       expect(payload.data.reviewQuestions).toHaveLength(2);
       expect(payload.usage.inputTokens).toBe(0);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects AI requests without the configured access token', async () => {
+    const app = await start({ accessToken: 'secret-token' });
+    try {
+      const health = await fetch(`${app.url}/health`);
+      expect(health.status).toBe(200);
+      expect((await health.json() as { authRequired: boolean }).authRequired).toBe(true);
+
+      const denied = await post(app.url, '/api/tutor', { question: 'How are you?' });
+      expect(denied.status).toBe(401);
+      expect((await denied.json() as { error: { code: string } }).error.code).toBe('UNAUTHORIZED');
+
+      const allowed = await post(app.url, '/api/tutor', { question: 'How are you?' }, { 'X-Access-Token': 'secret-token' });
+      expect(allowed.status).toBe(200);
     } finally {
       await app.close();
     }

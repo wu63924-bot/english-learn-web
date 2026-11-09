@@ -8,6 +8,7 @@ import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
 import { pendingGradeCount, processPendingGrades } from '../services/aiQueue';
+import { getAiAccessToken, setAiAccessToken } from '../repositories/settingsRepository';
 import { resetAllData } from '../services/resetService';
 import {
   applyHistoryImport,
@@ -53,10 +54,13 @@ export function SettingsPage() {
   const [weakLabels, setWeakLabels] = useState<string[]>([]);
   const [pendingGrades, setPendingGrades] = useState(0);
   const [resetting, setResetting] = useState(false);
+  const [accessToken, setAccessToken] = useState('');
+  const [tokenStatus, setTokenStatus] = useState('');
+  const [savingToken, setSavingToken] = useState(false);
 
   useEffect(() => {
     let active = true;
-    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary(), listWeakLabels(), pendingGradeCount()]).then(([healthResult, usageResult, number, historyResult, weak, pending]) => {
+    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary(), listWeakLabels(), pendingGradeCount(), getAiAccessToken()]).then(([healthResult, usageResult, number, historyResult, weak, pending, token]) => {
       if (!active) return;
       setHealth(healthResult);
       setUsage(usageResult);
@@ -64,6 +68,7 @@ export function SettingsPage() {
       setHistorySummary(historyResult);
       setWeakLabels(weak);
       setPendingGrades(pending);
+      setAccessToken(token);
     });
     return () => {
       active = false;
@@ -100,6 +105,21 @@ export function SettingsPage() {
     } catch (reason) {
       setError(`清空失败：${reason instanceof Error ? reason.message : '未知错误'}`);
       setResetting(false);
+    }
+  }
+
+  async function handleSaveToken() {
+    if (savingToken) return;
+    setSavingToken(true);
+    setTokenStatus('');
+    try {
+      await setAiAccessToken(accessToken);
+      setAccessToken(accessToken.trim());
+      setTokenStatus(accessToken.trim() ? '访问口令已保存。' : '访问口令已清除。');
+    } catch (reason) {
+      setTokenStatus(reason instanceof Error ? `保存失败：${reason.message}` : '保存失败');
+    } finally {
+      setSavingToken(false);
     }
   }
 
@@ -383,6 +403,24 @@ export function SettingsPage() {
             : '未连接（先运行 npm run dev:api）'}
         </p>
         <p className="muted">本机今日记录：{usage.requests} 次调用 · {usage.tokens} tokens</p>
+        {health?.authRequired && !accessToken.trim() && (
+          <p className="error-text">服务已开启访问口令，请填写后保存，否则 AI 调用会被拒绝。</p>
+        )}
+        <label className="form-field">
+          <span>访问口令（只保存在本机）</span>
+          <input
+            className="text-input"
+            type="password"
+            value={accessToken}
+            onChange={event => setAccessToken(event.target.value)}
+            placeholder="与服务端 AI_ACCESS_TOKEN 一致"
+            aria-label="访问口令"
+          />
+        </label>
+        <button type="button" className="ghost-button" onClick={() => { void handleSaveToken(); }} disabled={savingToken}>
+          {savingToken ? '正在保存…' : '保存访问口令'}
+        </button>
+        {tokenStatus && <p className="status-text">{tokenStatus}</p>}
         {pendingGrades > 0 && (
           <p className="ai-status">
             待批改 {pendingGrades} 条（离线排队）。联网后会自动处理。

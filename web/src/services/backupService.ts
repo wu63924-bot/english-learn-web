@@ -18,7 +18,11 @@ export async function createBackup(): Promise<BackupFile> {
     db.aiUsage.toArray(),
     db.historyDays.toArray(),
     db.pendingAi.toArray(),
-    db.settings.toArray()
+    db.settings.toArray().then(items => items.map(setting => {
+      const clone = { ...setting };
+      delete clone.aiAccessToken;
+      return clone;
+    }))
   ]);
   return {
     app: BACKUP_APP,

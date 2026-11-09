@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ApiConfig } from './config.ts';
 import { ApiError } from './errors.ts';
@@ -28,6 +29,15 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
   const ledger = new UsageLedger(config.dailyRequestLimit, config.dailyTokenLimit);
   const idempotent = new Map<string, { expires: number; result: RouteResult }>();
   const allowedOrigins = new Set(config.allowedOrigins);
+  const accessToken = config.accessToken;
+  const hasAccess = (req: IncomingMessage): boolean => {
+    if (!accessToken) return true;
+    const provided = headerValue(req, 'x-access-token');
+    if (!provided) return false;
+    const expected = Buffer.from(accessToken);
+    const actual = Buffer.from(provided);
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
+  };
   const log = deps.log ?? ((entry: Record<string, unknown>) => console.info(JSON.stringify(entry)));
   let active = 0;
 
@@ -59,7 +69,7 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
 
       if (req.method === 'OPTIONS') {
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotency-Key');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotency-Key, X-Access-Token');
         res.setHeader('Access-Control-Max-Age', '600');
         status = 204;
         code = 'PREFLIGHT';
@@ -68,7 +78,7 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
       }
 
       if (path === '/health' && req.method === 'GET') {
-        send(res, 200, { ok: true, provider: config.provider, usage: ledger.snapshot() });
+        send(res, 200, { ok: true, provider: config.provider, authRequired: Boolean(accessToken), usage: ledger.snapshot() });
         return;
       }
 
@@ -78,6 +88,7 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
         res.setHeader('Allow', 'POST, OPTIONS');
         throw new ApiError('METHOD_NOT_ALLOWED', '只支持 POST');
       }
+      if (!hasAccess(req)) throw new ApiError('UNAUTHORIZED', '需要访问口令，请在设置中填写');
       if (!limiter.allow(clientKey(req))) throw new ApiError('RATE_LIMITED', '请求过于频繁，请稍后再试');
 
       const idempotencyKey = headerValue(req, 'idempotency-key');

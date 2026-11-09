@@ -17,6 +17,7 @@ const config: ApiConfig = {
   dailyRequestLimit: 100,
   dailyTokenLimit: 100_000,
   allowedOrigins: [],
+  accessToken: '',
   mockLatencyMs: 0,
   maxOutputTokens: 1_000,
   jsonMode: true,
