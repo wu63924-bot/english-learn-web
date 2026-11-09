@@ -11,7 +11,7 @@
 | P2 接入 AI | 已完成（DeepSeek 真实小样本通过） | 生成、开放题批改、问老师均走真实 DeepSeek；结构校验、去重、超时、限流、预算、用量记录生效 |
 | P3 迁移历史记录 | 已完成 | 导入预览、备份、来源与确认状态、衔接复习课生成；数据库升到 v2 |
 | P4 复习机制 | 已完成 | 规则、到期列表、AI 出题、状态更新；课程作答已通过题目—知识点映射驱动复习 |
-| P5 PWA 与验收 | 进行中 | 图标、提示更新、离线外壳、AI 队列、Pages/FC 部署配置已完成；真实 Pages 与 FC 尚未上线，真机验收未做 |
+| P5 PWA 与验收 | 进行中 | FC 已上线并通过真实调用；Pages 待推送发布；真机验收未做 |
 
 ## 已实现
 
@@ -96,6 +96,7 @@
 - 本地验证 FC 代码包：`npm run build:api` 通过，`api-dist/server` 只含编译后 JS 与零依赖 `package.json`；以 mock 启动编译产物，`/health` 返回正常。
 - 本地验证 Pages 构建：`GITHUB_PAGES_BASE=/english-web/ npm run build:github` 生成 `/english-web/` 资源、manifest scope、`404.html` 与 `.nojekyll`；`vite preview --mode github` 下直接打开 `/english-web/records` 正常。
 - 浏览器实测（Chrome，Pages 子路径构建）：停止静态服务器后打开 `/english-web/settings` 仍可渲染，子路径下的 Service Worker 离线外壳生效。
+- 阿里云 FC 已部署：`https://englishenin-web-dwssyeazdk.cn-beijing.fcapp.run/health` 返回 200，`provider=openai`；Pages 来源允许、其他来源 403；真实 DeepSeek 提问返回 112 输入 / 51 输出 tokens。
 - 构建产物扫描：`dist/` 中未出现 `AI_API_KEY` 或疑似密钥；`.env` 被 Git 忽略。
 - 浏览器实测（Chrome，dev 服务器）：阅读翻译题点“请老师批改”，显示“回答正确 / 与参考译文一致（模拟批改）/ 已自动保存”；另一题输入“不知道”后显示“暂无法判断”，并提供“重新批改”。
 - 浏览器实测（Chrome，dev 服务器）：课程内“问老师”返回模拟回答；设置页本机用量随生成、批改、提问逐次增加。
@@ -141,10 +142,9 @@
 
 ## 待办（下一步）
 
-1. 创建 GitHub 仓库并推送，启用 Pages（Source: GitHub Actions），添加 `VITE_AI_API_URL` 仓库变量。
-2. 在阿里云 FC 创建 Web Function，上传 `api-dist/server` 的 ZIP，配置环境变量与最大实例数 1。
-3. 上线后做真机安装、真实断网、iOS 主屏图标与更新流程验收。
-4. 可选：为旧课程补题目映射（重新生成或一次性迁移）。
+1. 在 GitHub 仓库启用 Pages（Source: GitHub Actions），推送 `main` 触发 Pages workflow。
+2. 上线后做真机安装、真实断网、iOS 主屏图标与更新流程验收。
+3. 为旧课程补题目映射（可选，重新生成或一次性迁移）。
 
 ## 已知问题与风险
 
@@ -197,3 +197,4 @@
 | 2026-11-09 | P5 FC 代码包 | `npm run build:api` + mock 启动 | 编译通过，`/health` 正常 |
 | 2026-11-09 | P5 Pages 子路径构建 | `build:github` + `vite preview --mode github` | base、manifest、子路由通过 |
 | 2026-11-09 | P5 Pages 子路径离线 | 停静态服务器后打开 `/english-web/settings` | 通过，SW 生效 |
+| 2026-11-09 | P5 FC 线上 | `/health`、CORS、`/api/tutor` 真实调用 | 200 / 403 / 112+51 tokens |

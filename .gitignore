@@ -5,11 +5,13 @@ dist-ssr/
 .env
 .env.*
 !.env.example
+!.env.github
 !.env.github.example
 .DS_Store
 *.tsbuildinfo
 .vite/
 .openchamber/
+docs/history/
 web/api-dist/
 web/*.zip
 web/*.tgz

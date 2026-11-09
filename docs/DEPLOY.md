@@ -70,23 +70,28 @@ https://<fc 域名>/health
 
 仓库 Settings → Pages → Source 选择 **GitHub Actions**。
 
-### 2. 配置仓库变量
+### 2. 配置构建地址
 
-Settings → Secrets and variables → Actions → Variables：
+前端构建地址写在仓库根目录的 `web/.env.github`，内容只有公开地址：
+
+```text
+VITE_AI_API_URL=https://englishenin-web-dwssyeazdk.cn-beijing.fcapp.run
+```
+
+改 FC 地址时编辑该文件并提交，不需要在 GitHub 里建 API 变量。
+
+可选的仓库变量只有：
 
 | 变量 | 必填 | 值 |
 | --- | --- | --- |
-| `VITE_AI_API_URL` | 是 | `https://<fc 域名>` |
 | `PAGES_BASE` | 否 | 默认 `/<仓库名>/`；仓库名含非 ASCII 或想自定义路径时手动设置 |
-
-`VITE_AI_API_URL` 会在构建时写入前端；改地址后必须重新构建。
 
 ### 3. 推送触发
 
 推送到 `main` 后，`.github/workflows/deploy-pages.yml` 会：
 
 1. `npm ci`
-2. `npm run build:github`（base 使用 `GITHUB_PAGES_BASE`）
+2. `npm run build:github`（base 使用 `GITHUB_PAGES_BASE`，默认仓库名）
 3. 复制 `index.html` 为 `404.html`，写入 `.nojekyll`
 4. 上传 `web/dist` 并发布 Pages
 
@@ -96,13 +101,12 @@ Settings → Secrets and variables → Actions → Variables：
 
 ```powershell
 cd web
-$env:GITHUB_PAGES_BASE='/english-web/'
-$env:VITE_AI_API_URL='http://127.0.0.1:8788'
+$env:GITHUB_PAGES_BASE='/english-learn-web/'
 npm run build:github
 npm run preview -- --mode github
 ```
 
-打开 `http://localhost:4173/english-web/`。本地也可以把 `.env.github.example` 复制为 `.env.github` 填写地址（该文件被 Git 忽略）。
+打开 `http://localhost:4173/english-learn-web/`。`VITE_AI_API_URL` 会自动从 `.env.github` 读取。
 
 ## 三、安装与验收
 
@@ -129,6 +133,6 @@ IndexedDB 按 origin 隔离。从 `localhost:5173` 换到 Pages 域名、或换 
 | AI 调用 403 `ORIGIN_NOT_ALLOWED` | `ALLOWED_ORIGINS` 没加 Pages 来源 | 加 `https://<用户名>.github.io` 后重启/更新 FC |
 | 页面空白或资源 404 | base 与仓库路径不一致 | 设置仓库变量 `PAGES_BASE=/<仓库名>/` 后重新构建 |
 | 直接访问子路由 404 | 缺少 `404.html` 或 Pages 未走 Actions | 确认构建脚本与 Pages Source |
-| 线上仍请求 `127.0.0.1:8788` | 构建时没有 `VITE_AI_API_URL` | 配置仓库变量并重新部署 |
+| 线上仍请求 `127.0.0.1:8788` | 构建时没有读到 `web/.env.github` | 检查该文件并重新部署 |
 | 手机上无法安装 | 使用了 HTTP 或 IP 地址 | 必须使用 HTTPS 域名 |
 | 数据不见了 | origin 变了 | 从旧地址导出备份再导入 |
