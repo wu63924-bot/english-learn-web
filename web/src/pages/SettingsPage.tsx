@@ -8,6 +8,7 @@ import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
 import { pendingGradeCount, processPendingGrades } from '../services/aiQueue';
+import { resetAllData } from '../services/resetService';
 import {
   applyHistoryImport,
   getHistorySummary,
@@ -51,6 +52,7 @@ export function SettingsPage() {
   const [historyText, setHistoryText] = useState('');
   const [weakLabels, setWeakLabels] = useState<string[]>([]);
   const [pendingGrades, setPendingGrades] = useState(0);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -79,6 +81,25 @@ export function SettingsPage() {
       setError(reason instanceof Error ? reason.message : '导出失败');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleResetAll() {
+    if (resetting) return;
+    const confirmed = window.confirm('将删除全部课程、作答、批改、错题、复习、学习统计和历史导入，回到首次打开状态。\n\n确认前会先自动下载一份当前数据备份。确定继续？');
+    if (!confirmed) return;
+    setResetting(true);
+    setError('');
+    setStatus('');
+    try {
+      const backup = await createBackup();
+      downloadJson(`english-learning-before-reset-${todayKey()}.json`, backup);
+      await resetAllData();
+      setStatus('已清空，正在重新加载…');
+      window.setTimeout(() => window.location.reload(), 700);
+    } catch (reason) {
+      setError(`清空失败：${reason instanceof Error ? reason.message : '未知错误'}`);
+      setResetting(false);
     }
   }
 
@@ -237,7 +258,11 @@ export function SettingsPage() {
           <button type="button" className="ghost-button" onClick={() => fileInput.current?.click()} disabled={busy}>
             导入备份
           </button>
+          <button type="button" className="ghost-button danger" onClick={() => { void handleResetAll(); }} disabled={busy || resetting}>
+            {resetting ? '正在清空…' : '清空全部数据'}
+          </button>
         </div>
+        <p className="muted">清空不可恢复，会删除全部学习数据并重新写入两节示例课程；操作前自动下载备份。</p>
         <input
           ref={fileInput}
           type="file"

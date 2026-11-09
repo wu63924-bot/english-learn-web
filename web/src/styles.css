@@ -955,6 +955,16 @@ button {
   color: var(--accent);
 }
 
+.ghost-button.danger {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.28);
+}
+
+.ghost-button.danger:not(:disabled):hover {
+  border-color: #b42318;
+  color: #b42318;
+}
+
 .back-row {
   display: flex;
   align-items: center;
