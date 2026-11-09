@@ -32,3 +32,19 @@ npm run preview      # 预览构建结果
 ```
 
 数据保存在浏览器 IndexedDB（`EnglishLearnDB`）。换浏览器、换端口或清理站点数据前，先在“设置 → 导出备份”保存 JSON。
+
+## AI 代理
+
+课程生成、开放题批改与“问老师”走独立的后端代理，前端不持有任何密钥。
+
+```sh
+# 终端 A：代理（默认 mock，不联网、不花钱）
+npm run dev:api     # http://127.0.0.1:8788/health
+
+# 终端 B：前端
+npm run dev
+```
+
+- 默认 `AI_PROVIDER=mock`，生成内容只用于验证流程。
+- 真实模型：复制 `.env.example` 为 `.env`，设置 `AI_PROVIDER=openai`、`AI_API_KEY`、`AI_BASE_URL`、`AI_MODEL`。真实调用前需按供应商文档核对模型与结构化输出参数，并取得授权。
+- `.env` 已被 Git 忽略，不要提交密钥。

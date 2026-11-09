@@ -1,7 +1,11 @@
-import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
 import { Card, PageHeader } from '../components/UI';
 import { backupCounts, createBackup, parseBackup, restoreBackup } from '../services/backupService';
+import { generateCourse, getAiHealth, aiBaseUrl, AiError, type AiHealth } from '../services/aiClient';
+import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport';
+import { getTodayUsage } from '../repositories/aiUsageRepository';
+import type { AiUsageSummary } from '../repositories/aiUsageRepository';
 import type { BackupFile } from '../types/domain';
 import { todayKey } from '../utils/date';
 import { downloadJson } from '../utils/download';
@@ -13,6 +17,29 @@ export function SettingsPage() {
   const [error, setError] = useState('');
   const [pending, setPending] = useState<BackupFile | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [health, setHealth] = useState<AiHealth | null>(null);
+  const [usage, setUsage] = useState<AiUsageSummary>({ requests: 0, tokens: 0 });
+  const [nextNumber, setNextNumber] = useState<number | null>(null);
+  const [topic, setTopic] = useState('');
+  const [level, setLevel] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [generatedId, setGeneratedId] = useState<string | null>(null);
+  const [aiMessage, setAiMessage] = useState('');
+  const [aiError, setAiError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber()]).then(([healthResult, usageResult, number]) => {
+      if (!active) return;
+      setHealth(healthResult);
+      setUsage(usageResult);
+      setNextNumber(number);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleExport() {
     setError('');
@@ -57,6 +84,34 @@ export function SettingsPage() {
     } catch (reason) {
       setError(`恢复失败，本机数据未改变：${reason instanceof Error ? reason.message : '未知错误'}`);
       setBusy(false);
+    }
+  }
+
+  async function handleGenerate() {
+    if (!nextNumber || generating || !topic.trim()) return;
+    setGenerating(true);
+    setAiError('');
+    setAiMessage('');
+    try {
+      const { course, provider } = await generateCourse({
+        number: nextNumber,
+        topic: topic.trim(),
+        level: level.trim() || undefined
+      });
+      const saved = await saveGeneratedCourse({ number: nextNumber, payload: course, provider });
+      setGeneratedId(saved.course.id);
+      setAiMessage(saved.existing
+        ? `第 ${nextNumber} 课已存在，没有重复生成。`
+        : `已生成第 ${nextNumber} 课《${saved.course.title}》${provider === 'mock' ? '（模拟内容）' : ''}，点击打开。`);
+      setTopic('');
+      const [nextHealth, nextUsage, number] = await Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber()]);
+      setHealth(nextHealth);
+      setUsage(nextUsage);
+      setNextNumber(number);
+    } catch (reason) {
+      setAiError(reason instanceof AiError ? reason.message : reason instanceof Error ? reason.message : '生成失败');
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -108,7 +163,53 @@ export function SettingsPage() {
       </Card>
 
       <Card title="AI">
-        <p className="muted">未接入任何 AI 服务，也没有配置密钥。</p>
+        <p className="ai-status">
+          代理地址：{aiBaseUrl()}
+          <br />
+          {health
+            ? `已连接 · ${health.provider === 'mock' ? '模拟模式（不花钱）' : '真实模型'} · 服务端今日调用 ${health.requests} / ${health.maxRequests}`
+            : '未连接（先运行 npm run dev:api）'}
+        </p>
+        <p className="muted">本机今日记录：{usage.requests} 次调用 · {usage.tokens} tokens</p>
+
+        <div className="ai-form">
+          <label className="form-field">
+            <span>下一课编号</span>
+            <input className="text-input" type="text" value={nextNumber ?? '—'} readOnly aria-label="下一课编号" />
+          </label>
+          <label className="form-field">
+            <span>课程主题</span>
+            <input
+              className="text-input"
+              type="text"
+              value={topic}
+              onChange={event => setTopic(event.target.value)}
+              placeholder="例如：在咖啡店点单"
+              aria-label="课程主题"
+            />
+          </label>
+          <label className="form-field">
+            <span>等级（可选）</span>
+            <input
+              className="text-input"
+              type="text"
+              value={level}
+              onChange={event => setLevel(event.target.value)}
+              placeholder="A2 / B1"
+              aria-label="课程等级"
+            />
+          </label>
+          <button type="button" className="primary-button" onClick={() => { void handleGenerate(); }} disabled={!topic.trim() || generating || nextNumber === null}>
+            {generating ? '正在生成…' : '生成并保存这节课'}
+          </button>
+        </div>
+        {aiMessage && (
+          <p className="status-text">
+            {aiMessage} {generatedId && <Link to={`/course/${generatedId}`}>打开课程</Link>}
+          </p>
+        )}
+        {aiError && <p className="error-text">{aiError}</p>}
+        {health?.provider === 'mock' && <p className="notice">模拟模式生成的内容只用于验证流程，不能当真实学习材料。</p>}
       </Card>
 
       <Card title="关于">

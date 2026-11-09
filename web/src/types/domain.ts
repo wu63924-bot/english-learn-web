@@ -15,6 +15,7 @@ export interface Course {
   goal: string;
   level?: string;
   source: CourseSource;
+  generatedBy?: 'mock' | 'live';
   status: CourseStatus;
   startedDate?: DateKey;
   completedDate?: DateKey;

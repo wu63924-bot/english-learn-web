@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ChoiceQuestion, FillQuestion, GradeStatus, ModuleStatus, Question } from '../types/domain';
-import { getModuleAnswers, saveAnswer, saveGradedAnswer } from '../repositories/answerRepository';
+import type { ChoiceQuestion, FillQuestion, ModuleStatus, Question, TranslateQuestion } from '../types/domain';
+import { getModuleAnswers, saveAiGrade, saveAnswer, saveGradedAnswer } from '../repositories/answerRepository';
 import { updateModuleStatus } from '../repositories/courseRepository';
+import { gradeAnswer } from '../services/aiClient';
+import { AiError } from '../services/aiClient';
 import { gradeChoice, gradeFill, isAnswered } from '../utils/grading';
-import { QuestionCard } from './QuestionCard';
+import { QuestionCard, type QuestionGrade } from './QuestionCard';
 
 interface Props {
   courseId: string;
@@ -19,10 +21,11 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
   const [loadError, setLoadError] = useState('');
   const [index, setIndex] = useState(0);
   const [values, setValues] = useState<Record<string, string>>({});
-  const [grades, setGrades] = useState<Record<string, GradeStatus>>({});
+  const [grades, setGrades] = useState<Record<string, QuestionGrade>>({});
   const [savedIds, setSavedIds] = useState<Set<string>>(() => new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [grading, setGrading] = useState(false);
 
   const stateRef = useRef({ values, grades });
   stateRef.current = { values, grades };
@@ -35,13 +38,13 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
       .then(({ answers, grades: storedGrades }) => {
         if (!active) return;
         const restoredValues: Record<string, string> = {};
-        const restoredGrades: Record<string, GradeStatus> = {};
+        const restoredGrades: Record<string, QuestionGrade> = {};
         const restoredSaved = new Set<string>();
         for (const answer of answers) {
           restoredValues[answer.questionId] = answer.value ?? '';
           if ((answer.value ?? '').trim()) restoredSaved.add(answer.questionId);
           const grade = storedGrades.get(answer.id);
-          if (grade) restoredGrades[answer.questionId] = grade.status;
+          if (grade) restoredGrades[answer.questionId] = { status: grade.status, feedback: grade.feedback };
         }
         setValues(restoredValues);
         setGrades(restoredGrades);
@@ -118,7 +121,6 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
       document.removeEventListener('visibilitychange', onVisibility);
       flushAll();
     };
-    // The flush must survive re-renders; it reads the latest values through stateRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -128,7 +130,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
 
   const question = questions[index];
   const grade = question ? grades[question.id] : undefined;
-  const allAnswered = questions.every(item => isAnswered(item, values[item.id], grades[item.id]));
+  const allAnswered = questions.every(item => isAnswered(item, values[item.id], grades[item.id]?.status));
   const isFirst = index === 0;
   const isLast = index === questions.length - 1;
 
@@ -138,6 +140,13 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
       if (!current.has(item.id)) return current;
       const next = new Set(current);
       next.delete(item.id);
+      return next;
+    });
+    setGrades(current => {
+      const existing = current[item.id];
+      if (!existing || existing.status !== 'uncertain') return current;
+      const next = { ...current };
+      delete next[item.id];
       return next;
     });
     window.clearTimeout(timers.current[item.id]);
@@ -156,7 +165,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
     const status = gradeChoice(item, optionId);
     setSaving(true);
     setValues(current => ({ ...current, [item.id]: optionId }));
-    setGrades(current => ({ ...current, [item.id]: status }));
+    setGrades(current => ({ ...current, [item.id]: { status } }));
     try {
       await saveGradedAnswer({ courseId, moduleId, question: item, value: optionId, status });
       await markDraft();
@@ -177,7 +186,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
     if (!value.trim() || grades[item.id] || saving) return;
     const status = gradeFill(item, value);
     setSaving(true);
-    setGrades(current => ({ ...current, [item.id]: status }));
+    setGrades(current => ({ ...current, [item.id]: { status } }));
     try {
       await saveGradedAnswer({ courseId, moduleId, question: item, value, status });
       setSavedIds(current => new Set(current).add(item.id));
@@ -194,6 +203,37 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
     }
   }
 
+  async function requestAiGrade(item: TranslateQuestion) {
+    const value = values[item.id] ?? '';
+    if (!value.trim() || grading) return;
+    setGrading(true);
+    setErrors(current => {
+      const next = { ...current };
+      delete next[item.id];
+      return next;
+    });
+    try {
+      const result = await gradeAnswer({
+        courseId,
+        moduleId,
+        questionId: item.id,
+        prompt: item.prompt,
+        reference: item.reference,
+        answer: value,
+        keyPoints: item.keyPoints
+      });
+      await saveAiGrade({ courseId, moduleId, question: item, value, status: result.status, feedback: result.feedback });
+      setGrades(current => ({ ...current, [item.id]: { status: result.status, feedback: result.feedback } }));
+      setSavedIds(current => new Set(current).add(item.id));
+      await markDraft();
+    } catch (reason) {
+      const message = reason instanceof AiError ? reason.message : reason instanceof Error ? reason.message : 'AI 批改失败';
+      setErrors(current => ({ ...current, [item.id]: message }));
+    } finally {
+      setGrading(false);
+    }
+  }
+
   async function finish() {
     await flushDrafts();
     onFinish();
@@ -205,7 +245,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
         <span>第 {index + 1} / {questions.length} 题</span>
         <span className="dot-row" aria-hidden="true">
           {questions.map((item, dotIndex) => (
-            <span key={item.id} className={`dot${isAnswered(item, values[item.id], grades[item.id]) ? ' filled' : ''}${dotIndex === index ? ' current' : ''}`} />
+            <span key={item.id} className={`dot${isAnswered(item, values[item.id], grades[item.id]?.status) ? ' filled' : ''}${dotIndex === index ? ' current' : ''}`} />
           ))}
         </span>
       </div>
@@ -217,10 +257,12 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
         saved={savedIds.has(question.id)}
         error={errors[question.id]}
         disabled={saving}
+        grading={grading}
         onChange={value => handleText(question, value)}
         onChoose={optionId => { void choose(question as ChoiceQuestion, optionId); }}
         onBlur={() => blurText(question)}
         onSubmitText={question.kind === 'fill' ? () => { void submitFill(question); } : undefined}
+        onAiGrade={question.kind === 'translate' ? () => { void requestAiGrade(question); } : undefined}
       />
 
       <nav className="module-nav">

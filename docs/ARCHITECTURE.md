@@ -64,11 +64,12 @@ settings       id='app', aiBudget, currentCourseId, appVersion
 
 - 客观题：本地比对，纯函数，`utils/` 内实现，可单测。
 - 开放题：P1 显示“待批改”；P2 由代理批改，返回 `correct | partial | uncertain`，`uncertain` 显示“暂无法判断”。
-- 代理接口（目标）：`POST /api/course/generate`、`POST /api/grade`、`POST /api/tutor`。
-- 代理约束：CORS 白名单、请求体大小限制、超时（≤30s）、失败有限重试（≤2 次）、每分钟限流、并发上限、结构化日志（不记录密钥与完整作答内容）。
+- 代理接口（已实现，默认 mock）：`POST /api/course/generate`、`POST /api/grade`、`POST /api/tutor`、`GET /health`。
+- 代理约束（已实现）：CORS 白名单、64KB 请求体上限、30s 超时、失败重试 1 次、每分钟限流、并发上限、结构化日志（不记录密钥与作答内容）、请求参数逐项限长。
 - 密钥只在后端进程环境变量；前端仅持有公开 API 地址。
-- 去重：同一 `courseId` 生成请求带幂等键；前端按钮加 in-flight 锁；已生成课程不再发起相同请求。
-- 预算：`aiUsage` 记录每次调用，超预算直接拒绝并提示。
+- 去重（已实现）：前端按请求键单飞合并；服务端按 `Idempotency-Key` 缓存 10 分钟；课程写入使用确定性 id `ai-<课号>`，重复保存返回已有课程。
+- 预算（已实现，进程内）：每日请求数与 token 上限，超限返回 402；本地 `aiUsage` 表持久记录本机用量。进程重启后服务端计数清零。
+- 真实模型：OpenAI 兼容实现已完成，但参数与结构化输出开关尚未按供应商文档核对，也未做过真实调用。
 
 ## 6. PWA
 

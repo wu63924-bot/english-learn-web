@@ -5,6 +5,7 @@ import { WordModule } from '../components/WordModule';
 import { GrammarModule } from '../components/GrammarModule';
 import { ReadingModule } from '../components/ReadingModule';
 import { ReviewModule } from '../components/ReviewModule';
+import { TutorPanel } from '../components/TutorPanel';
 import { completeCourse, getCourse, getCourseModule, getCourseModules, updateModuleStatus } from '../repositories/courseRepository';
 import { addCompletedCourse, addStudySeconds } from '../repositories/studyRepository';
 import { useStudyTimer } from '../hooks/useStudyTimer';
@@ -124,6 +125,8 @@ export function ModulePage() {
           finishing={busy}
         />
       )}
+
+      <TutorPanel context={`第 ${course.number} 课《${course.title}》· ${moduleLabels[module.kind]}`} />
     </>
   );
 }

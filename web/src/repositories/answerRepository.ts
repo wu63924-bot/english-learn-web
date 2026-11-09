@@ -76,6 +76,44 @@ export async function saveGradedAnswer(input: SaveGradedAnswerInput): Promise<{ 
   return { answer, grade };
 }
 
+export interface SaveAiGradeInput extends SaveAnswerInput {
+  status: GradeStatus;
+  feedback: string;
+}
+
+/** Saves an AI grade; a correct verdict clears the mistake, a partial one keeps it. */
+export async function saveAiGrade(input: SaveAiGradeInput): Promise<void> {
+  const answer = recordOf(input);
+  const now = Date.now();
+  const grade: Grade = {
+    id: gradeRecordId(answer.id),
+    answerId: answer.id,
+    status: input.status,
+    source: 'ai',
+    feedback: input.feedback,
+    gradedAt: now,
+    knowledgeIds: []
+  };
+  await db.transaction('rw', [db.answers, db.grades, db.mistakes], async () => {
+    await db.answers.put(answer);
+    await db.grades.put(grade);
+    if (input.status === 'correct') {
+      await db.mistakes.delete(answer.id);
+    } else if (input.status === 'partial') {
+      await db.mistakes.put({
+        id: answer.id,
+        courseId: answer.courseId,
+        moduleId: answer.moduleId,
+        questionId: answer.questionId,
+        wrongValue: input.value,
+        reason: 'AI 判定部分正确',
+        createdAt: now,
+        updatedAt: now
+      });
+    }
+  });
+}
+
 export interface ModuleAnswers {
   answers: AnswerRecord[];
   grades: Map<string, Grade>;

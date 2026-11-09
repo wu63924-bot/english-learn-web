@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Badge, Card, ErrorState, LoadingState, Notice } from '../components/UI';
-import { getCourse, getCourseModules } from '../repositories/courseRepository';
+import { getCourse, getCourseModules, startCourse } from '../repositories/courseRepository';
 import type { Course, CourseModule } from '../types/domain';
 import { moduleLabels, moduleStatusLabels } from '../utils/course';
 
@@ -18,9 +18,10 @@ export function CoursePage() {
     void (async () => {
       try {
         const found = courseId ? await getCourse(courseId) : undefined;
-        const list = found ? await getCourseModules(found.id) : [];
+        const started = found && found.status === 'not_started' ? await startCourse(found.id) ?? found : found;
+        const list = started ? await getCourseModules(started.id) : [];
         if (!active) return;
-        setCourse(found);
+        setCourse(started);
         setModules(list);
       } catch (reason) {
         if (active) setError(reason instanceof Error ? reason.message : '读取课程失败');
