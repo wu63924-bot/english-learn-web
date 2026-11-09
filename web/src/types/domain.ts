@@ -128,11 +128,25 @@ export interface KnowledgePoint {
   status: KnowledgeStatus;
   correctStreak: number;
   wrongStreak: number;
+  correctDayStreak?: number;
+  lastCorrectDate?: DateKey;
   source?: 'sample' | 'ai' | 'import';
   confirmed?: boolean;
   reviewReason?: string;
   lastSeenDate?: DateKey;
   nextReviewDate?: DateKey;
+  updatedAt: Timestamp;
+}
+
+export type WordReviewStatus = 'known' | 'fuzzy' | 'unknown';
+
+export interface WordReview {
+  id: string;
+  courseId: string;
+  moduleId: string;
+  wordId: string;
+  term: string;
+  status: WordReviewStatus;
   updatedAt: Timestamp;
 }
 
@@ -215,6 +229,7 @@ export interface AppSettings {
   dailyGoalMinutes?: number;
   aiDailyBudget?: number;
   aiAccessToken?: string;
+  knowledgeUnifiedAt?: Timestamp;
   historyImportedAt?: Timestamp;
   updatedAt: Timestamp;
 }
@@ -231,6 +246,7 @@ export interface BackupData {
   aiUsage: AiUsageRecord[];
   historyDays: HistoryDay[];
   pendingAi: PendingAiGrade[];
+  wordReviews: WordReview[];
   settings: AppSettings[];
 }
 

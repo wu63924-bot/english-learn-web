@@ -1,6 +1,7 @@
 import { db } from '../db/db';
 import type { Course, CourseModule, KnowledgePoint, Question } from '../types/domain';
 import type { GeneratedCoursePayload } from './coursePayload';
+import { knowledgeIdFor, normalizeKnowledgeLabel } from '../utils/knowledge';
 
 /**
  * The next lesson number follows both generated courses and imported history.
@@ -46,16 +47,29 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
       updatedAt: now
     };
 
-    const knowledge: KnowledgePoint[] = payload.knowledgeLabels.map((label, index) => ({
-      id: `${id}-k${index + 1}`,
-      label,
-      kind: 'pattern',
-      stage: input.number,
-      status: 'learning',
-      correctStreak: 0,
-      wrongStreak: 0,
-      updatedAt: now
-    }));
+    const existingPoints = await db.knowledge.toArray();
+    const byLabel = new Map(existingPoints.map(point => [normalizeKnowledgeLabel(point.label), point]));
+    const knowledge: KnowledgePoint[] = [];
+    const knowledgeIds: string[] = [];
+    for (const label of payload.knowledgeLabels) {
+      const key = normalizeKnowledgeLabel(label);
+      let point = byLabel.get(key);
+      if (!point) {
+        point = {
+          id: knowledgeIdFor(label),
+          label,
+          kind: 'pattern',
+          stage: input.number,
+          status: 'learning',
+          correctStreak: 0,
+          wrongStreak: 0,
+          updatedAt: now
+        };
+        byLabel.set(key, point);
+        knowledge.push(point);
+      }
+      knowledgeIds.push(point.id);
+    }
 
     const modules: CourseModule[] = [
       { id: `${id}-word`, courseId: id, kind: 'word', order: 1, status: 'todo', content: { words: payload.words } },
@@ -65,7 +79,7 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
         kind: 'grammar',
         order: 2,
         status: 'todo',
-        content: { sections: payload.grammarSections, questions: withKnowledge(payload.grammarQuestions, id) }
+        content: { sections: payload.grammarSections, questions: withKnowledge(payload.grammarQuestions, knowledgeIds) }
       },
       {
         id: `${id}-reading`,
@@ -76,7 +90,7 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
         content: {
           passage: payload.passage,
           passageTranslation: payload.passageTranslation,
-          questions: withKnowledge(payload.readingQuestions, id)
+          questions: withKnowledge(payload.readingQuestions, knowledgeIds)
         }
       },
       {
@@ -85,7 +99,7 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
         kind: 'review',
         order: 4,
         status: 'todo',
-        content: { knowledgeIds: knowledge.map(point => point.id), questions: withKnowledge(payload.reviewQuestions, id) }
+        content: { knowledgeIds: [...new Set(knowledgeIds)], questions: withKnowledge(payload.reviewQuestions, knowledgeIds) }
       }
     ];
 
@@ -96,13 +110,13 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
   });
 }
 
-/** Maps the AI's knowledge index to the knowledge ids created for this course. */
-function withKnowledge<Q extends Question>(questions: Q[], courseId: string): Q[] {
+/** Maps the AI's knowledge index to the canonical knowledge ids for this course. */
+function withKnowledge<Q extends Question>(questions: Q[], knowledgeIds: string[]): Q[] {
   return questions.map(question => {
     const index = question.knowledgeIndex;
     const clone = { ...question };
     delete (clone as { knowledgeIndex?: number }).knowledgeIndex;
-    if (index !== undefined) clone.knowledgeIds = [`${courseId}-k${index + 1}`];
+    if (index !== undefined && knowledgeIds[index]) clone.knowledgeIds = [knowledgeIds[index]];
     return clone;
   });
 }

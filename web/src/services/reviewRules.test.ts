@@ -57,6 +57,22 @@ describe('review rules', () => {
     expect(current.nextReviewDate).toBe('2026-12-11');
   });
 
+  it('does not promote from three correct answers on the same day', () => {
+    let current = point({ status: 'learning' });
+    current = applyAttempt(current, true, '2026-11-09').point;
+    current = applyAttempt(current, true, '2026-11-09').point;
+    current = applyAttempt(current, true, '2026-11-09').point;
+    expect(current.correctStreak).toBe(3);
+    expect(current.correctDayStreak).toBe(1);
+    expect(current.status).toBe('learning');
+  });
+
+  it('does not show a future needs_review point before its date', () => {
+    const future = point({ status: 'needs_review', nextReviewDate: '2026-11-12', wrongStreak: 2 });
+    expect(isDue(future, '2026-11-09')).toBe(false);
+    expect(isDue({ ...future, nextReviewDate: '2026-11-09' }, '2026-11-09')).toBe(true);
+  });
+
   it('resets the correct streak on a wrong answer', () => {
     const almost = point({ status: 'learning', correctStreak: 2 });
     const failed = applyAttempt(almost, false, '2026-11-09');

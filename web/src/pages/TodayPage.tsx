@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router';
 import { Badge, Card, ErrorState, LoadingState, Notice, PageHeader } from '../components/UI';
 import { getCourseModules, getCurrentCourse, startCourse } from '../repositories/courseRepository';
 import { getStudySummary } from '../repositories/studyRepository';
+import { listWeakLabels } from '../repositories/knowledgeRepository';
+import { generateCourse } from '../services/aiClient';
+import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport';
 import type { StudySummary } from '../repositories/studyRepository';
 import type { Course, CourseModule } from '../types/domain';
 import { moduleLabels, moduleProgress, moduleStatusLabels } from '../utils/course';
@@ -15,6 +18,8 @@ export function TodayPage() {
   const [modules, setModules] = useState<CourseModule[]>([]);
   const [summary, setSummary] = useState<StudySummary>({ todaySeconds: 0, todayMinutes: 0, activeDays: 0 });
   const [starting, setStarting] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -44,11 +49,36 @@ export function TodayPage() {
   if (error) return <ErrorState message={error} />;
 
   if (!course) {
+    async function handleGenerateNext() {
+      if (generating) return;
+      setGenerating(true);
+      setGenerateError('');
+      try {
+        const weak = await listWeakLabels();
+        const number = await nextCourseNumber();
+        const focus = weak.slice(0, 3).join('、').slice(0, 80);
+        const { course: payload, provider } = await generateCourse({
+          number,
+          topic: focus ? `继续学习：${focus}` : '继续学习：综合复习',
+          level: 'A2-B1'
+        });
+        const saved = await saveGeneratedCourse({ number, payload, provider });
+        navigate(`/course/${saved.course.id}`);
+      } catch (reason) {
+        setGenerateError(reason instanceof Error ? reason.message : '生成失败');
+        setGenerating(false);
+      }
+    }
+
     return (
       <>
         <PageHeader eyebrow="今日" title="今天学一节" subtitle="首页只显示当前课程与进度" />
         <Card>
-          <p className="muted">暂无课程。示例课程应已随应用初始化写入。</p>
+          <p className="muted">全部课程已完成。可以按当前薄弱点生成下一课。</p>
+          <button type="button" className="primary-button" onClick={() => { void handleGenerateNext(); }} disabled={generating}>
+            {generating ? '正在生成…' : '生成下一课'}
+          </button>
+          {generateError && <p className="error-text">{generateError}</p>}
         </Card>
       </>
     );
@@ -62,7 +92,8 @@ export function TodayPage() {
     setStarting(true);
     try {
       await startCourse(course.id);
-      navigate(`/course/${course.id}`);
+      const nextModule = modules.find(module => module.status !== 'graded') ?? modules[0];
+      navigate(nextModule ? `/course/${course.id}/module/${nextModule.kind}` : `/course/${course.id}`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '无法开始课程');
       setStarting(false);

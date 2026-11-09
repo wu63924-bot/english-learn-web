@@ -72,6 +72,28 @@ describe('offline AI grading queue', () => {
     expect((await db.knowledge.get('ai-9-k1'))?.correctStreak).toBe(1);
   });
 
+  it('does not overwrite a newer answer with a stale queued grade', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    await gradeOrQueue(input);
+
+    await db.answers.put({
+      id: 'ai-9:ai-9-reading:ai-9-rq2',
+      courseId: 'ai-9',
+      moduleId: 'ai-9-reading',
+      questionId: 'ai-9-rq2',
+      questionKind: 'translate',
+      value: '修改后的新答案。',
+      dateKey: '2026-11-09',
+      updatedAt: Date.now()
+    });
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(envelope('correct')));
+    expect(await processPendingGrades()).toBe(0);
+    expect((await db.answers.get('ai-9:ai-9-reading:ai-9-rq2'))?.value).toBe('修改后的新答案。');
+    expect(await db.grades.count()).toBe(0);
+    expect(await pendingGradeCount()).toBe(0);
+  });
+
   it('marks a queued item failed when the proxy rejects the payload', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
     await gradeOrQueue(input);

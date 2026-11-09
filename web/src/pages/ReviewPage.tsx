@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router';
 import { Card, ErrorState, LoadingState, PageHeader } from '../components/UI';
 import { listDueKnowledge, knowledgeCounts, saveKnowledgePoint } from '../repositories/knowledgeRepository';
+import { listWeakWordReviews } from '../repositories/wordReviewRepository';
 import { AiError, generateDrill, type DrillResult } from '../services/aiClient';
 import { applyAttempt, reviewReasonText } from '../services/reviewRules';
-import type { KnowledgePoint } from '../types/domain';
+import type { KnowledgePoint, WordReview } from '../types/domain';
 import { todayKey } from '../utils/date';
 
 const STATUS_LABELS: Record<KnowledgePoint['status'], string> = {
@@ -25,6 +27,7 @@ export function ReviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [items, setItems] = useState<KnowledgePoint[]>([]);
+  const [words, setWords] = useState<WordReview[]>([]);
   const [counts, setCounts] = useState<Record<KnowledgePoint['status'], number> | null>(null);
   const [active, setActive] = useState<KnowledgePoint | null>(null);
   const [drill, setDrill] = useState<DrillResult | null>(null);
@@ -37,11 +40,12 @@ export function ReviewPage() {
 
   useEffect(() => {
     let alive = true;
-    void Promise.all([listDueKnowledge(), knowledgeCounts()])
-      .then(([due, summary]) => {
+    void Promise.all([listDueKnowledge(), knowledgeCounts(), listWeakWordReviews()])
+      .then(([due, summary, weakWords]) => {
         if (!alive) return;
         setItems(due);
         setCounts(summary);
+        setWords(weakWords);
       })
       .catch(reason => {
         if (alive) setError(reason instanceof Error ? reason.message : '读取复习列表失败');
@@ -196,6 +200,22 @@ export function ReviewPage() {
               ))}
             </ul>
           )}
+        </Card>
+      )}
+
+      {words.length > 0 && (
+        <Card title="单词复习">
+          <ul className="review-list">
+            {words.slice(0, 10).map(item => (
+              <li key={item.id} className="review-item">
+                <div className="review-main">
+                  <span className="review-label">{item.term}</span>
+                  <span className="review-reason">{item.status === 'unknown' ? '不认识' : '模糊'}</span>
+                </div>
+                <Link className="ghost-button" to={`/course/${item.courseId}/module/word`}>回看</Link>
+              </li>
+            ))}
+          </ul>
         </Card>
       )}
 

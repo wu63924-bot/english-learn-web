@@ -9,7 +9,7 @@ describe('local database', () => {
     expect(db.name).toBe(DB_NAME);
     expect(db.tables.map(table => table.name).sort()).toEqual([
       'aiUsage', 'answers', 'courseModules', 'courses', 'grades', 'historyDays',
-      'knowledge', 'mistakes', 'pendingAi', 'reviews', 'settings', 'studyDays'
+      'knowledge', 'mistakes', 'pendingAi', 'reviews', 'settings', 'studyDays', 'wordReviews'
     ]);
   });
 

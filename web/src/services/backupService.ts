@@ -2,11 +2,11 @@ import type { BackupFile, BackupData } from '../types/domain';
 import { db } from '../db/db';
 
 export const BACKUP_APP = 'EnglishLearn';
-export const BACKUP_VERSION = 3;
-const SUPPORTED_VERSIONS = [1, 2, 3];
+export const BACKUP_VERSION = 4;
+const SUPPORTED_VERSIONS = [1, 2, 3, 4];
 
 export async function createBackup(): Promise<BackupFile> {
-  const [courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, pendingAi, settings] = await Promise.all([
+  const [courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, pendingAi, wordReviews, settings] = await Promise.all([
     db.courses.toArray(),
     db.courseModules.toArray(),
     db.answers.toArray(),
@@ -18,6 +18,7 @@ export async function createBackup(): Promise<BackupFile> {
     db.aiUsage.toArray(),
     db.historyDays.toArray(),
     db.pendingAi.toArray(),
+    db.wordReviews.toArray(),
     db.settings.toArray().then(items => items.map(setting => {
       const clone = { ...setting };
       delete clone.aiAccessToken;
@@ -28,7 +29,7 @@ export async function createBackup(): Promise<BackupFile> {
     app: BACKUP_APP,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    data: { courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, pendingAi, settings }
+    data: { courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, pendingAi, wordReviews, settings }
   };
 }
 
@@ -63,12 +64,14 @@ export function parseBackup(text: string): BackupFile {
   const aiUsage = data.aiUsage;
   const historyDays = version >= 2 ? data.historyDays : [];
   const pendingAi = version >= 3 ? data.pendingAi : [];
+  const wordReviews = version >= 4 ? data.wordReviews : [];
   const settings = data.settings;
 
   if (!arrays(courses, isCourse) || !arrays(courseModules, isCourseModule) || !arrays(answers, isAnswer)
     || !arrays(grades, isGrade) || !arrays(knowledge, isKnowledge) || !arrays(reviews, isReview)
     || !arrays(mistakes, isMistake) || !arrays(studyDays, isStudyDay) || !arrays(aiUsage, isAiUsage)
     || !arrays(historyDays, isHistoryDay) || !arrays(pendingAi, isPendingAi)
+    || !arrays(wordReviews, isWordReview)
     || !arrays(settings, isSettings) || !settings.some(item => item.id === 'app')) {
     throw new Error('备份内容不完整或字段格式不正确');
   }
@@ -77,7 +80,7 @@ export function parseBackup(text: string): BackupFile {
   if (!unique(courses, item => item.id) || !unique(courseModules, item => item.id) || !unique(answers, item => item.id)
     || !unique(grades, item => item.id) || !unique(knowledge, item => item.id) || !unique(reviews, item => item.id)
     || !unique(mistakes, item => item.id) || !unique(studyDays, item => item.dateKey) || !unique(aiUsage, item => item.id)
-    || !unique(historyDays, item => item.id) || !unique(pendingAi, item => item.id) || !unique(settings, item => item.id)) {
+    || !unique(historyDays, item => item.id) || !unique(pendingAi, item => item.id) || !unique(wordReviews, item => item.id) || !unique(settings, item => item.id)) {
     throw new Error('备份中存在重复的数据标识');
   }
 
@@ -93,7 +96,7 @@ export function parseBackup(text: string): BackupFile {
     app: BACKUP_APP,
     version: BACKUP_VERSION,
     exportedAt: typeof value.exportedAt === 'string' ? value.exportedAt : '',
-    data: { courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, pendingAi, settings }
+    data: { courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, pendingAi, wordReviews, settings }
   };
 }
 
@@ -113,6 +116,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     if (data.aiUsage.length) await db.aiUsage.bulkPut(data.aiUsage);
     if (data.historyDays.length) await db.historyDays.bulkPut(data.historyDays);
     if (data.pendingAi.length) await db.pendingAi.bulkPut(data.pendingAi);
+    if (data.wordReviews.length) await db.wordReviews.bulkPut(data.wordReviews);
     await db.settings.bulkPut(data.settings);
   });
 }
@@ -236,6 +240,12 @@ function isPendingAi(value: unknown): value is BackupData['pendingAi'][number] {
     && (value.keyPoints === undefined || isStringArray(value.keyPoints))
     && (value.knowledgeIds === undefined || isStringArray(value.knowledgeIds))
     && (value.error === undefined || isString(value.error));
+}
+
+function isWordReview(value: unknown): value is BackupData['wordReviews'][number] {
+  return isRecord(value) && isString(value.id) && isString(value.courseId) && isString(value.moduleId)
+    && isString(value.wordId) && isString(value.term)
+    && oneOf(value.status, ['known', 'fuzzy', 'unknown']) && isNumber(value.updatedAt);
 }
 
 function isReview(value: unknown): value is BackupData['reviews'][number] {

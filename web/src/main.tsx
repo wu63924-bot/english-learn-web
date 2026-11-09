@@ -5,6 +5,7 @@ import { AppShell } from './components/AppShell';
 import { ErrorState, LoadingState } from './components/UI';
 import { initializeDatabase } from './db/seed';
 import { processPendingGrades } from './services/aiQueue';
+import { unifyKnowledge } from './services/knowledgeMigration';
 import { TodayPage } from './pages/TodayPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { RecordsPage } from './pages/RecordsPage';
@@ -19,7 +20,8 @@ function App() {
 
   useEffect(() => {
     void initializeDatabase()
-      .then(() => {
+      .then(async () => {
+        await unifyKnowledge().catch(reason => console.warn('knowledge migration skipped', reason));
         setState('ready');
         void processPendingGrades();
       })

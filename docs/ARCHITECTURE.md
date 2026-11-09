@@ -49,10 +49,11 @@ historyDays    id, dayNumber, topic, source, evidence(studied|listed_only), answ
 studyDays      dateKey(主键), seconds, coursesCompleted, firstActiveAt
 aiUsage        id, dateKey, kind, model, tokensIn, tokensOut, status, costEstimate
 pendingAi      id, courseId, moduleId, questionId, answer, status(pending|failed), createdAt
-settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedAt
+wordReviews    id, courseId, moduleId, wordId, term, status(known|fuzzy|unknown), updatedAt
+settings       id='app', aiBudget, appVersion, historyImportedAt, aiAccessToken, knowledgeUnifiedAt
 ```
 
-版本管理沿用 FitFlow 的做法：`db.version(n).stores({...})`，破坏性结构变化时显式写 `upgrade()`；数据库名独立（例如 `EnglishLearnDB`），不与 FitFlow 共用。
+版本管理沿用 FitFlow 的做法：`db.version(n).stores({...})`，破坏性结构变化时显式写 `upgrade()`；数据库名独立（例如 `EnglishLearnDB`），不与 FitFlow 共用。当前为 v4（新增单词反馈表）。
 
 ## 4. 状态与日期规则
 
@@ -68,10 +69,11 @@ settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedA
 
 - 状态：未学习 → 学习中 ⇄ 需巩固 → 已掌握；单次对错不翻转状态。
 - 需巩固：连续答错 2 次进入；连续答对 2 次回到学习中。
-- 已掌握：学习中连续答对 3 次进入；连续答错 2 次才回落。
+- 已掌握：学习中连续答对 3 次，且跨至少 3 个不同日期，才进入；连续答错 2 次才回落。
+- 到期：优先看 `nextReviewDate`；只有没有排期的“需巩固”才立即到期。
 - 间隔：1 → 3 → 7 天（学习中），已掌握 14 天；答错次日复习。
 - 实现为纯函数 `src/services/reviewRules.ts`，多日行为由单元测试固定。
-- 题目通过 `knowledgeIds` 关联知识点；课程作答与复习练习都会更新状态。
+- 题目通过 `knowledgeIds` 关联知识点；知识点按规范化标签生成稳定 id（`kp-...`），历史导入、各课程与复习共用同一份记录，启动时合并旧课号 id。
 - 客观题：本地比对，纯函数，`utils/` 内实现，可单测。
 - 开放题：P1 显示“待批改”；P2 由代理批改，返回 `correct | partial | uncertain`，`uncertain` 显示“暂无法判断”。
 - 代理接口（已实现，默认 mock）：`POST /api/course/generate`、`POST /api/grade`、`POST /api/tutor`、`POST /api/drill`、`GET /health`。
@@ -92,7 +94,7 @@ settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedA
 
 ## 6. PWA（已实现，实机待验收）
 
-- DB v3：新增 `pendingAi` 队列表；备份升到 v3，仍接受 v1 / v2。
+- DB v4：新增 `pendingAi` 与 `wordReviews` 表；备份升到 v4，仍接受 v1–v3。
 - precache：HTML、JS、CSS、PNG / SVG 图标、字体；**不缓存** API 响应。
 - 更新策略：`registerType: 'prompt'`。新版本就绪时顶部显示“有新版本可用”，用户点击后才重载，避免页面打开期间被接管。
 - 图标：`icon-192.png`、`icon-512.png`（含 maskable）；manifest 使用 PNG，兼容 iOS 主屏图标。
@@ -107,7 +109,7 @@ settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedA
 2. 导入时逐字段校验，再校验主键唯一与引用完整。
 3. 恢复在**单个读写事务**内清空并写入，失败整体回滚。
 4. 恢复前自动导出当前数据为“恢复前备份”。
-5. 版本升级路径在 `parseBackup` 内归一化旧版本；v3 新增待批改队列，v2 / v1 导入时补空表。
+5. 版本升级路径在 `parseBackup` 内归一化旧版本；v4 新增单词反馈，v3 新增待批改队列，旧版本导入时补空表。
 
 ## 8. 部署（配置已实现，尚未上线）
 

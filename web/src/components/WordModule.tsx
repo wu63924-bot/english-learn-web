@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import type { CourseModule } from '../types/domain';
+import { useEffect, useState } from 'react';
+import type { CourseModule, WordReviewStatus } from '../types/domain';
+import { listWordReviews, saveWordReview } from '../repositories/wordReviewRepository';
 
 interface Props {
   module: CourseModule<'word'>;
@@ -11,11 +12,42 @@ interface Props {
 export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
   const words = module.content.words;
   const [index, setIndex] = useState(0);
+  const [reviews, setReviews] = useState<Record<string, WordReviewStatus>>({});
   const word = words[index];
   const isFirst = index === 0;
   const isLast = index === words.length - 1;
 
+  useEffect(() => {
+    let active = true;
+    void listWordReviews(module.courseId, module.id).then(items => {
+      if (!active) return;
+      const map: Record<string, WordReviewStatus> = {};
+      for (const item of items) map[item.wordId] = item.status;
+      setReviews(map);
+      const firstUnfinished = words.findIndex(item => map[item.id] !== 'known');
+      if (firstUnfinished > 0) setIndex(firstUnfinished);
+    });
+    return () => {
+      active = false;
+    };
+  }, [module.courseId, module.id, words]);
+
+  async function rate(status: WordReviewStatus) {
+    if (!word) return;
+    await saveWordReview({
+      courseId: module.courseId,
+      moduleId: module.id,
+      wordId: word.id,
+      term: word.term,
+      status
+    });
+    setReviews(current => ({ ...current, [word.id]: status }));
+    if (!isLast) setIndex(value => Math.min(words.length - 1, value + 1));
+  }
+
   if (!word) return <p className="muted">这个模块没有单词内容。</p>;
+
+  const currentStatus = reviews[word.id];
 
   return (
     <div className="word-module">
@@ -38,6 +70,18 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
         <p className="word-example-translation">{word.exampleTranslation}</p>
         {word.note && <p className="word-note">{word.note}</p>}
       </article>
+
+      <div className="word-feedback" role="group" aria-label="单词掌握程度">
+        <button type="button" className={`word-rate known${currentStatus === 'known' ? ' active' : ''}`} onClick={() => { void rate('known'); }}>
+          认识
+        </button>
+        <button type="button" className={`word-rate fuzzy${currentStatus === 'fuzzy' ? ' active' : ''}`} onClick={() => { void rate('fuzzy'); }}>
+          模糊
+        </button>
+        <button type="button" className={`word-rate unknown${currentStatus === 'unknown' ? ' active' : ''}`} onClick={() => { void rate('unknown'); }}>
+          不认识
+        </button>
+      </div>
 
       <nav className="module-nav">
         <button type="button" className="ghost-button" onClick={() => setIndex(value => Math.max(0, value - 1))} disabled={isFirst}>

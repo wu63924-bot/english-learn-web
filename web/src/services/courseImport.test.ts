@@ -4,6 +4,7 @@ import { db } from '../db/db';
 import { initializeDatabase } from '../db/seed';
 import type { GeneratedCoursePayload } from './coursePayload';
 import { nextCourseNumber, saveGeneratedCourse } from './courseImport';
+import { knowledgeIdFor } from '../utils/knowledge';
 
 function payload(title: string): GeneratedCoursePayload {
   return {
@@ -93,14 +94,14 @@ describe('generated course import', () => {
 
     const modules = await db.courseModules.where('courseId').equals('ai-3').sortBy('order');
     expect(modules.map(module => module.kind)).toEqual(['word', 'grammar', 'reading', 'review']);
-    const knowledge = (await db.knowledge.toArray()).filter(point => point.id.startsWith('ai-3-'));
-    expect(knowledge.map(point => point.id).sort()).toEqual(['ai-3-k1', 'ai-3-k2']);
+    const ids = payload('Generated One').knowledgeLabels.map(label => knowledgeIdFor(label));
+    expect((await db.knowledge.bulkGet(ids)).map(point => point?.id)).toEqual(ids);
     const review = modules.find(module => module.kind === 'review');
-    expect(review && 'knowledgeIds' in review.content ? review.content.knowledgeIds : []).toEqual(['ai-3-k1', 'ai-3-k2']);
+    expect(review && 'knowledgeIds' in review.content ? review.content.knowledgeIds : []).toEqual(ids);
 
     const grammar = modules.find(module => module.kind === 'grammar');
     const grammarQuestions = grammar && 'questions' in grammar.content ? grammar.content.questions : [];
-    expect(grammarQuestions.map(question => question.knowledgeIds)).toEqual([['ai-3-k1'], ['ai-3-k2']]);
+    expect(grammarQuestions.map(question => question.knowledgeIds)).toEqual([[ids[0]], [ids[1]]]);
     expect(grammarQuestions.every(question => question.knowledgeIndex === undefined)).toBe(true);
   });
 

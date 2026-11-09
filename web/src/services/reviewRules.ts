@@ -51,12 +51,18 @@ export function applyAttempt(point: KnowledgePoint, correct: boolean, day: strin
   if (correct) {
     next.correctStreak = point.correctStreak + 1;
     next.wrongStreak = 0;
+    next.correctDayStreak = point.lastCorrectDate === day
+      ? (point.correctDayStreak ?? 0)
+      : (point.correctDayStreak ?? 0) + 1;
+    next.lastCorrectDate = day;
     if (previousStatus === 'unseen') next.status = 'learning';
     else if (previousStatus === 'needs_review' && next.correctStreak >= 2) next.status = 'learning';
-    else if (previousStatus === 'learning' && next.correctStreak >= 3) next.status = 'mastered';
+    else if (previousStatus === 'learning' && next.correctStreak >= 3 && next.correctDayStreak >= 3) next.status = 'mastered';
   } else {
     next.correctStreak = 0;
     next.wrongStreak = point.wrongStreak + 1;
+    next.correctDayStreak = 0;
+    next.lastCorrectDate = undefined;
     if (previousStatus === 'unseen') next.status = 'learning';
     else if (next.wrongStreak >= 2) next.status = 'needs_review';
   }
@@ -69,9 +75,8 @@ export function applyAttempt(point: KnowledgePoint, correct: boolean, day: strin
 
 export function isDue(point: KnowledgePoint, today: string): boolean {
   if (point.status === 'unseen') return false;
-  if (point.status === 'needs_review') return true;
-  if (!point.nextReviewDate) return false;
-  return point.nextReviewDate <= today;
+  if (point.nextReviewDate) return point.nextReviewDate <= today;
+  return point.status === 'needs_review';
 }
 
 export function dueKnowledge(points: KnowledgePoint[], today: string): KnowledgePoint[] {

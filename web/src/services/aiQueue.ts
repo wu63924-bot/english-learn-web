@@ -1,7 +1,7 @@
 import { db } from '../db/db';
 import type { PendingAiGrade } from '../types/domain';
 import { AiError, gradeAnswer, type AiGrade } from './aiClient';
-import { saveAiGrade } from '../repositories/answerRepository';
+import { answerRecordId, saveAiGrade } from '../repositories/answerRepository';
 import { recordKnowledgeAttempt } from './knowledgeUpdate';
 
 export interface QueueGradeInput {
@@ -47,12 +47,29 @@ export async function gradeOrQueue(input: QueueGradeInput): Promise<QueueGradeRe
 }
 
 /** Retries queued grades; returns how many were completed. Network failures keep them pending. */
-export async function processPendingGrades(): Promise<number> {
+let processing: Promise<number> | null = null;
+
+export function processPendingGrades(): Promise<number> {
+  if (processing) return processing;
+  processing = runPendingGrades().finally(() => {
+    processing = null;
+  });
+  return processing;
+}
+
+async function runPendingGrades(): Promise<number> {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return 0;
   const pending = await db.pendingAi.where('status').equals('pending').toArray();
   let done = 0;
   for (const item of pending) {
     try {
+      const answerId = answerRecordId(item.courseId, item.moduleId, item.questionId);
+      const current = await db.answers.get(answerId);
+      if (current && current.value !== item.answer) {
+        // The user edited this answer after it was queued. Never overwrite the newer text.
+        await db.pendingAi.delete(item.id);
+        continue;
+      }
       const grade = await gradeAnswer({
         courseId: item.courseId,
         moduleId: item.moduleId,
@@ -62,6 +79,11 @@ export async function processPendingGrades(): Promise<number> {
         answer: item.answer,
         keyPoints: item.keyPoints
       });
+      const latest = await db.answers.get(answerId);
+      if (latest && latest.value !== item.answer) {
+        await db.pendingAi.delete(item.id);
+        continue;
+      }
       await saveAiGrade({
         courseId: item.courseId,
         moduleId: item.moduleId,
