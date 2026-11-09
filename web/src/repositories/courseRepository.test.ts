@@ -28,12 +28,23 @@ describe('course repository', () => {
     expect((await getCurrentCourse())?.id).toBe('sample-1');
   });
 
-  it('prefers the newest unstarted AI lesson over the sample courses', async () => {
+  it('prefers the lowest-numbered unstarted AI lesson over the sample courses', async () => {
     await db.courses.put({
       id: 'ai-21',
       number: 21,
       title: '第 21 课',
-      topic: '四级词汇',
+      topic: '第三周综合测试',
+      goal: '继续历史进度',
+      source: 'ai',
+      status: 'not_started',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
+    await db.courses.put({
+      id: 'ai-22',
+      number: 22,
+      title: '第 22 课',
+      topic: '动词不定式',
       goal: '继续历史进度',
       source: 'ai',
       status: 'not_started',

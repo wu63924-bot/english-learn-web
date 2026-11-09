@@ -26,7 +26,7 @@ export async function updateModuleStatus(moduleId: string, status: ModuleStatus)
 
 /**
  * The course shown on the home page: an unfinished started course wins,
- * otherwise the newest unstarted AI lesson, then the lowest-numbered course.
+ * otherwise the lowest-numbered unstarted AI lesson, then the lowest-numbered course.
  */
 export async function getCurrentCourse(): Promise<Course | undefined> {
   const started = await db.courses.where('status').equals('in_progress').toArray();
@@ -35,10 +35,10 @@ export async function getCurrentCourse(): Promise<Course | undefined> {
   }
   const courses = await listCourses();
   const unstarted = courses.filter(course => course.status === 'not_started');
-  const newestAi = unstarted
+  const nextAi = unstarted
     .filter(course => course.source === 'ai')
-    .sort((a, b) => b.createdAt - a.createdAt)[0];
-  return newestAi ?? unstarted[0];
+    .sort((a, b) => a.number - b.number)[0];
+  return nextAi ?? unstarted[0];
 }
 
 export async function completeCourse(id: string): Promise<void> {
