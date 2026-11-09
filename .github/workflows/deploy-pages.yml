@@ -21,8 +21,8 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     env:
-      # Project Pages are served from /<repo>/. Override with a repository variable if needed.
-      GITHUB_PAGES_BASE: ${{ vars.GITHUB_PAGES_BASE || format('/{0}/', github.event.repository.name) }}
+      # Project Pages are served from /<repo>/. Override with the PAGES_BASE repository variable if needed.
+      GITHUB_PAGES_BASE: ${{ vars.PAGES_BASE || format('/{0}/', github.event.repository.name) }}
       # Public proxy URL, configured as a repository variable (Settings -> Secrets and variables -> Actions -> Variables).
       VITE_AI_API_URL: ${{ vars.VITE_AI_API_URL }}
     defaults:
