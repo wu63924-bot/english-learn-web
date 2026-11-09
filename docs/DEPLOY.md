@@ -68,7 +68,7 @@ https://<fc 域名>/health
 
 ### 1. 启用 Pages
 
-仓库 Settings → Pages → Source 选择 **GitHub Actions**。
+workflow 会用 `actions/configure-pages` 自动创建 Pages 站点。若首次运行仍失败，到仓库 Settings → Pages → Source 手动选择 **GitHub Actions**，再重跑 workflow。
 
 ### 2. 配置构建地址
 
