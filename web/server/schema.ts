@@ -23,7 +23,7 @@ const LIMITS = {
   answer: 4000,
   context: 4000,
   feedback: 1200,
-  words: 8,
+  words: 20,
   sections: 4,
   questions: 8
 };

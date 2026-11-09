@@ -35,7 +35,7 @@ export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
     request.focus ? `需要侧重：${request.focus}。` : '',
     '',
     '硬性要求：',
-    '- words 恰好 5 个，音标用国际音标并带斜杠，例句难度与等级匹配；',
+    '- words 恰好 20 个，不重复，音标用国际音标并带斜杠，例句难度与等级匹配；优先四级核心词；',
     '- grammarSections 2 段，grammarQuestions 4 道单选题，每题 4 个选项，answerIndex 是正确选项下标（0-3）；',
     '- passage 90-140 词，配中文译文；readingQuestions 包含 1 道选择题和 1 道翻译题；',
     '- knowledgeLabels 3 条，reviewQuestions 2 道单选题，覆盖本节知识点；',
