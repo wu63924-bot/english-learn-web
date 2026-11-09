@@ -11,6 +11,7 @@
 | `docs/PRD.md` | 产品目标、范围、页面与验收标准 |
 | `docs/ARCHITECTURE.md` | 技术路线、数据模型、AI 代理、PWA 方案 |
 | `docs/PROGRESS.md` | 当前阶段、已验证与待办 |
+| `docs/DEPLOY.md` | GitHub Pages + 阿里云 FC 部署步骤 |
 | `docs/P0-BASELINE.md` | P0 复用报告、数据规则、开发任务清单 |
 | `AGENTS.md` | 本项目的开发约束 |
 
@@ -28,8 +29,12 @@ npm run dev          # 本地开发，默认 http://localhost:5173/
 npm run typecheck    # 类型检查
 npm test             # Vitest（数据库、判分、备份、学习日）
 npm run build        # 生产构建，输出 dist/
+npm run build:github # GitHub Pages 构建（base + 404.html + .nojekyll）
+npm run build:api    # 编译 AI 代理到 api-dist/server（FC 代码包）
 npm run preview      # 预览构建结果
 ```
+
+部署步骤见 [`docs/DEPLOY.md`](docs/DEPLOY.md)：前端 GitHub Pages，后端阿里云函数计算 FC。
 
 数据保存在浏览器 IndexedDB（`EnglishLearnDB`）。换浏览器、换端口或清理站点数据前，先在“设置 → 导出备份”保存 JSON。
 

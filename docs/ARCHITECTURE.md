@@ -109,7 +109,16 @@ settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedA
 4. 恢复前自动导出当前数据为“恢复前备份”。
 5. 版本升级路径在 `parseBackup` 内归一化旧版本；v3 新增待批改队列，v2 / v1 导入时补空表。
 
-## 8. 已知风险
+## 8. 部署（配置已实现，尚未上线）
+
+沿用 FitFlow 的两段式部署，详细步骤见 `docs/DEPLOY.md`：
+
+- 前端：GitHub Pages。`build:github` 使用 `GITHUB_PAGES_BASE`（默认 `/<仓库名>/`）生成子路径资源、`404.html` 与 `.nojekyll`；Actions workflow 在推送 `main` 后自动发布。
+- 后端：阿里云 FC 3.0 Web Function。`build:api` 把 `server/` 编译到 `api-dist/server`，只含 JS 与零依赖 `package.json`；密钥通过 FC 环境变量注入。
+- 连接：前端构建时通过 `VITE_AI_API_URL` 写入 FC HTTPS 地址；代理 `ALLOWED_ORIGINS` 加入 Pages 来源。
+- 限制：代理没有账号鉴权，公网使用需要额外的访问控制。
+
+## 9. 已知风险
 
 | 风险 | 影响 | 处理 |
 | --- | --- | --- |

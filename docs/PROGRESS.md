@@ -11,7 +11,7 @@
 | P2 接入 AI | 已完成（DeepSeek 真实小样本通过） | 生成、开放题批改、问老师均走真实 DeepSeek；结构校验、去重、超时、限流、预算、用量记录生效 |
 | P3 迁移历史记录 | 已完成 | 导入预览、备份、来源与确认状态、衔接复习课生成；数据库升到 v2 |
 | P4 复习机制 | 已完成 | 规则、到期列表、AI 出题、状态更新；课程作答已通过题目—知识点映射驱动复习 |
-| P5 PWA 与验收 | 进行中 | PNG 图标、提示更新、离线外壳与 AI 待批改队列已实现并发版；真机安装与 iOS 验收未做 |
+| P5 PWA 与验收 | 进行中 | 图标、提示更新、离线外壳、AI 队列、Pages/FC 部署配置已完成；真实 Pages 与 FC 尚未上线，真机验收未做 |
 
 ## 已实现
 
@@ -65,6 +65,7 @@
 - 离线外壳：Service Worker 预缓存 HTML、JS、CSS、图标与字体；离线可直接打开已访问过的路由。
 - AI 离线队列：批改请求遇到断网 / 超时写入 `pendingAi`，页面提示“批改已排队”；启动、恢复联网或设置页手动触发时自动重试。
 - 数据库 v3：新增 `pendingAi` 表；备份升到 v3，仍兼容 v1 / v2 并补空表。
+- 部署配置（沿用 FitFlow）：`build:github` 支持 Pages 子路径 base、`404.html` 与 `.nojekyll`；`build:api` 编译零依赖 FC 代码包到 `api-dist/server`；新增 Pages Actions workflow 与 `docs/DEPLOY.md`。
 - 作答存储：确定性 id `课程:模块:题号`，同一题重复保存为覆盖；答案与批改在同一事务写入。
 - 客观题判分：`utils/grading.ts`，选择题按选项 id 比对；填空题做全半角、大小写、空格、弯引号与句末标点归一化。
 - 示例课程与知识点只在缺失时写入，重复启动不重复插入。
@@ -92,6 +93,9 @@
 - 浏览器实测（Chrome，dev 服务器）：带 v2 数据的开发浏览器打开设置页正常，Dexie 自动升级到 v3 并创建 `pendingAi` 表，历史导入与复习数据保留。
 - 浏览器实测（Chrome，生产构建 + `vite preview`）：打开页面后停止静态服务器，再访问 `/records` 仍由 Service Worker 返回应用并正常渲染，证明离线外壳可用。
 - 浏览器实测（Chrome，生产构建 + `vite preview`）：停止 AI 代理后提交翻译批改，页面显示“批改已排队”；重启代理（mock）并在设置页点“立即处理”，待批改归零，回到题目显示已批改结果。
+- 本地验证 FC 代码包：`npm run build:api` 通过，`api-dist/server` 只含编译后 JS 与零依赖 `package.json`；以 mock 启动编译产物，`/health` 返回正常。
+- 本地验证 Pages 构建：`GITHUB_PAGES_BASE=/english-web/ npm run build:github` 生成 `/english-web/` 资源、manifest scope、`404.html` 与 `.nojekyll`；`vite preview --mode github` 下直接打开 `/english-web/records` 正常。
+- 浏览器实测（Chrome，Pages 子路径构建）：停止静态服务器后打开 `/english-web/settings` 仍可渲染，子路径下的 Service Worker 离线外壳生效。
 - 构建产物扫描：`dist/` 中未出现 `AI_API_KEY` 或疑似密钥；`.env` 被 Git 忽略。
 - 浏览器实测（Chrome，dev 服务器）：阅读翻译题点“请老师批改”，显示“回答正确 / 与参考译文一致（模拟批改）/ 已自动保存”；另一题输入“不知道”后显示“暂无法判断”，并提供“重新批改”。
 - 浏览器实测（Chrome，dev 服务器）：课程内“问老师”返回模拟回答；设置页本机用量随生成、批改、提问逐次增加。
@@ -109,6 +113,7 @@
 ## 未验证
 
 - 手机与 iPad 真机。
+- 真实 GitHub Pages 与阿里云 FC 尚未部署；workflow 与代码包只在本地构建、预览和 mock 启动验证过。
 - PWA 安装（添加到主屏）与 HTTPS 环境未验收；离线验证是在 `vite preview` 的 HTTP localhost 下通过“停掉静态服务器”模拟的，不是真实断网或系统级离线。
 - PWA 更新提示只完成构建与逻辑接入，没有实际发布第二个版本验证“更新并重载”。
 - 文本自动保存的四个触发点只做了整体验证（离开再进入能恢复），没有逐个单独验证防抖、失焦、页面隐藏各自的写入时机。
@@ -136,9 +141,9 @@
 
 ## 待办（下一步）
 
-1. 准备 HTTPS 预览（局域网或临时隧道，需用户授权），在 Windows Chrome、手机、iPad 实测安装与离线。
-2. 发布第二个版本，验证“有新版本可用 → 更新并重载”不会丢失未保存作答。
-3. 部署说明：静态站点与 AI 代理分开运行，`ALLOWED_ORIGINS` 必须包含实际站点来源。
+1. 创建 GitHub 仓库并推送，启用 Pages（Source: GitHub Actions），添加 `VITE_AI_API_URL` 仓库变量。
+2. 在阿里云 FC 创建 Web Function，上传 `api-dist/server` 的 ZIP，配置环境变量与最大实例数 1。
+3. 上线后做真机安装、真实断网、iOS 主屏图标与更新流程验收。
 4. 可选：为旧课程补题目映射（重新生成或一次性迁移）。
 
 ## 已知问题与风险
@@ -189,3 +194,6 @@
 | 2026-11-09 | P5 离线队列 | `npm test` | 断网入队、恢复批改、拒绝标记失败，3 项通过 |
 | 2026-11-09 | P5 离线外壳 | `vite preview` + 停止静态服务器 | `/records` 仍可打开，Service Worker 生效 |
 | 2026-11-09 | P5 离线批改恢复 | `vite preview` + 停/启代理 | 提示排队 → 设置页处理后归零，题目显示批改结果 |
+| 2026-11-09 | P5 FC 代码包 | `npm run build:api` + mock 启动 | 编译通过，`/health` 正常 |
+| 2026-11-09 | P5 Pages 子路径构建 | `build:github` + `vite preview --mode github` | base、manifest、子路由通过 |
+| 2026-11-09 | P5 Pages 子路径离线 | 停静态服务器后打开 `/english-web/settings` | 通过，SW 生效 |
