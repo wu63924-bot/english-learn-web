@@ -1,4 +1,4 @@
-import type { GenerateCourseRequest, GradeRequest, TutorRequest } from './provider.ts';
+import type { DrillRequest, GenerateCourseRequest, GradeRequest, TutorRequest } from './provider.ts';
 
 export interface ChatMessage {
   role: 'system' | 'user';
@@ -86,6 +86,25 @@ export function tutorMessages(request: TutorRequest): ChatMessage[] {
         '',
         '用中文简明回答，控制在 200 字以内。围绕本课内容解释；不确定时直接说不确定，不要编造教材内容。',
         '只输出 JSON：{"answer":"回答内容"}'
+      ].join('\n')
+    }
+  ];
+}
+
+export function drillMessages(request: DrillRequest): ChatMessage[] {
+  const context = request.context ? `\n参考本课内容：${request.context}` : '';
+  return [
+    { role: 'system', content: SYSTEM },
+    {
+      role: 'user',
+      content: [
+        `请针对知识点「${request.label}」出一道英语单选题。${context}`,
+        '',
+        '要求：',
+        '- 4 个选项，只有一个明确正确答案，干扰项要合理；',
+        '- 题干简短，难度 A2–B1，不考本知识点以外的内容；',
+        '- 解析用中文说明原因；',
+        '- 只输出 JSON：{"prompt":"题干","options":["A","B","C","D"],"answerIndex":0,"explanation":"中文解析"}'
       ].join('\n')
     }
   ];

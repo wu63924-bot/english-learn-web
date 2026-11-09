@@ -2,6 +2,8 @@ import type { ApiConfig } from './config.ts';
 import { ApiError } from './errors.ts';
 import type {
   AiProvider,
+  Drill,
+  DrillRequest,
   GeneratedCourse,
   GenerateCourseRequest,
   GradeRequest,
@@ -11,8 +13,8 @@ import type {
   TutorAnswer,
   TutorRequest
 } from './provider.ts';
-import { courseMessages, gradeMessages, tutorMessages } from './prompts.ts';
-import { normalizeCourse, normalizeGrade, normalizeTutor } from './schema.ts';
+import { courseMessages, drillMessages, gradeMessages, tutorMessages } from './prompts.ts';
+import { normalizeCourse, normalizeDrill, normalizeGrade, normalizeTutor } from './schema.ts';
 
 interface ChatResult {
   json: unknown;
@@ -42,6 +44,11 @@ export class OpenAiProvider implements AiProvider {
   async tutor(request: TutorRequest, signal?: AbortSignal): Promise<ProviderResult<TutorAnswer>> {
     const result = await this.chat(tutorMessages(request), signal);
     return { data: normalizeTutor(result.json), usage: result.usage };
+  }
+
+  async generateDrill(request: DrillRequest, signal?: AbortSignal): Promise<ProviderResult<Drill>> {
+    const result = await this.chat(drillMessages(request), signal);
+    return { data: normalizeDrill(result.json), usage: result.usage };
   }
 
   private async chat(messages: { role: string; content: string }[], signal?: AbortSignal): Promise<ChatResult> {

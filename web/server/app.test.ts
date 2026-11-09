@@ -170,7 +170,8 @@ describe('AI proxy', () => {
         signal?.addEventListener('abort', () => reject(new Error('aborted')));
       }),
       grade: async () => { throw new ApiError('AI_UNAVAILABLE'); },
-      tutor: async () => { throw new ApiError('AI_UNAVAILABLE'); }
+      tutor: async () => { throw new ApiError('AI_UNAVAILABLE'); },
+      generateDrill: async () => { throw new ApiError('AI_UNAVAILABLE'); }
     };
     const app = await start({ timeoutMs: 50 }, hanging);
     try {
@@ -192,6 +193,25 @@ describe('AI proxy', () => {
       const tutor = await post(app.url, '/api/tutor', { question: '一般现在时怎么用？' });
       const tutorPayload = await tutor.json() as { data: { answer: string } };
       expect(tutorPayload.data.answer).toContain('模拟');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('generates one review drill', async () => {
+    const app = await start();
+    try {
+      const response = await post(app.url, '/api/drill', { label: '一般现在时：第三人称单数' });
+      const payload = await response.json() as {
+        data: { prompt: string; options: { id: string; label: string }[]; answerId: string; explanation: string };
+      };
+      expect(response.status).toBe(200);
+      expect(payload.data.options).toHaveLength(4);
+      expect(payload.data.options.some(option => option.id === payload.data.answerId)).toBe(true);
+      expect(payload.data.explanation).toContain('模拟');
+
+      const invalid = await post(app.url, '/api/drill', { label: '' });
+      expect(invalid.status).toBe(400);
     } finally {
       await app.close();
     }

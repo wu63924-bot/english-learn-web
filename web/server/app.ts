@@ -4,7 +4,7 @@ import type { ApiConfig } from './config.ts';
 import { ApiError } from './errors.ts';
 import type { AiProvider, TokenUsage } from './provider.ts';
 import { RateLimiter } from './rateLimiter.ts';
-import { parseGenerateRequest, parseGradeRequest, parseTutorRequest } from './schema.ts';
+import { parseDrillRequest, parseGenerateRequest, parseGradeRequest, parseTutorRequest } from './schema.ts';
 import { UsageLedger } from './usage.ts';
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -34,7 +34,8 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
   const routes: Record<string, RouteHandler> = {
     '/api/course/generate': async (body, signal) => deps.provider.generateCourse(parseGenerateRequest(body), signal),
     '/api/grade': async (body, signal) => deps.provider.grade(parseGradeRequest(body), signal),
-    '/api/tutor': async (body, signal) => deps.provider.tutor(parseTutorRequest(body), signal)
+    '/api/tutor': async (body, signal) => deps.provider.tutor(parseTutorRequest(body), signal),
+    '/api/drill': async (body, signal) => deps.provider.generateDrill(parseDrillRequest(body), signal)
   };
 
   const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {

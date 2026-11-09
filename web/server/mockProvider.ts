@@ -2,6 +2,8 @@ import type { ApiConfig } from './config.ts';
 import { ApiError } from './errors.ts';
 import type {
   AiProvider,
+  Drill,
+  DrillRequest,
   GeneratedCourse,
   GenerateCourseRequest,
   GradeRequest,
@@ -11,7 +13,7 @@ import type {
   TutorAnswer,
   TutorRequest
 } from './provider.ts';
-import { normalizeCourse, normalizeGrade, normalizeTutor } from './schema.ts';
+import { normalizeCourse, normalizeDrill, normalizeGrade, normalizeTutor } from './schema.ts';
 
 /** Deterministic provider used for tests and offline development. No network, no cost. */
 export class MockProvider implements AiProvider {
@@ -35,6 +37,17 @@ export class MockProvider implements AiProvider {
     await delay(this.config.mockLatencyMs, signal);
     const answer = `（模拟回答）你问的是「${request.question}」。当前为模拟模式，未调用真实模型；接入真实服务后会结合本课内容回答。`;
     return { data: normalizeTutor({ answer }), usage: { inputTokens: 0, outputTokens: 0 } };
+  }
+
+  async generateDrill(request: DrillRequest, signal?: AbortSignal): Promise<ProviderResult<Drill>> {
+    await delay(this.config.mockLatencyMs, signal);
+    const drill = normalizeDrill({
+      prompt: 'She ___ English every day.',
+      options: ['practice', 'practices', 'practicing', 'practiced'],
+      answerIndex: 1,
+      explanation: `第三人称单数用 practices（模拟题目，目标知识点：${request.label}）。`
+    });
+    return { data: drill, usage: { inputTokens: 0, outputTokens: 0 } };
   }
 }
 

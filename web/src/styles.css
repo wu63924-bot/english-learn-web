@@ -687,6 +687,79 @@ button {
   font-size: 0.85rem;
 }
 
+.review-counts {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.review-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-item:last-child {
+  border-bottom: 0;
+}
+
+.review-main {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.review-label {
+  font-size: 0.94rem;
+}
+
+.review-reason {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.review-badge {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f2f1ec;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.review-badge.status-needs_review {
+  background: #fdf2ef;
+  color: #8b4539;
+}
+
+.review-badge.status-mastered {
+  background: #f1f8f4;
+  color: #215f3f;
+}
+
+.review-next {
+  margin: 10px 0 14px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .status-text a {
   color: var(--accent);
 }

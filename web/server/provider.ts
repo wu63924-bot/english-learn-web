@@ -20,6 +20,18 @@ export interface TutorRequest {
   context?: string;
 }
 
+export interface DrillRequest {
+  label: string;
+  context?: string;
+}
+
+export interface Drill {
+  prompt: string;
+  options: { id: string; label: string }[];
+  answerId: string;
+  explanation: string;
+}
+
 export interface GeneratedCourse {
   title: string;
   topic: string;
@@ -92,4 +104,5 @@ export interface AiProvider {
   generateCourse(request: GenerateCourseRequest, signal?: AbortSignal): Promise<ProviderResult<GeneratedCourse>>;
   grade(request: GradeRequest, signal?: AbortSignal): Promise<ProviderResult<GradeResult>>;
   tutor(request: TutorRequest, signal?: AbortSignal): Promise<ProviderResult<TutorAnswer>>;
+  generateDrill(request: DrillRequest, signal?: AbortSignal): Promise<ProviderResult<Drill>>;
 }

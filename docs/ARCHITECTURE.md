@@ -63,6 +63,14 @@ settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedA
 
 ## 5. 批改与 AI
 
+### 复习规则（已实现）
+
+- 状态：未学习 → 学习中 ⇄ 需巩固 → 已掌握；单次对错不翻转状态。
+- 需巩固：连续答错 2 次进入；连续答对 2 次回到学习中。
+- 已掌握：学习中连续答对 3 次进入；连续答错 2 次才回落。
+- 间隔：1 → 3 → 7 天（学习中），已掌握 14 天；答错次日复习。
+- 实现为纯函数 `src/services/reviewRules.ts`，多日行为由单元测试固定。
+- 已知缺口：题目尚无知识点映射，普通课程作答不驱动状态更新，只有复习练习会。
 - 客观题：本地比对，纯函数，`utils/` 内实现，可单测。
 - 开放题：P1 显示“待批改”；P2 由代理批改，返回 `correct | partial | uncertain`，`uncertain` 显示“暂无法判断”。
 - 代理接口（已实现，默认 mock）：`POST /api/course/generate`、`POST /api/grade`、`POST /api/tutor`、`GET /health`。

@@ -6,6 +6,7 @@ import { generateCourse, getAiHealth, aiBaseUrl, AiError, type AiHealth } from '
 import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport';
 import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
+import { listWeakLabels } from '../repositories/knowledgeRepository';
 import {
   applyHistoryImport,
   getHistorySummary,
@@ -47,15 +48,17 @@ export function SettingsPage() {
   const [bridgeBusy, setBridgeBusy] = useState(false);
   const [bridgeError, setBridgeError] = useState('');
   const [historyText, setHistoryText] = useState('');
+  const [weakLabels, setWeakLabels] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
-    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary()]).then(([healthResult, usageResult, number, historyResult]) => {
+    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary(), listWeakLabels()]).then(([healthResult, usageResult, number, historyResult, weak]) => {
       if (!active) return;
       setHealth(healthResult);
       setUsage(usageResult);
       setNextNumber(number);
       setHistorySummary(historyResult);
+      setWeakLabels(weak);
     });
     return () => {
       active = false;
@@ -117,7 +120,8 @@ export function SettingsPage() {
       const { course, provider } = await generateCourse({
         number: nextNumber,
         topic: topic.trim(),
-        level: level.trim() || undefined
+        level: level.trim() || undefined,
+        focus: weakLabels.length ? weakLabels.join('；') : undefined
       });
       const saved = await saveGeneratedCourse({ number: nextNumber, payload: course, provider });
       setGeneratedId(saved.course.id);
@@ -129,6 +133,7 @@ export function SettingsPage() {
       setHealth(nextHealth);
       setUsage(nextUsage);
       setNextNumber(number);
+      setWeakLabels(await listWeakLabels());
     } catch (reason) {
       setAiError(reason instanceof AiError ? reason.message : reason instanceof Error ? reason.message : '生成失败');
     } finally {
@@ -176,6 +181,7 @@ export function SettingsPage() {
       setHistoryText('');
       setHistorySummary(await getHistorySummary());
       setNextNumber(await nextCourseNumber());
+      setWeakLabels(await listWeakLabels());
     } catch (reason) {
       setHistoryError(`导入失败，本机数据未改变：${reason instanceof Error ? reason.message : '未知错误'}`);
     } finally {
@@ -202,6 +208,7 @@ export function SettingsPage() {
       setAiMessage(`已生成衔接复习课（第 ${number} 课《${saved.course.title}》），点击打开。`);
       setNextNumber(await nextCourseNumber());
       setHealth(await getAiHealth());
+      setWeakLabels(await listWeakLabels());
     } catch (reason) {
       setBridgeError(reason instanceof AiError ? reason.message : reason instanceof Error ? reason.message : '生成失败');
     } finally {
@@ -379,6 +386,9 @@ export function SettingsPage() {
           <button type="button" className="primary-button" onClick={() => { void handleGenerate(); }} disabled={!topic.trim() || generating || nextNumber === null}>
             {generating ? '正在生成…' : '生成并保存这节课'}
           </button>
+          {weakLabels.length > 0 && (
+            <p className="notice">当前薄弱点会带入生成要求：{weakLabels.join('、')}</p>
+          )}
         </div>
         {aiMessage && (
           <p className="status-text">

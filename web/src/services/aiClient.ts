@@ -200,6 +200,28 @@ export interface AiHealth {
   maxTokens: number;
 }
 
+export interface DrillResult {
+  prompt: string;
+  options: { id: string; label: string }[];
+  answerId: string;
+  explanation: string;
+}
+
+export async function generateDrill(input: { label: string; context?: string }, overrides: AiCallOverrides = {}): Promise<DrillResult> {
+  const envelope = await call<DrillResult>('/api/drill', input, {
+    idempotencyKey: `drill-${hash(`${input.label}|${input.context ?? ''}`)}`,
+    kind: 'drill',
+    ...overrides
+  });
+  const data = envelope.data;
+  if (!data || typeof data.prompt !== 'string' || !Array.isArray(data.options) || data.options.length < 2
+    || typeof data.answerId !== 'string' || !data.options.some(option => option.id === data.answerId)
+    || typeof data.explanation !== 'string') {
+    throw new AiError('BAD_PAYLOAD', 'AI 返回的练习题不完整，已忽略');
+  }
+  return data;
+}
+
 export async function getAiHealth(overrides: AiCallOverrides = {}): Promise<AiHealth | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 4_000);

@@ -123,6 +123,7 @@ export interface KnowledgePoint {
   wrongStreak: number;
   source?: 'sample' | 'ai' | 'import';
   confirmed?: boolean;
+  reviewReason?: string;
   lastSeenDate?: DateKey;
   nextReviewDate?: DateKey;
   updatedAt: Timestamp;
@@ -171,7 +172,7 @@ export interface StudyDay {
   lastActiveAt: Timestamp;
 }
 
-export type AiCallKind = 'generate' | 'grade' | 'tutor';
+export type AiCallKind = 'generate' | 'grade' | 'tutor' | 'drill';
 export type AiCallStatus = 'ok' | 'error' | 'timeout' | 'rejected';
 
 export interface AiUsageRecord {

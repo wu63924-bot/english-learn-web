@@ -1,5 +1,7 @@
 import { ApiError } from './errors.ts';
 import type {
+  Drill,
+  DrillRequest,
   GeneratedCourse,
   GenerateCourseRequest,
   GradeRequest,
@@ -215,4 +217,25 @@ export function normalizeTutor(value: unknown): TutorAnswer {
   if (!value || typeof value !== 'object') badOutput();
   const record = value as Record<string, unknown>;
   return { answer: text(record.answer, '回答', 4000, false) };
+}
+
+export function normalizeDrill(value: unknown): Drill {
+  if (!value || typeof value !== 'object') badOutput();
+  const record = value as Record<string, unknown>;
+  const question = rawChoice({ ...record, kind: 'choice' }, 'drill');
+  return {
+    prompt: question.prompt,
+    options: question.options,
+    answerId: question.answerId,
+    explanation: question.explanation
+  };
+}
+
+export function parseDrillRequest(value: unknown): DrillRequest {
+  if (!value || typeof value !== 'object') fail('请求体必须是对象');
+  const body = value as Record<string, unknown>;
+  const request: DrillRequest = { label: text(body.label, 'label', 80, true) };
+  const context = optionalText(body.context, 1200, true);
+  if (context) request.context = context;
+  return request;
 }

@@ -130,7 +130,7 @@ const GRADE_SOURCES = ['local', 'ai'];
 const KNOWLEDGE_KINDS = ['word', 'grammar', 'pattern'];
 const KNOWLEDGE_STATUSES = ['unseen', 'learning', 'needs_review', 'mastered'];
 const REVIEW_STATES = ['pending', 'done'];
-const AI_KINDS = ['generate', 'grade', 'tutor'];
+const AI_KINDS = ['generate', 'grade', 'tutor', 'drill'];
 const AI_STATUSES = ['ok', 'error', 'timeout', 'rejected'];
 
 function arrays<T>(value: unknown, guard: (item: unknown) => item is T): value is T[] {
