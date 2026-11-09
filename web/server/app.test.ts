@@ -21,7 +21,8 @@ const base: ApiConfig = {
   allowedOrigins: ['http://localhost:5173'],
   mockLatencyMs: 0,
   maxOutputTokens: 1_000,
-  jsonMode: true
+  jsonMode: true,
+  thinking: 'disabled'
 };
 
 async function start(overrides: Partial<ApiConfig> = {}, provider: AiProvider = new MockProvider({ mockLatencyMs: 0 })) {

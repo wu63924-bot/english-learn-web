@@ -46,5 +46,6 @@ npm run dev
 ```
 
 - 默认 `AI_PROVIDER=mock`，生成内容只用于验证流程。
-- 真实模型：复制 `.env.example` 为 `.env`，设置 `AI_PROVIDER=openai`、`AI_API_KEY`、`AI_BASE_URL`、`AI_MODEL`。真实调用前需按供应商文档核对模型与结构化输出参数，并取得授权。
+- 真实模型（DeepSeek，已按官方文档核对）：复制 `.env.example` 为 `.env`，设置 `AI_PROVIDER=openai`、`AI_API_KEY`、`AI_MODEL=deepseek-flash`。`AI_BASE_URL` 默认 `https://api.deepseek.com`，`AI_THINKING=disabled` 省钱提速。
+- 真实调用前先确认余额与预算上限，并保留首次小样本记录；密钥只写在 `.env`。
 - `.env` 已被 Git 忽略，不要提交密钥。

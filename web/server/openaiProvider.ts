@@ -51,6 +51,7 @@ export class OpenAiProvider implements AiProvider {
       temperature: 0.3,
       max_tokens: this.config.maxOutputTokens,
       ...(this.config.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+      ...(this.config.thinking !== 'default' ? { thinking: { type: this.config.thinking } } : {}),
       messages
     });
 
@@ -80,11 +81,19 @@ export class OpenAiProvider implements AiProvider {
       }
 
       const payload = await response.json() as {
-        choices?: { message?: { content?: unknown } }[];
+        choices?: { message?: { content?: unknown }; finish_reason?: unknown }[];
         usage?: { prompt_tokens?: unknown; completion_tokens?: unknown };
       };
-      const content = payload.choices?.[0]?.message?.content;
-      if (typeof content !== 'string') throw new ApiError('AI_BAD_RESPONSE');
+      const choice = payload.choices?.[0];
+      const content = choice?.message?.content;
+      if (typeof content !== 'string' || !content.trim()) {
+        // DeepSeek's JSON mode can replace unusable output with spaces; retry once before failing.
+        if (attempt === 0) continue;
+        throw new ApiError('AI_BAD_RESPONSE', 'AI 返回空内容，请稍后重试或调整提示词');
+      }
+      if (choice?.finish_reason === 'length') {
+        throw new ApiError('AI_BAD_RESPONSE', 'AI 输出被截断，请提高 AI_MAX_OUTPUT_TOKENS');
+      }
       return {
         json: extractJson(content),
         usage: {

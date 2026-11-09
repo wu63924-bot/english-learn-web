@@ -19,7 +19,8 @@ const config: ApiConfig = {
   allowedOrigins: [],
   mockLatencyMs: 0,
   maxOutputTokens: 1_000,
-  jsonMode: true
+  jsonMode: true,
+  thinking: 'disabled'
 };
 
 function respond(content: unknown, status = 200, usage = { prompt_tokens: 12, completion_tokens: 30 }): typeof fetch {
@@ -72,5 +73,47 @@ describe('OpenAI-compatible provider', () => {
     const result = await new OpenAiProvider(config, fetcher).tutor({ question: 'q' });
     expect(result.data.answer).toBe('重试成功');
     expect(calls).toBe(2);
+  });
+
+  it('sends JSON mode, thinking off and the configured model', async () => {
+    let captured: { model?: unknown; response_format?: unknown; thinking?: unknown } = {};
+    const fetcher = (async (_url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+      captured = JSON.parse(String(init?.body ?? '{}'));
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"answer":"ok"}' } }], usage: {} }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }) as typeof fetch;
+
+    await new OpenAiProvider({ ...config, model: 'deepseek-flash' }, fetcher).tutor({ question: 'why' });
+    expect(captured.model).toBe('deepseek-flash');
+    expect(captured.response_format).toEqual({ type: 'json_object' });
+    expect(captured.thinking).toEqual({ type: 'disabled' });
+  });
+
+  it('retries when JSON mode returns empty content', async () => {
+    let calls = 0;
+    const fetcher = (async () => {
+      calls += 1;
+      const content = calls === 1 ? '   ' : '{"answer":"第二次成功"}';
+      return new Response(JSON.stringify({ choices: [{ message: { content }, finish_reason: 'stop' }], usage: {} }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }) as typeof fetch;
+
+    const result = await new OpenAiProvider(config, fetcher).tutor({ question: 'q' });
+    expect(result.data.answer).toBe('第二次成功');
+    expect(calls).toBe(2);
+  });
+
+  it('reports truncated output instead of parsing half a JSON', async () => {
+    const fetcher = (async () => new Response(JSON.stringify({
+      choices: [{ message: { content: '{"answer":"半截' }, finish_reason: 'length' }],
+      usage: {}
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })) as typeof fetch;
+
+    await expect(new OpenAiProvider(config, fetcher).tutor({ question: 'q' }))
+      .rejects.toMatchObject({ code: 'AI_BAD_RESPONSE', message: expect.stringContaining('截断') });
   });
 });

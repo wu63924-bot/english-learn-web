@@ -15,10 +15,11 @@ export interface ApiConfig {
   mockLatencyMs: number;
   maxOutputTokens: number;
   jsonMode: boolean;
+  thinking: 'enabled' | 'disabled' | 'default';
 }
 
 const DEFAULT_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
-const OPENAI_BASE = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
+const OPENAI_BASE = 'https://api.deepseek.com';
 
 function positiveInteger(value: string | undefined, fallback: number): number {
   const number = Number(value);
@@ -47,7 +48,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     provider,
     apiKey,
     baseUrl,
-    model: env.AI_MODEL?.trim() || 'qwen3.7-flash',
+    model: env.AI_MODEL?.trim() || 'deepseek-flash',
     host: env.HOST?.trim() || '127.0.0.1',
     port: positiveInteger(env.PORT, 8788),
     timeoutMs: positiveInteger(env.AI_TIMEOUT_MS, 30_000),
@@ -58,7 +59,12 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     dailyTokenLimit: positiveInteger(env.AI_DAILY_TOKEN_LIMIT, 200_000),
     allowedOrigins: origins(env.ALLOWED_ORIGINS),
     mockLatencyMs: positiveInteger(env.MOCK_LATENCY_MS, 0),
-    maxOutputTokens: positiveInteger(env.AI_MAX_OUTPUT_TOKENS, 2400),
-    jsonMode: env.AI_JSON_MODE?.trim() !== 'off'
+    maxOutputTokens: positiveInteger(env.AI_MAX_OUTPUT_TOKENS, 6000),
+    jsonMode: env.AI_JSON_MODE?.trim() !== 'off',
+    thinking: env.AI_THINKING?.trim() === 'enabled'
+      ? 'enabled'
+      : env.AI_THINKING?.trim() === 'default'
+        ? 'default'
+        : 'disabled'
   };
 }

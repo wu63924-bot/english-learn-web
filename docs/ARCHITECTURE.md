@@ -13,7 +13,7 @@
 | 存储 | Dexie 4 over IndexedDB | FitFlow 已实证 |
 | PWA | vite-plugin-pwa 1.3（Workbox，`autoUpdate`） | FitFlow 已实证 |
 | 后端代理 | Node 原生 `http`，独立进程，无框架 | FitFlow 已实证 |
-| AI | DashScope compatible-mode（OpenAI 协议） | FitFlow 已实证（仅视觉识别场景） |
+| AI | DeepSeek OpenAI 兼容接口（`https://api.deepseek.com`，`deepseek-flash`） | 官方文档已核对，见 §5 |
 
 不引入 UI 组件库、状态库、图表库。样式沿用 FitFlow 的单一 CSS + CSS 变量做法，移动优先、`max-width` 居中。
 
@@ -69,7 +69,14 @@ settings       id='app', aiBudget, currentCourseId, appVersion
 - 密钥只在后端进程环境变量；前端仅持有公开 API 地址。
 - 去重（已实现）：前端按请求键单飞合并；服务端按 `Idempotency-Key` 缓存 10 分钟；课程写入使用确定性 id `ai-<课号>`，重复保存返回已有课程。
 - 预算（已实现，进程内）：每日请求数与 token 上限，超限返回 402；本地 `aiUsage` 表持久记录本机用量。进程重启后服务端计数清零。
-- 真实模型：OpenAI 兼容实现已完成，但参数与结构化输出开关尚未按供应商文档核对，也未做过真实调用。
+- 真实模型（DeepSeek，已按官方文档核对）：
+  - base URL `https://api.deepseek.com`，模型 `deepseek-flash`（旧名 `deepseek-v4-flash` 仍可用）。
+  - `response_format: {"type":"json_object"}` 支持，但提示词必须含 `json` 字样，否则 400；本应用系统提示词已包含。
+  - JSON 模式下不可解析的输出会被替换为空格，可能返回空 `content`；实现中对空内容自动重试一次。
+  - `finish_reason=length` 视为失败并提示提高 `AI_MAX_OUTPUT_TOKENS`（默认 6000）。
+  - 默认关闭思考模式（`thinking: {"type":"disabled"}`），省钱且降低延迟；思考模式会忽略 `temperature`。
+  - 官方未提供严格 JSON Schema 保证，因此服务端逐字段校验仍是唯一准入。
+  - 尚未做真实调用，参数有效性待首次小样本验证。
 
 ## 6. PWA
 
