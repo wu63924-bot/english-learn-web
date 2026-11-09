@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ChoiceQuestion, FillQuestion } from '../types/domain';
-import { gradeChoice, gradeFill, normalizeAnswer } from './grading';
+import { gradeChoice, gradeFill, isAnswered, normalizeAnswer } from './grading';
 
 const choiceQuestion: ChoiceQuestion = {
   kind: 'choice',
@@ -41,5 +41,13 @@ describe('grading', () => {
     expect(gradeFill(fillQuestion, 'like.')).toBe('correct');
     expect(gradeFill(fillQuestion, 'likes')).toBe('incorrect');
     expect(gradeFill(fillQuestion, '   ')).toBe('incorrect');
+  });
+
+  it('counts written answers and graded choices as answered', () => {
+    const translate = { kind: 'translate' as const, id: 't1', prompt: '译文', reference: '参考' };
+    expect(isAnswered(translate, '她骑车通勤要二十分钟。', undefined)).toBe(true);
+    expect(isAnswered(translate, '   ', undefined)).toBe(false);
+    expect(isAnswered(choiceQuestion, 'b', 'correct')).toBe(true);
+    expect(isAnswered(choiceQuestion, 'b', undefined)).toBe(false);
   });
 });

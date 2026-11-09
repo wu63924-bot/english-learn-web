@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../db/db';
 import { initializeDatabase, seedSampleCourses } from '../db/seed';
-import { getCourseModules, getCurrentCourse, listCourses, startCourse, updateModuleStatus } from './courseRepository';
+import { getCourseModules, getCurrentCourse, listCourses, startCourse, updateModuleStatus, completeCourse } from './courseRepository';
 import { todayKey } from '../utils/date';
 
 describe('course repository', () => {
@@ -49,5 +49,16 @@ describe('course repository', () => {
     expect((await getCourseModules('sample-1'))[0].status).toBe('graded');
     await updateModuleStatus('sample-1-word', 'graded');
     expect(await db.courseModules.count()).toBe(8);
+  });
+
+  it('completes a course and moves on to the next one', async () => {
+    await startCourse('sample-1');
+    await completeCourse('sample-1');
+    const completed = await db.courses.get('sample-1');
+    expect(completed?.status).toBe('completed');
+    expect(completed?.completedDate).toBe(todayKey());
+    expect((await getCurrentCourse())?.id).toBe('sample-2');
+    await completeCourse('sample-1');
+    expect((await db.courses.get('sample-1'))?.completedDate).toBe(todayKey());
   });
 });

@@ -37,6 +37,19 @@ export async function getCurrentCourse(): Promise<Course | undefined> {
   return courses.find(course => course.status === 'not_started');
 }
 
+export async function completeCourse(id: string): Promise<void> {
+  await db.transaction('rw', db.courses, async () => {
+    const course = await db.courses.get(id);
+    if (!course || course.status === 'completed') return;
+    await db.courses.put({
+      ...course,
+      status: 'completed',
+      completedDate: todayKey(),
+      updatedAt: Date.now()
+    });
+  });
+}
+
 export async function startCourse(id: string): Promise<Course | undefined> {
   return db.transaction('rw', db.courses, async () => {
     const course = await db.courses.get(id);

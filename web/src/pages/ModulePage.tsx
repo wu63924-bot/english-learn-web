@@ -3,7 +3,9 @@ import { useNavigate, useParams } from 'react-router';
 import { Card, ErrorState, LoadingState } from '../components/UI';
 import { WordModule } from '../components/WordModule';
 import { GrammarModule } from '../components/GrammarModule';
-import { getCourse, getCourseModule, updateModuleStatus } from '../repositories/courseRepository';
+import { ReadingModule } from '../components/ReadingModule';
+import { ReviewModule } from '../components/ReviewModule';
+import { completeCourse, getCourse, getCourseModule, getCourseModules, updateModuleStatus } from '../repositories/courseRepository';
 import type { Course, CourseModule, ModuleKind } from '../types/domain';
 import { isModuleKind, moduleLabels, moduleOrder } from '../utils/course';
 
@@ -62,6 +64,8 @@ export function ModulePage() {
     setBusy(true);
     try {
       await updateModuleStatus(module.id, 'graded');
+      const modules = await getCourseModules(module.courseId);
+      if (modules.every(item => item.status === 'graded')) await completeCourse(module.courseId);
       navigate(`/course/${module.courseId}`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '保存模块状态失败');
@@ -97,11 +101,20 @@ export function ModulePage() {
         />
       )}
 
-      {module.kind !== 'word' && module.kind !== 'grammar' && (
-        <Card>
-          <p className="muted">{moduleLabels[module.kind]}界面将在下一步接入。</p>
-          <button type="button" className="ghost-button" onClick={() => navigate(`/course/${course.id}`)}>回到课程</button>
-        </Card>
+      {module.kind === 'reading' && (
+        <ReadingModule
+          module={module as CourseModule<'reading'>}
+          onFinish={completeModule}
+          finishing={busy}
+        />
+      )}
+
+      {module.kind === 'review' && (
+        <ReviewModule
+          module={module as CourseModule<'review'>}
+          onFinish={completeModule}
+          finishing={busy}
+        />
       )}
     </>
   );

@@ -81,7 +81,11 @@ export function CoursePage() {
         </ol>
       </Card>
 
-      <Notice>单词与语法已完成；阅读与翻译、巩固复习界面将在下一步接入。当前进度已保存，刷新后仍会回到这节课。</Notice>
+      {modules.length > 0 && modules.every(module => module.status === 'graded') ? (
+        <Notice>这节课已完成，四个模块都可以随时回看。</Notice>
+      ) : (
+        <Notice>当前进度已保存，刷新后仍会回到这节课。</Notice>
+      )}
     </>
   );
 }
