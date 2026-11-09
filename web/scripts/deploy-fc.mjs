@@ -38,10 +38,30 @@ const client = new FC.default(new $OpenApiUtil.Config({
   protocol: 'HTTPS'
 }));
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function retryable(reason) {
+  const text = `${reason?.code ?? ''} ${reason?.message ?? reason}`;
+  return /ConnectTimeout|ETIMEDOUT|ECONNRESET|EAI_AGAIN|socket hang up|timeout/i.test(text);
+}
+
+async function withRetry(label, task) {
+  let last;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await task();
+    } catch (reason) {
+      last = reason;
+      if (attempt === 3 || !retryable(reason)) break;
+      console.error(`${label}第 ${attempt} 次失败，重试：${reason?.code ?? reason?.message ?? reason}`);
+      await sleep(attempt * 3000);
+    }
+  }
+  throw new Error(`${label}失败：${last?.code ?? ''} ${last?.message ?? last}`);
+}
+
 async function main() {
-  const before = await client.getFunction(functionName, new FC.GetFunctionRequest({})).catch(reason => {
-    throw new Error(`读取函数失败：${reason?.code ?? ''} ${reason?.message ?? reason}`);
-  });
+  const before = await withRetry('读取函数', () => client.getFunction(functionName, new FC.GetFunctionRequest({})));
   const beforeEnv = Object.keys(before.body?.environmentVariables ?? {});
 
   const request = new FC.UpdateFunctionRequest({
@@ -49,9 +69,9 @@ async function main() {
       code: new FC.InputCodeLocation({ zipFile: zip.toString('base64') })
     })
   });
-  const response = await client.updateFunction(functionName, request);
+  const response = await withRetry('更新函数', () => client.updateFunction(functionName, request));
 
-  const after = await client.getFunction(functionName, new FC.GetFunctionRequest({}));
+  const after = await withRetry('复核函数', () => client.getFunction(functionName, new FC.GetFunctionRequest({})));
   const afterEnv = Object.keys(after.body?.environmentVariables ?? {});
 
   console.log(JSON.stringify({
