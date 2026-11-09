@@ -92,7 +92,8 @@ export function TodayPage() {
     setStarting(true);
     try {
       await startCourse(course.id);
-      const nextModule = modules.find(module => module.status !== 'graded') ?? modules[0];
+      const resumed = modules.find(module => module.status === 'draft' || module.status === 'answered');
+      const nextModule = resumed ?? modules.find(module => module.status !== 'graded') ?? modules[0];
       navigate(nextModule ? `/course/${course.id}/module/${nextModule.kind}` : `/course/${course.id}`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '无法开始课程');
