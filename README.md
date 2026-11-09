@@ -2,7 +2,7 @@
 
 单人在本机使用的英语学习应用：按课程分模块学习、自动保存作答、本地批改、错题与复习。
 
-当前状态：P1–P4 已完成，P5 进行中（PWA 基础已实现，真机安装与 iOS 验收待做）。首版定位见 `docs/PRD.md`，目标架构见 `docs/ARCHITECTURE.md`。
+当前状态：P1–P4 已完成，P5 已上线（GitHub Pages + 阿里云 FC），真机安装与 iOS 验收待做。线上地址：`https://wu63924-bot.github.io/english-learn-web/`。首版定位见 `docs/PRD.md`，目标架构见 `docs/ARCHITECTURE.md`。
 
 ## 文档
 

@@ -5,7 +5,13 @@
 - 前端：GitHub Pages（静态 `dist/`，HTTPS，可安装 PWA）
 - 后端：阿里云函数计算 FC 3.0 Web Function（AI 代理，密钥只放 FC 环境变量）
 
-前端与后端不同域，因此代理必须允许 Pages 来源；前端构建时把 FC 地址写进 `VITE_AI_API_URL`。
+前端与后端不同域，因此代理必须允许 Pages 来源；前端构建时从 `web/.env.github` 读取 FC 地址。
+
+## 当前部署
+
+- 前端：`https://wu63924-bot.github.io/english-learn-web/`
+- 后端：`https://englishenin-web-dwssyeazdk.cn-beijing.fcapp.run`
+- 仓库：`https://github.com/wu63924-bot/english-learn-web`
 
 ## 前置条件
 

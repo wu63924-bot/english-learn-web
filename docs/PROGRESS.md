@@ -11,7 +11,7 @@
 | P2 接入 AI | 已完成（DeepSeek 真实小样本通过） | 生成、开放题批改、问老师均走真实 DeepSeek；结构校验、去重、超时、限流、预算、用量记录生效 |
 | P3 迁移历史记录 | 已完成 | 导入预览、备份、来源与确认状态、衔接复习课生成；数据库升到 v2 |
 | P4 复习机制 | 已完成 | 规则、到期列表、AI 出题、状态更新；课程作答已通过题目—知识点映射驱动复习 |
-| P5 PWA 与验收 | 进行中 | FC 已上线并通过真实调用；Pages 待推送发布；真机验收未做 |
+| P5 PWA 与验收 | 进行中 | Pages 与 FC 已上线；真机安装、iOS 与更新流程待验收 |
 
 ## 已实现
 
@@ -97,6 +97,9 @@
 - 本地验证 Pages 构建：`GITHUB_PAGES_BASE=/english-web/ npm run build:github` 生成 `/english-web/` 资源、manifest scope、`404.html` 与 `.nojekyll`；`vite preview --mode github` 下直接打开 `/english-web/records` 正常。
 - 浏览器实测（Chrome，Pages 子路径构建）：停止静态服务器后打开 `/english-web/settings` 仍可渲染，子路径下的 Service Worker 离线外壳生效。
 - 阿里云 FC 已部署：`https://englishenin-web-dwssyeazdk.cn-beijing.fcapp.run/health` 返回 200，`provider=openai`；Pages 来源允许、其他来源 403；真实 DeepSeek 提问返回 112 输入 / 51 输出 tokens。
+- GitHub Pages 已发布：`https://wu63924-bot.github.io/english-learn-web/` 返回 200；manifest 与 scope 为 `/english-learn-web/`；192/512 图标、`sw.js`、`404.html` 均可访问。
+- 浏览器实测（线上 Pages，Chrome）：设置页显示“已连接 · 真实模型”，代理地址为 FC 域名；首页与路由正常渲染。
+- Git 仓库公开历史已移除 `docs/history/`，本地文件保留且内容哈希与备份一致。
 - 构建产物扫描：`dist/` 中未出现 `AI_API_KEY` 或疑似密钥；`.env` 被 Git 忽略。
 - 浏览器实测（Chrome，dev 服务器）：阅读翻译题点“请老师批改”，显示“回答正确 / 与参考译文一致（模拟批改）/ 已自动保存”；另一题输入“不知道”后显示“暂无法判断”，并提供“重新批改”。
 - 浏览器实测（Chrome，dev 服务器）：课程内“问老师”返回模拟回答；设置页本机用量随生成、批改、提问逐次增加。
@@ -114,8 +117,8 @@
 ## 未验证
 
 - 手机与 iPad 真机。
-- 真实 GitHub Pages 与阿里云 FC 尚未部署；workflow 与代码包只在本地构建、预览和 mock 启动验证过。
-- PWA 安装（添加到主屏）与 HTTPS 环境未验收；离线验证是在 `vite preview` 的 HTTP localhost 下通过“停掉静态服务器”模拟的，不是真实断网或系统级离线。
+- PWA 安装（添加到主屏）与真实断网未在线上 HTTPS 环境验收；离线验证是在本地 `vite preview` 下通过“停掉静态服务器”模拟的。
+- Pages 子路由首次直接访问会返回 HTTP 404 状态后由 `404.html` 加载应用，这是 GitHub Pages 的既有机制；未在真机确认体验。
 - PWA 更新提示只完成构建与逻辑接入，没有实际发布第二个版本验证“更新并重载”。
 - 文本自动保存的四个触发点只做了整体验证（离开再进入能恢复），没有逐个单独验证防抖、失焦、页面隐藏各自的写入时机。
 - 真实跨天：只验证了“课程带旧开始日期仍会被继续”的逻辑与单元测试，没有真的等到第二天或改系统时间验证日期归属。
@@ -138,17 +141,20 @@
 
 ## 进行中
 
-- P5：PWA 基础功能已发版；剩下真机安装、iOS 主屏图标与更新流程验收。
+- P5：Pages 与 FC 已上线；剩下真机安装、iOS 主屏图标、真实断网与更新流程验收。
 
 ## 待办（下一步）
 
-1. 在 GitHub 仓库启用 Pages（Source: GitHub Actions），推送 `main` 触发 Pages workflow。
-2. 上线后做真机安装、真实断网、iOS 主屏图标与更新流程验收。
-3. 为旧课程补题目映射（可选，重新生成或一次性迁移）。
+1. 在手机与 iPad 上打开 `https://wu63924-bot.github.io/english-learn-web/`，完成安装、离线与主屏图标验收。
+2. 发布第二个版本，验证“有新版本可用 → 更新并重载”。
+3. 轮换曾在对话中暴露的 DeepSeek 密钥，并更新 FC 环境变量。
+4. 为旧课程补题目映射（可选，重新生成或一次性迁移）。
 
 ## 已知问题与风险
 
 - 目标设备（iPad Safari）PWA 安装与离线未验证，P5 才能定论。
+- DeepSeek 密钥曾在对话中暴露，需在控制台轮换并更新 FC 环境变量。
+- 公开仓库已不再包含 `docs/history/`，本地材料不会随 `git clone` 获得。
 - AI 结构化输出与课程内容正确性尚无可验证样本。
 - 历史进度证据不足，Day 18 状态待核实。
 - 跨天课程与学习时长的分日归属规则需要在 P1 用测试固定。
