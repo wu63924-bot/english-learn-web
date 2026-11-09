@@ -202,6 +202,102 @@ button {
   cursor: not-allowed;
 }
 
+.course-card {
+  border: 1px solid var(--line);
+}
+
+.course-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.course-number {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-pale);
+  color: var(--accent);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+
+.course-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
+.course-topic {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.course-goal {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.module-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.module-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.module-row:last-child {
+  border-bottom: 0;
+}
+
+.module-name {
+  min-width: 0;
+  font-size: 0.94rem;
+}
+
+.module-status {
+  flex: none;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.status-draft {
+  color: var(--accent);
+}
+
+.status-answered,
+.status-graded {
+  color: #2f7a52;
+}
+
+.progress-text {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.app-main > .primary-button {
+  margin-top: 18px;
+}
+
 .back-row {
   display: flex;
   align-items: center;

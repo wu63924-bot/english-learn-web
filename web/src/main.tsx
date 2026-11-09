@@ -8,6 +8,7 @@ import { TodayPage } from './pages/TodayPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { RecordsPage } from './pages/RecordsPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { CoursePage } from './pages/CoursePage';
 import './styles.css';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
           <Route path="/" element={<TodayPage />} />
           <Route path="/review" element={<ReviewPage />} />
           <Route path="/records" element={<RecordsPage />} />
+          <Route path="/course/:courseId" element={<CoursePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

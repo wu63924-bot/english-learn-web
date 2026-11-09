@@ -19,6 +19,10 @@ export function Card({ title, children }: { title?: string; children: ReactNode 
   );
 }
 
+export function Badge({ children }: { children: ReactNode }) {
+  return <span className="badge">{children}</span>;
+}
+
 export function Notice({ children }: { children: ReactNode }) {
   return <p className="notice">{children}</p>;
 }
