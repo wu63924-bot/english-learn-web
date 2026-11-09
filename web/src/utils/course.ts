@@ -1,5 +1,11 @@
 import type { CourseModule, ModuleKind, ModuleStatus } from '../types/domain';
 
+export const moduleOrder: ModuleKind[] = ['word', 'grammar', 'reading', 'review'];
+
+export function isModuleKind(value: string | undefined): value is ModuleKind {
+  return !!value && (moduleOrder as string[]).includes(value);
+}
+
 export const moduleLabels: Record<ModuleKind, string> = {
   word: '单词',
   grammar: '语法与练习',

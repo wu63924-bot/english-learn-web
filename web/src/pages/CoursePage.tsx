@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { Badge, Card, ErrorState, LoadingState, Notice } from '../components/UI';
 import { getCourse, getCourseModules } from '../repositories/courseRepository';
 import type { Course, CourseModule } from '../types/domain';
@@ -72,8 +72,10 @@ export function CoursePage() {
         <ol className="module-list">
           {modules.map(module => (
             <li key={module.id} className="module-row">
-              <span className="module-name">{module.order}. {moduleLabels[module.kind]}</span>
-              <span className={`module-status status-${module.status}`}>{moduleStatusLabels[module.status]}</span>
+              <Link className="module-link" to={`/course/${course.id}/module/${module.kind}`}>
+                <span className="module-name">{module.order}. {moduleLabels[module.kind]}</span>
+                <span className={`module-status status-${module.status}`}>{moduleStatusLabels[module.status]}</span>
+              </Link>
             </li>
           ))}
         </ol>

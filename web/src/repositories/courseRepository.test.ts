@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../db/db';
 import { initializeDatabase, seedSampleCourses } from '../db/seed';
-import { getCourseModules, getCurrentCourse, listCourses, startCourse } from './courseRepository';
+import { getCourseModules, getCurrentCourse, listCourses, startCourse, updateModuleStatus } from './courseRepository';
 import { todayKey } from '../utils/date';
 
 describe('course repository', () => {
@@ -41,5 +41,13 @@ describe('course repository', () => {
 
   it('returns nothing for an unknown course', async () => {
     expect(await startCourse('missing')).toBeUndefined();
+  });
+
+  it('updates a module status and keeps it', async () => {
+    await updateModuleStatus('sample-1-word', 'graded');
+    expect((await db.courseModules.get('sample-1-word'))?.status).toBe('graded');
+    expect((await getCourseModules('sample-1'))[0].status).toBe('graded');
+    await updateModuleStatus('sample-1-word', 'graded');
+    expect(await db.courseModules.count()).toBe(8);
   });
 });

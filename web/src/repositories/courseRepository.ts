@@ -1,5 +1,5 @@
 import { db } from '../db/db';
-import type { Course, CourseModule } from '../types/domain';
+import type { Course, CourseModule, ModuleKind, ModuleStatus } from '../types/domain';
 import { todayKey } from '../utils/date';
 
 export async function listCourses(): Promise<Course[]> {
@@ -13,6 +13,15 @@ export async function getCourse(id: string): Promise<Course | undefined> {
 
 export async function getCourseModules(courseId: string): Promise<CourseModule[]> {
   return db.courseModules.where('courseId').equals(courseId).sortBy('order');
+}
+
+export async function getCourseModule(courseId: string, kind: ModuleKind): Promise<CourseModule | undefined> {
+  const modules = await getCourseModules(courseId);
+  return modules.find(module => module.kind === kind);
+}
+
+export async function updateModuleStatus(moduleId: string, status: ModuleStatus): Promise<void> {
+  await db.courseModules.update(moduleId, { status });
 }
 
 /**
