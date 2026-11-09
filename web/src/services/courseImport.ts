@@ -2,9 +2,15 @@ import { db } from '../db/db';
 import type { Course, CourseModule, KnowledgePoint, Question } from '../types/domain';
 import type { GeneratedCoursePayload } from './coursePayload';
 
+/**
+ * The next lesson number follows both generated courses and imported history.
+ * After importing Day 1–20 the next lesson is 21 instead of restarting at 3.
+ */
 export async function nextCourseNumber(): Promise<number> {
-  const courses = await db.courses.toArray();
-  return courses.reduce((max, course) => Math.max(max, course.number), 0) + 1;
+  const [courses, historyDays] = await Promise.all([db.courses.toArray(), db.historyDays.toArray()]);
+  const courseMax = courses.reduce((max, course) => Math.max(max, course.number), 0);
+  const historyMax = historyDays.reduce((max, day) => Math.max(max, day.dayNumber), 0);
+  return Math.max(courseMax, historyMax) + 1;
 }
 
 export interface SaveGeneratedInput {

@@ -68,10 +68,23 @@ describe('generated course import', () => {
     await initializeDatabase();
   });
 
+  it('continues after imported history instead of restarting from the sample lessons', async () => {
+    await db.historyDays.put({
+      id: 'history-day-20',
+      dayNumber: 20,
+      topic: '综合复习',
+      source: 'ChatGPT',
+      evidence: 'studied',
+      answerCount: 3,
+      confirmed: true,
+      createdAt: 1
+    });
+    expect(await nextCourseNumber()).toBe(21);
+  });
+
   it('writes one course with four modules and its knowledge points', async () => {
     const number = await nextCourseNumber();
     expect(number).toBe(3);
-
     const result = await saveGeneratedCourse({ number, payload: payload('Generated One'), provider: 'mock' });
     expect(result.existing).toBe(false);
     expect(result.course.id).toBe('ai-3');

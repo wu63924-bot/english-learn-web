@@ -28,6 +28,21 @@ describe('course repository', () => {
     expect((await getCurrentCourse())?.id).toBe('sample-1');
   });
 
+  it('prefers the newest unstarted AI lesson over the sample courses', async () => {
+    await db.courses.put({
+      id: 'ai-21',
+      number: 21,
+      title: '第 21 课',
+      topic: '四级词汇',
+      goal: '继续历史进度',
+      source: 'ai',
+      status: 'not_started',
+      createdAt: Date.now() + 1_000,
+      updatedAt: Date.now() + 1_000
+    });
+    expect((await getCurrentCourse())?.id).toBe('ai-21');
+  });
+
   it('marks a course in progress and keeps the start date', async () => {
     const started = await startCourse('sample-1');
     expect(started?.status).toBe('in_progress');
