@@ -655,6 +655,28 @@ button {
   font-weight: 600;
 }
 
+.weak-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.weak-list li + li {
+  margin-top: 6px;
+}
+
+.weak-list strong {
+  display: block;
+  font-weight: 600;
+}
+
+.weak-list span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .restore-panel .muted {
   margin-bottom: 8px;
 }

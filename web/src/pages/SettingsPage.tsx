@@ -6,6 +6,15 @@ import { generateCourse, getAiHealth, aiBaseUrl, AiError, type AiHealth } from '
 import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport';
 import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
+import {
+  applyHistoryImport,
+  getHistorySummary,
+  HISTORY_WEAK_POINTS,
+  parseHistoryImport,
+  previewHistoryImport,
+  type HistoryImportFile,
+  type HistoryPreview
+} from '../services/historyImport';
 import type { BackupFile } from '../types/domain';
 import { todayKey } from '../utils/date';
 import { downloadJson } from '../utils/download';
@@ -28,13 +37,25 @@ export function SettingsPage() {
   const [aiMessage, setAiMessage] = useState('');
   const [aiError, setAiError] = useState('');
 
+  const historyInput = useRef<HTMLInputElement>(null);
+  const [historyData, setHistoryData] = useState<HistoryImportFile | null>(null);
+  const [historyPreview, setHistoryPreview] = useState<HistoryPreview | null>(null);
+  const [historyError, setHistoryError] = useState('');
+  const [historyStatus, setHistoryStatus] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [historySummary, setHistorySummary] = useState<{ days: number; studiedDays: number; importedAt?: number } | null>(null);
+  const [bridgeBusy, setBridgeBusy] = useState(false);
+  const [bridgeError, setBridgeError] = useState('');
+  const [historyText, setHistoryText] = useState('');
+
   useEffect(() => {
     let active = true;
-    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber()]).then(([healthResult, usageResult, number]) => {
+    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary()]).then(([healthResult, usageResult, number, historyResult]) => {
       if (!active) return;
       setHealth(healthResult);
       setUsage(usageResult);
       setNextNumber(number);
+      setHistorySummary(historyResult);
     });
     return () => {
       active = false;
@@ -115,6 +136,79 @@ export function SettingsPage() {
     }
   }
 
+  async function loadHistory(text: string) {
+    setHistoryError('');
+    setHistoryStatus('');
+    setHistoryPreview(null);
+    setHistoryData(null);
+    try {
+      const parsed = parseHistoryImport(text);
+      setHistoryData(parsed);
+      setHistoryPreview(await previewHistoryImport(parsed));
+    } catch (reason) {
+      setHistoryError(`历史文件无法识别：${reason instanceof Error ? reason.message : '格式不正确'}`);
+    }
+  }
+
+  async function handleHistoryFile(file: File | undefined) {
+    if (!file) return;
+    try {
+      await loadHistory(await file.text());
+    } finally {
+      if (historyInput.current) historyInput.current.value = '';
+    }
+  }
+
+  async function confirmHistoryImport() {
+    if (!historyData || importing) return;
+    setImporting(true);
+    setHistoryError('');
+    try {
+      const backup = await createBackup();
+      downloadJson(`english-learning-pre-import-${todayKey()}.json`, backup);
+      await applyHistoryImport(historyData, { markWeakpointsForReview: true });
+      setHistoryStatus(
+        `已导入 ${historyData.days.length} 天记录，${historyData.days.filter(day => day.choiceAnswers.length + day.englishAttempts.length + day.chineseAttempts.length > 0).length
+        } 天有作答；写入 ${HISTORY_WEAK_POINTS.length} 个“需巩固”知识点。没有写入任何成绩或完成状态。`
+      );
+      setHistoryData(null);
+      setHistoryPreview(null);
+      setHistoryText('');
+      setHistorySummary(await getHistorySummary());
+      setNextNumber(await nextCourseNumber());
+    } catch (reason) {
+      setHistoryError(`导入失败，本机数据未改变：${reason instanceof Error ? reason.message : '未知错误'}`);
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function handleBridgeCourse() {
+    if (bridgeBusy) return;
+    setBridgeBusy(true);
+    setBridgeError('');
+    setAiMessage('');
+    try {
+      const number = await nextCourseNumber();
+      const { course, provider } = await generateCourse({
+        number,
+        topic: '衔接复习：第三人称单数、过去时、there be、比较级、并列句',
+        level: 'A2',
+        goal: '用诊断题检查历史薄弱点，决定哪些需要进入复习',
+        focus: HISTORY_WEAK_POINTS.map(point => point.label).join('；')
+      });
+      const saved = await saveGeneratedCourse({ number, payload: course, provider });
+      setGeneratedId(saved.course.id);
+      setAiMessage(`已生成衔接复习课（第 ${number} 课《${saved.course.title}》），点击打开。`);
+      setNextNumber(await nextCourseNumber());
+      setHealth(await getAiHealth());
+    } catch (reason) {
+      setBridgeError(reason instanceof AiError ? reason.message : reason instanceof Error ? reason.message : '生成失败');
+    } finally {
+      setBridgeBusy(false);
+    }
+  }
+
   const counts = pending ? backupCounts(pending) : null;
 
   return (
@@ -139,6 +233,7 @@ export function SettingsPage() {
           type="file"
           accept="application/json,.json"
           className="hidden-input"
+          aria-label="导入备份文件"
           onChange={event => { void handleFile(event.target.files?.[0]); }}
         />
 
@@ -160,6 +255,88 @@ export function SettingsPage() {
 
         {status && <p className="status-text">{status}</p>}
         {error && <p className="error-text">{error}</p>}
+      </Card>
+
+      <Card title="历史导入">
+        <p className="muted">导入从 ChatGPT 或课程材料整理出的学习历史。只写“学过／出现过”，不写成绩、错题或掌握状态。</p>
+        {historySummary && historySummary.days > 0 && (
+          <p className="ai-status">
+            已导入 {historySummary.days} 天，其中 {historySummary.studiedDays} 天有作答
+            {historySummary.importedAt ? ` · ${new Date(historySummary.importedAt).toLocaleDateString('zh-CN')}` : ''}
+          </p>
+        )}
+        <div className="button-row">
+          <button type="button" className="ghost-button" onClick={() => historyInput.current?.click()} disabled={importing}>
+            选择历史文件
+          </button>
+          {historySummary?.importedAt && (
+            <button type="button" className="ghost-button" onClick={() => { void handleBridgeCourse(); }} disabled={bridgeBusy}>
+              {bridgeBusy ? '正在生成…' : '生成衔接复习课'}
+            </button>
+          )}
+        </div>
+        <input
+          ref={historyInput}
+          type="file"
+          accept="application/json,.json"
+          className="hidden-input"
+          aria-label="导入历史文件"
+          onChange={event => { void handleHistoryFile(event.target.files?.[0]); }}
+        />
+
+        <label className="form-field history-paste">
+          <span>或粘贴 JSON（不方便选文件时）</span>
+          <textarea
+            className="answer-textarea"
+            rows={3}
+            value={historyText}
+            onChange={event => setHistoryText(event.target.value)}
+            aria-label="粘贴历史 JSON"
+            placeholder='{"source":"ChatGPT 分享","days":[...]}'
+            spellCheck={false}
+          />
+        </label>
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => { void loadHistory(historyText); }}
+          disabled={!historyText.trim() || importing}
+        >
+          解析粘贴内容
+        </button>
+
+        {historyPreview && (
+          <div className="restore-panel">
+            <p className="restore-title">{historyPreview.title ?? historyPreview.source}</p>
+            <p className="muted">
+              {historyPreview.totalDays} 天 · 有作答 {historyPreview.studiedDays} 天 · 仅标记 {historyPreview.listedOnlyDays} 天 · 共 {historyPreview.answerCount} 条作答
+            </p>
+            <p className="muted">
+              将写入 {historyPreview.newKnowledge} 个新知识点（已存在 {historyPreview.existingKnowledge} 个），其中 {historyPreview.weakPoints.length} 个标为“需巩固”。
+            </p>
+            <ul className="weak-list">
+              {historyPreview.weakPoints.map(point => (
+                <li key={point.label}>
+                  <strong>{point.label}</strong>
+                  <span>{point.evidence}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="notice">不会写入分数、错题或完成状态；确认前会自动下载一份当前数据备份。</p>
+            <div className="button-row">
+              <button type="button" className="ghost-button" onClick={() => { setHistoryData(null); setHistoryPreview(null); }} disabled={importing}>
+                取消
+              </button>
+              <button type="button" className="primary-button compact" onClick={() => { void confirmHistoryImport(); }} disabled={importing}>
+                {importing ? '正在导入…' : '确认导入'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {historyStatus && <p className="status-text">{historyStatus}</p>}
+        {historyError && <p className="error-text">{historyError}</p>}
+        {bridgeError && <p className="error-text">{bridgeError}</p>}
       </Card>
 
       <Card title="AI">

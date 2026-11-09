@@ -8,7 +8,7 @@ describe('local database', () => {
     await initializeDatabase();
     expect(db.name).toBe(DB_NAME);
     expect(db.tables.map(table => table.name).sort()).toEqual([
-      'aiUsage', 'answers', 'courseModules', 'courses', 'grades',
+      'aiUsage', 'answers', 'courseModules', 'courses', 'grades', 'historyDays',
       'knowledge', 'mistakes', 'reviews', 'settings', 'studyDays'
     ]);
   });

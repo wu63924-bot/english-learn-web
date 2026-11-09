@@ -45,9 +45,10 @@ grades         id, answerId, correct, score, feedback, aiStatus
 knowledge      id, label, stage, status(unseen|learning|needs_review|mastered)
 reviews        id, knowledgeId, dueDate, reason, state(pending|done)
 mistakes       id, knowledgeId, courseId, itemId, reason, createdAt
+historyDays    id, dayNumber, topic, source, evidence(studied|listed_only), answerCount, confirmed
 studyDays      dateKey(主键), seconds, coursesCompleted, firstActiveAt
 aiUsage        id, dateKey, kind, model, tokensIn, tokensOut, status, costEstimate
-settings       id='app', aiBudget, currentCourseId, appVersion
+settings       id='app', aiBudget, currentCourseId, appVersion, historyImportedAt
 ```
 
 版本管理沿用 FitFlow 的做法：`db.version(n).stores({...})`，破坏性结构变化时显式写 `upgrade()`；数据库名独立（例如 `EnglishLearnDB`），不与 FitFlow 共用。

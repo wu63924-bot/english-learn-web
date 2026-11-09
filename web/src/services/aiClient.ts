@@ -128,6 +128,7 @@ export interface GenerateCourseInput {
   topic: string;
   focus?: string;
   level?: string;
+  goal?: string;
 }
 
 export async function generateCourse(input: GenerateCourseInput, overrides: AiCallOverrides = {}): Promise<{ course: GeneratedCoursePayload; provider: 'mock' | 'live' }> {

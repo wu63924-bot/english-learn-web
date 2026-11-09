@@ -121,9 +121,22 @@ export interface KnowledgePoint {
   status: KnowledgeStatus;
   correctStreak: number;
   wrongStreak: number;
+  source?: 'sample' | 'ai' | 'import';
+  confirmed?: boolean;
   lastSeenDate?: DateKey;
   nextReviewDate?: DateKey;
   updatedAt: Timestamp;
+}
+
+export interface HistoryDay {
+  id: string;
+  dayNumber: number;
+  topic: string;
+  source: string;
+  evidence: 'studied' | 'listed_only';
+  answerCount: number;
+  confirmed: boolean;
+  createdAt: Timestamp;
 }
 
 export type ReviewState = 'pending' | 'done';
@@ -178,6 +191,7 @@ export interface AppSettings {
   appVersion: string;
   dailyGoalMinutes?: number;
   aiDailyBudget?: number;
+  historyImportedAt?: Timestamp;
   updatedAt: Timestamp;
 }
 
@@ -191,6 +205,7 @@ export interface BackupData {
   mistakes: Mistake[];
   studyDays: StudyDay[];
   aiUsage: AiUsageRecord[];
+  historyDays: HistoryDay[];
   settings: AppSettings[];
 }
 

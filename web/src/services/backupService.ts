@@ -2,10 +2,11 @@ import type { BackupFile, BackupData } from '../types/domain';
 import { db } from '../db/db';
 
 export const BACKUP_APP = 'EnglishLearn';
-export const BACKUP_VERSION = 1;
+export const BACKUP_VERSION = 2;
+const SUPPORTED_VERSIONS = [1, 2];
 
 export async function createBackup(): Promise<BackupFile> {
-  const [courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, settings] = await Promise.all([
+  const [courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, settings] = await Promise.all([
     db.courses.toArray(),
     db.courseModules.toArray(),
     db.answers.toArray(),
@@ -15,13 +16,14 @@ export async function createBackup(): Promise<BackupFile> {
     db.mistakes.toArray(),
     db.studyDays.toArray(),
     db.aiUsage.toArray(),
+    db.historyDays.toArray(),
     db.settings.toArray()
   ]);
   return {
     app: BACKUP_APP,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    data: { courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, settings }
+    data: { courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, settings }
   };
 }
 
@@ -38,7 +40,10 @@ export function parseBackup(text: string): BackupFile {
   }
   if (!isRecord(value)) throw new Error('备份内容格式不正确');
   if (value.app !== BACKUP_APP) throw new Error('这不是本应用的备份文件');
-  if (value.version !== BACKUP_VERSION) throw new Error(`不支持的备份版本：${String(value.version)}`);
+  if (typeof value.version !== 'number' || !SUPPORTED_VERSIONS.includes(value.version)) {
+    throw new Error(`不支持的备份版本：${String(value.version)}`);
+  }
+  const version = value.version;
   if (!isRecord(value.data)) throw new Error('备份缺少数据段');
 
   const data = value.data;
@@ -51,11 +56,13 @@ export function parseBackup(text: string): BackupFile {
   const mistakes = data.mistakes;
   const studyDays = data.studyDays;
   const aiUsage = data.aiUsage;
+  const historyDays = version >= 2 ? data.historyDays : [];
   const settings = data.settings;
 
   if (!arrays(courses, isCourse) || !arrays(courseModules, isCourseModule) || !arrays(answers, isAnswer)
     || !arrays(grades, isGrade) || !arrays(knowledge, isKnowledge) || !arrays(reviews, isReview)
     || !arrays(mistakes, isMistake) || !arrays(studyDays, isStudyDay) || !arrays(aiUsage, isAiUsage)
+    || !arrays(historyDays, isHistoryDay)
     || !arrays(settings, isSettings) || !settings.some(item => item.id === 'app')) {
     throw new Error('备份内容不完整或字段格式不正确');
   }
@@ -64,7 +71,7 @@ export function parseBackup(text: string): BackupFile {
   if (!unique(courses, item => item.id) || !unique(courseModules, item => item.id) || !unique(answers, item => item.id)
     || !unique(grades, item => item.id) || !unique(knowledge, item => item.id) || !unique(reviews, item => item.id)
     || !unique(mistakes, item => item.id) || !unique(studyDays, item => item.dateKey) || !unique(aiUsage, item => item.id)
-    || !unique(settings, item => item.id)) {
+    || !unique(historyDays, item => item.id) || !unique(settings, item => item.id)) {
     throw new Error('备份中存在重复的数据标识');
   }
 
@@ -80,7 +87,7 @@ export function parseBackup(text: string): BackupFile {
     app: BACKUP_APP,
     version: BACKUP_VERSION,
     exportedAt: typeof value.exportedAt === 'string' ? value.exportedAt : '',
-    data: { courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, settings }
+    data: { courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, settings }
   };
 }
 
@@ -98,16 +105,18 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     if (data.mistakes.length) await db.mistakes.bulkPut(data.mistakes);
     if (data.studyDays.length) await db.studyDays.bulkPut(data.studyDays);
     if (data.aiUsage.length) await db.aiUsage.bulkPut(data.aiUsage);
+    if (data.historyDays.length) await db.historyDays.bulkPut(data.historyDays);
     await db.settings.bulkPut(data.settings);
   });
 }
 
-export function backupCounts(backup: BackupFile): { courses: number; answers: number; mistakes: number; studyDays: number } {
+export function backupCounts(backup: BackupFile): { courses: number; answers: number; mistakes: number; studyDays: number; historyDays: number } {
   return {
     courses: backup.data.courses.length,
     answers: backup.data.answers.length,
     mistakes: backup.data.mistakes.length,
-    studyDays: backup.data.studyDays.length
+    studyDays: backup.data.studyDays.length,
+    historyDays: backup.data.historyDays.length
   };
 }
 
@@ -202,7 +211,15 @@ function isGrade(value: unknown): value is BackupData['grades'][number] {
 function isKnowledge(value: unknown): value is BackupData['knowledge'][number] {
   return isRecord(value) && isString(value.id) && isString(value.label) && oneOf(value.kind, KNOWLEDGE_KINDS)
     && isNumber(value.stage) && oneOf(value.status, KNOWLEDGE_STATUSES)
-    && isNumber(value.correctStreak) && isNumber(value.wrongStreak) && isNumber(value.updatedAt);
+    && isNumber(value.correctStreak) && isNumber(value.wrongStreak) && isNumber(value.updatedAt)
+    && (value.source === undefined || oneOf(value.source, COURSE_SOURCES))
+    && (value.confirmed === undefined || typeof value.confirmed === 'boolean');
+}
+
+function isHistoryDay(value: unknown): value is BackupData['historyDays'][number] {
+  return isRecord(value) && isString(value.id) && isNumber(value.dayNumber) && isString(value.topic)
+    && isString(value.source) && oneOf(value.evidence, ['studied', 'listed_only'])
+    && isNumber(value.answerCount) && typeof value.confirmed === 'boolean' && isNumber(value.createdAt);
 }
 
 function isReview(value: unknown): value is BackupData['reviews'][number] {
@@ -228,5 +245,6 @@ function isAiUsage(value: unknown): value is BackupData['aiUsage'][number] {
 }
 
 function isSettings(value: unknown): value is BackupData['settings'][number] {
-  return isRecord(value) && value.id === 'app' && isString(value.appVersion) && isNumber(value.updatedAt);
+  return isRecord(value) && value.id === 'app' && isString(value.appVersion) && isNumber(value.updatedAt)
+    && (value.historyImportedAt === undefined || isNumber(value.historyImportedAt));
 }
