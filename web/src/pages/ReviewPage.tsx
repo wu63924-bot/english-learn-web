@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { Card, ErrorState, LoadingState, PageHeader } from '../components/UI';
+import { WordReviewSession } from '../components/WordReviewSession';
 import { listDueKnowledge, knowledgeCounts, saveKnowledgePoint } from '../repositories/knowledgeRepository';
-import { listWeakWordReviews } from '../repositories/wordReviewRepository';
+import {
+  countNewWordsToday,
+  countWordReviews,
+  listDueWordReviews,
+  listNewWordCandidates
+} from '../repositories/wordReviewRepository';
+import type { NewWordCandidate } from '../repositories/wordReviewRepository';
+import { getDailyNewWordLimit } from '../repositories/settingsRepository';
 import { AiError, generateDrill, type DrillResult } from '../services/aiClient';
 import { applyAttempt, reviewReasonText } from '../services/reviewRules';
 import type { KnowledgePoint, WordReview } from '../types/domain';
@@ -28,6 +35,11 @@ export function ReviewPage() {
   const [error, setError] = useState('');
   const [items, setItems] = useState<KnowledgePoint[]>([]);
   const [words, setWords] = useState<WordReview[]>([]);
+  const [wordDue, setWordDue] = useState(0);
+  const [newLimit, setNewLimit] = useState(10);
+  const [newToday, setNewToday] = useState(0);
+  const [session, setSession] = useState<{ due: WordReview[]; fresh: NewWordCandidate[] } | null>(null);
+  const [starting, setStarting] = useState(false);
   const [counts, setCounts] = useState<Record<KnowledgePoint['status'], number> | null>(null);
   const [active, setActive] = useState<KnowledgePoint | null>(null);
   const [drill, setDrill] = useState<DrillResult | null>(null);
@@ -40,12 +52,22 @@ export function ReviewPage() {
 
   useEffect(() => {
     let alive = true;
-    void Promise.all([listDueKnowledge(), knowledgeCounts(), listWeakWordReviews()])
-      .then(([due, summary, weakWords]) => {
+    void Promise.all([
+      listDueKnowledge(),
+      knowledgeCounts(),
+      listDueWordReviews(),
+      countWordReviews(),
+      countNewWordsToday(),
+      getDailyNewWordLimit()
+    ])
+      .then(([due, summary, dueWords, wordSummary, todayNew, limit]) => {
         if (!alive) return;
         setItems(due);
         setCounts(summary);
-        setWords(weakWords);
+        setWords(dueWords);
+        setWordDue(wordSummary.due);
+        setNewToday(todayNew);
+        setNewLimit(limit);
       })
       .catch(reason => {
         if (alive) setError(reason instanceof Error ? reason.message : '读取复习列表失败');
@@ -57,6 +79,41 @@ export function ReviewPage() {
       alive = false;
     };
   }, []);
+
+  async function startWordSession() {
+    if (starting) return;
+    setStarting(true);
+    setError('');
+    try {
+      const remaining = Math.max(0, newLimit - newToday);
+      const fresh = remaining > 0 ? await listNewWordCandidates(remaining) : [];
+      setSession({ due: words, fresh });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '无法准备单词复习');
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function refreshWords() {
+    try {
+      const [dueWords, wordSummary, todayNew] = await Promise.all([
+        listDueWordReviews(),
+        countWordReviews(),
+        countNewWordsToday()
+      ]);
+      setWords(dueWords);
+      setWordDue(wordSummary.due);
+      setNewToday(todayNew);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : '刷新单词列表失败');
+    }
+  }
+
+  async function finishWordSession() {
+    setSession(null);
+    await refreshWords();
+  }
 
   async function start(item: KnowledgePoint) {
     setActive(item);
@@ -115,7 +172,27 @@ export function ReviewPage() {
   if (loading) return <LoadingState />;
   if (error) return <ErrorState message={error} />;
 
+  if (session) {
+    return (
+      <>
+        <PageHeader eyebrow="复习" title="单词复习" subtitle="先回想，再选择掌握程度" />
+        <WordReviewSession due={session.due} fresh={session.fresh} onFinish={() => { void finishWordSession(); }} />
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => {
+            setSession(null);
+            void refreshWords();
+          }}
+        >
+          退出本轮
+        </button>
+      </>
+    );
+  }
+
   const remaining = items.filter(point => !doneIds.has(point.id));
+  const newLeft = Math.max(0, newLimit - newToday);
 
   return (
     <>
@@ -205,28 +282,36 @@ export function ReviewPage() {
         </Card>
       )}
 
-      {words.length > 0 && (
-        <Card title="单词复习">
-          <ul className="review-list">
-            {words.map(item => (
-              <li key={item.id} className="review-item">
-                <div className="review-main">
-                  <span className="review-label">{item.term}</span>
-                  <span className="review-reason">{item.status === 'unknown' ? '不认识' : '模糊'}</span>
-                </div>
-                <Link className="ghost-button" to={`/course/${item.courseId}/module/word?word=${encodeURIComponent(item.wordId)}`}>回看</Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+      <Card title="单词复习">
+        <div className="word-summary">
+          <span><b>{wordDue}</b> 个到期</span>
+          <span>今日新词 <b>{newToday}</b> / {newLimit}</span>
+        </div>
+        <button
+          type="button"
+          className="primary-button"
+          onClick={() => { void startWordSession(); }}
+          disabled={starting || (wordDue === 0 && newLeft === 0)}
+        >
+          {starting ? '正在准备…' : wordDue > 0 ? '开始复习' : newLeft > 0 ? '学新词' : '今天已完成'}
+        </button>
+        {wordDue === 0 && newLeft > 0 && (
+          <p className="muted">今天没有到期的词，可以学几个新词。</p>
+        )}
+        {newLeft === 0 && (
+          <p className="muted">今日新词额度已用完，到期复习不受影响。</p>
+        )}
+      </Card>
 
       <details className="explain-block">
         <summary>复习规则</summary>
-        <p className="explain-body">
-          答错一次不会立刻降级；连续答错 2 次进入“需巩固”。需巩固连续答对 2 次回到“学习中”，
-          学习中连续答对 3 次进入“已掌握”。已掌握后连续答错 2 次才降回需巩固。
-          间隔按 1 天 → 3 天 → 7 天 → 14 天拉长。
+        <p className="review-rule">
+          知识点：答错一次不会立刻降级；连续答错 2 次进入“需巩固”。需巩固连续答对 2 次回到“学习中”，
+          学习中连续答对 3 次进入“已掌握”。已掌握后连续答错 2 次才降回需巩固。间隔按 1 天 → 3 天 → 7 天 → 14 天拉长。
+        </p>
+        <p className="review-rule">
+          单词：认识的间隔按 1 → 3 → 7 → 15 → 30 → 60 天拉长；模糊明天再来、间隔减半；不认识本轮再见一次、间隔归零。
+          同一个词在多节课出现只算一个，每天最多引入设置的新词数量。
         </p>
       </details>
     </>

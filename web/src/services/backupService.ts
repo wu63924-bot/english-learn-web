@@ -1,9 +1,10 @@
 import type { BackupFile, BackupData } from '../types/domain';
 import { db } from '../db/db';
+import { migrateWordReviews } from './wordReviewMigration';
 
 export const BACKUP_APP = 'EnglishLearn';
-export const BACKUP_VERSION = 4;
-const SUPPORTED_VERSIONS = [1, 2, 3, 4];
+export const BACKUP_VERSION = 5;
+const SUPPORTED_VERSIONS = [1, 2, 3, 4, 5];
 
 export async function createBackup(): Promise<BackupFile> {
   const [courses, courseModules, answers, grades, knowledge, reviews, mistakes, studyDays, aiUsage, historyDays, pendingAi, wordReviews, settings] = await Promise.all([
@@ -117,8 +118,14 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     if (data.historyDays.length) await db.historyDays.bulkPut(data.historyDays);
     if (data.pendingAi.length) await db.pendingAi.bulkPut(data.pendingAi);
     if (data.wordReviews.length) await db.wordReviews.bulkPut(data.wordReviews);
-    await db.settings.bulkPut(data.settings);
+    await db.settings.bulkPut(data.settings.map(setting => {
+      const clone = { ...setting };
+      // 旧备份里的单词记录是课程维度，导入后交给迁移重新合并。
+      delete clone.wordReviewsMigratedAt;
+      return clone;
+    }));
   });
+  await migrateWordReviews();
 }
 
 export function backupCounts(backup: BackupFile): { courses: number; answers: number; mistakes: number; studyDays: number; historyDays: number } {
@@ -243,9 +250,18 @@ function isPendingAi(value: unknown): value is BackupData['pendingAi'][number] {
 }
 
 function isWordReview(value: unknown): value is BackupData['wordReviews'][number] {
-  return isRecord(value) && isString(value.id) && isString(value.courseId) && isString(value.moduleId)
-    && isString(value.wordId) && isString(value.term)
-    && oneOf(value.status, ['known', 'fuzzy', 'unknown']) && isNumber(value.updatedAt);
+  return isRecord(value) && isString(value.id) && isString(value.term)
+    && oneOf(value.status, ['known', 'fuzzy', 'unknown']) && isNumber(value.updatedAt)
+    && (value.courseId === undefined || isString(value.courseId))
+    && (value.moduleId === undefined || isString(value.moduleId))
+    && (value.wordId === undefined || isString(value.wordId))
+    && (value.intervalDays === undefined || isNumber(value.intervalDays))
+    && (value.dueAt === undefined || isNumber(value.dueAt))
+    && (value.streak === undefined || isNumber(value.streak))
+    && (value.lapses === undefined || isNumber(value.lapses))
+    && (value.firstSeenAt === undefined || isNumber(value.firstSeenAt))
+    && (value.lastReviewedAt === undefined || isNumber(value.lastReviewedAt))
+    && (value.meanings === undefined || isStringArray(value.meanings));
 }
 
 function isReview(value: unknown): value is BackupData['reviews'][number] {

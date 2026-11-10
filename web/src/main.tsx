@@ -6,6 +6,7 @@ import { ErrorState, LoadingState } from './components/UI';
 import { initializeDatabase } from './db/seed';
 import { processPendingGrades } from './services/aiQueue';
 import { unifyKnowledge } from './services/knowledgeMigration';
+import { migrateWordReviews } from './services/wordReviewMigration';
 import { TodayPage } from './pages/TodayPage';
 import { ReviewPage } from './pages/ReviewPage';
 import { RecordsPage } from './pages/RecordsPage';
@@ -22,6 +23,7 @@ function App() {
     void initializeDatabase()
       .then(async () => {
         await unifyKnowledge().catch(reason => console.warn('knowledge migration skipped', reason));
+        await migrateWordReviews().catch(reason => console.warn('word review migration skipped', reason));
         setState('ready');
         void processPendingGrades();
       })

@@ -147,12 +147,29 @@ export interface KnowledgePoint {
 export type WordReviewStatus = 'known' | 'fuzzy' | 'unknown';
 
 export interface WordReview {
+  /** w:<normalized term>，同一个词跨课程共用一条记录 */
   id: string;
-  courseId: string;
-  moduleId: string;
-  wordId: string;
   term: string;
+  phonetic?: string;
+  meanings?: string[];
+  example?: string;
+  exampleTranslation?: string;
   status: WordReviewStatus;
+  /** 当前番茄间隔（天），0 表示还没记住 */
+  intervalDays: number;
+  /** 到期时间戳，早于等于当前时间即可复习 */
+  dueAt: Timestamp;
+  /** 连续答对次数 */
+  streak: number;
+  /** 遗忘次数 */
+  lapses: number;
+  /** 第一次评级的时间，用于每日新词配额 */
+  firstSeenAt: Timestamp;
+  lastReviewedAt: Timestamp;
+  /** 最近一次出现在哪节课，用于“看原文” */
+  courseId?: string;
+  moduleId?: string;
+  wordId?: string;
   updatedAt: Timestamp;
 }
 
@@ -233,9 +250,12 @@ export interface AppSettings {
   id: 'app';
   appVersion: string;
   dailyGoalMinutes?: number;
+  /** 每天最多引入多少个新词，0 表示不拉新词 */
+  dailyNewWordLimit?: number;
   aiDailyBudget?: number;
   aiAccessToken?: string;
   knowledgeUnifiedAt?: Timestamp;
+  wordReviewsMigratedAt?: Timestamp;
   samplesSeededAt?: Timestamp;
   historyImportedAt?: Timestamp;
   updatedAt: Timestamp;

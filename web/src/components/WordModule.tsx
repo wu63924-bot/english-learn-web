@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { CourseModule, WordReviewStatus } from '../types/domain';
-import { listWordReviews, saveWordReview } from '../repositories/wordReviewRepository';
+import { saveWordRating, wordStatusesForModule } from '../repositories/wordReviewRepository';
 
 interface Props {
   module: CourseModule<'word'>;
@@ -27,10 +27,8 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
 
   useEffect(() => {
     let active = true;
-    void listWordReviews(module.courseId, module.id).then(items => {
+    void wordStatusesForModule(words).then(map => {
       if (!active) return;
-      const map: Record<string, WordReviewStatus> = {};
-      for (const item of items) map[item.wordId] = item.status;
       setReviews(map);
       const target = targetWord;
       const targetIndex = target ? words.findIndex(item => item.id === target) : -1;
@@ -44,16 +42,20 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
     return () => {
       active = false;
     };
-  }, [module.courseId, module.id, words, targetWord]);
+  }, [words, targetWord]);
 
   async function rate(status: WordReviewStatus) {
     if (!word) return;
-    await saveWordReview({
+    await saveWordRating({
+      term: word.term,
+      status,
       courseId: module.courseId,
       moduleId: module.id,
       wordId: word.id,
-      term: word.term,
-      status
+      phonetic: word.phonetic,
+      meanings: word.meanings,
+      example: word.example,
+      exampleTranslation: word.exampleTranslation
     });
     setReviews(current => ({ ...current, [word.id]: status }));
     setRevealed(true);

@@ -8,3 +8,13 @@ export function dateKey(date: Date): string {
 export function todayKey(now: Date = new Date()): string {
   return dateKey(now);
 }
+
+export function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function addDays(date: Date, days: number): Date {
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  next.setDate(next.getDate() + days);
+  return next;
+}

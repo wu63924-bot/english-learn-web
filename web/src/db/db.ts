@@ -91,3 +91,20 @@ db.version(4).stores({
   wordReviews: '&id, courseId, moduleId, status, [status+updatedAt]',
   settings: '&id'
 });
+
+// v5: 单词复习改为按词形一条记录，并引入到期时间。
+db.version(5).stores({
+  courses: '&id, status, source, startedDate, createdAt',
+  courseModules: '&id, courseId, [courseId+order], status',
+  answers: '&id, courseId, moduleId, updatedAt',
+  grades: '&id, answerId, status',
+  knowledge: '&id, status, nextReviewDate, [status+nextReviewDate]',
+  reviews: '&id, knowledgeId, dueDate, [state+dueDate]',
+  mistakes: '&id, knowledgeId, courseId, createdAt',
+  studyDays: '&dateKey',
+  aiUsage: '&id, dateKey, kind',
+  historyDays: '&id, dayNumber, source',
+  pendingAi: '&id, status, createdAt',
+  wordReviews: '&id, status, dueAt, [status+dueAt], firstSeenAt',
+  settings: '&id'
+});

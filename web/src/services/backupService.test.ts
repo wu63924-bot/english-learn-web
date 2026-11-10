@@ -19,7 +19,7 @@ describe('backup service', () => {
     await db.settings.update('app', { aiAccessToken: 'secret-token' });
     const backup = await createBackup();
     expect(backup.app).toBe('EnglishLearn');
-    expect(backup.version).toBe(4);
+    expect(backup.version).toBe(5);
     expect(backup.data.courses).toHaveLength(2);
     expect(backup.data.settings[0]?.aiAccessToken).toBeUndefined();
     expect((await db.settings.get('app'))?.aiAccessToken).toBe('secret-token');
@@ -32,7 +32,7 @@ describe('backup service', () => {
     legacy.version = 2;
     delete legacy.data.pendingAi;
     const parsed = parseBackup(JSON.stringify(legacy));
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
     expect(parsed.data.pendingAi).toEqual([]);
     expect(parsed.data.wordReviews).toEqual([]);
   });
@@ -42,7 +42,7 @@ describe('backup service', () => {
     legacy.version = 1;
     delete legacy.data.historyDays;
     const parsed = parseBackup(JSON.stringify(legacy));
-    expect(parsed.version).toBe(4);
+    expect(parsed.version).toBe(5);
     expect(parsed.data.historyDays).toEqual([]);
   });
 

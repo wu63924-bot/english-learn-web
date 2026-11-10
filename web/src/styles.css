@@ -1210,6 +1210,17 @@ button {
   font-size: 0.78rem;
 }
 
+.review-rule {
+  margin: 0 0 8px;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+.review-rule:last-child {
+  margin-bottom: 2px;
+}
+
 .review-head {
   display: flex;
   align-items: center;
@@ -1489,6 +1500,67 @@ button {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-top: 14px;
+}
+
+.word-session {
+  display: grid;
+  gap: 12px;
+}
+
+.word-session-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.word-session-track {
+  width: 100%;
+  margin: 0;
+}
+
+.word-session-done {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.word-summary {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 0.78rem;
+}
+
+.word-summary span {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: var(--accent-pale);
+  color: var(--accent);
+  text-align: center;
+}
+
+.word-summary span:nth-child(2) {
+  background: var(--chip-mint);
+  color: var(--chip-mint-ink);
+}
+
+.word-summary b {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.word-source-link {
+  display: inline-block;
+  margin-top: 10px;
+  padding-bottom: 1px;
+  border-bottom: 1px solid rgba(196, 105, 60, 0.35);
+  color: var(--accent);
+  font-size: 0.78rem;
+  text-decoration: none;
 }
 
 .word-rate {
