@@ -67,10 +67,8 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
     <div className="word-module">
       <div className="module-progress">
         <span>第 {index + 1} / {words.length} 个</span>
-        <span className="dot-row" aria-hidden="true">
-          {words.map((item, dotIndex) => (
-            <span key={item.id} className={`dot${dotIndex <= index ? ' filled' : ''}`} />
-          ))}
+        <span className="word-progress-track" aria-hidden="true">
+          <i style={{ width: `${((index + 1) / words.length) * 100}%` }} />
         </span>
       </div>
 

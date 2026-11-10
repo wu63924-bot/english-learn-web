@@ -119,12 +119,14 @@ export function ReviewPage() {
 
   return (
     <>
-      <PageHeader eyebrow="复习" title="到期复习" subtitle="答错多的内容先复习，稳定后再拉长间隔" />
+      <PageHeader eyebrow="复习" title="今天复习" subtitle="先处理容易忘的内容，再继续新课程" />
 
       {counts && (
-        <p className="review-counts">
-          需巩固 {counts.needs_review} · 学习中 {counts.learning} · 已掌握 {counts.mastered}
-        </p>
+        <div className="review-counts">
+          <span>需巩固 <b>{counts.needs_review}</b></span>
+          <span>学习中 <b>{counts.learning}</b></span>
+          <span>已掌握 <b>{counts.mastered}</b></span>
+        </div>
       )}
 
       {active ? (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Badge, Card, ErrorState, LoadingState, Notice, PageHeader } from '../components/UI';
+import { Card, ErrorState, LoadingState, Notice, PageHeader } from '../components/UI';
 import { getCourseModules, getCurrentCourse, startCourse } from '../repositories/courseRepository';
 import { getLastAnsweredModuleId } from '../repositories/answerRepository';
 import { getStudySummary } from '../repositories/studyRepository';
@@ -10,7 +10,7 @@ import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport'
 import { coursePreset } from '../data/coursePlan';
 import type { StudySummary } from '../repositories/studyRepository';
 import type { Course, CourseModule } from '../types/domain';
-import { moduleLabels, moduleProgress, moduleStatusLabels } from '../utils/course';
+import { moduleLabels, moduleProgress } from '../utils/course';
 
 export function TodayPage() {
   const navigate = useNavigate();
@@ -90,6 +90,10 @@ export function TodayPage() {
 
   const progress = moduleProgress(modules);
   const started = course.status !== 'not_started';
+  const nextModule = modules.find(module => module.status === 'draft' || module.status === 'answered')
+    ?? modules.find(module => module.status !== 'graded')
+    ?? modules[0];
+  const today = new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric' }).format(new Date());
 
   async function handleStart() {
     if (!course || starting) return;
@@ -108,42 +112,51 @@ export function TodayPage() {
   }
 
   return (
-    <>
-      <PageHeader
-        eyebrow="今日"
-        title={started ? '继续这一节' : '今天学一节'}
-        subtitle="首页只显示当前课程与进度"
-      />
-      <section className="card course-card">
-        <div className="course-meta">
-          <span className="course-number">第 {course.number} 课</span>
-          {course.source === 'sample' && <Badge>示例</Badge>}
+    <div className="today-page">
+      <header className="today-top">
+        <div>
+          <p className="today-eyebrow">今日 · 第 {course.number} 课</p>
+          <h1 className="today-title">{started ? '继续这一节' : '今天，学一节'}</h1>
         </div>
-        <h2 className="course-title">{course.title}</h2>
-        <p className="course-topic">{course.topic}</p>
-        <p className="course-goal">目标：{course.goal}</p>
-        <p className="course-stats">
-          今日已学 {summary.todaySeconds === 0 ? '0 分钟' : summary.todayMinutes < 1 ? '不到 1 分钟' : `${summary.todayMinutes} 分钟`}
-          {' · '}有效学习 {summary.activeDays} 天
-        </p>
+        <span className="today-date">{today}</span>
+      </header>
+
+      <section className="today-hero">
+        <p className="today-course-label">{course.topic}</p>
+        <h2 className="today-course-title">{course.title}</h2>
+        <div className="today-rail" aria-label="模块进度">
+          {modules.map(module => {
+            const state = module.status === 'graded' ? 'done' : module.id === nextModule?.id ? 'now' : 'todo';
+            return (
+              <div key={module.id} className={`today-step ${state}`}>
+                <b>{module.status === 'graded' ? '✓' : ''}</b>
+                <span>{moduleLabels[module.kind]}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="today-actions">
+          <button type="button" className="primary-button" onClick={handleStart} disabled={starting}>
+            {starting ? '正在打开…' : started ? '继续学习' : '开始学习'}
+          </button>
+          <button type="button" className="today-secondary" onClick={() => navigate(`/course/${course.id}`)}>
+            查看课程
+          </button>
+        </div>
       </section>
 
-      <Card title="模块进度">
-        <ul className="module-list">
-          {modules.map(module => (
-            <li key={module.id} className="module-row">
-              <span className="module-name">{moduleLabels[module.kind]}</span>
-              <span className={`module-status status-${module.status}`}>{moduleStatusLabels[module.status]}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="progress-text">已完成 {progress.completed} / {progress.total} 个模块</p>
-      </Card>
+      <div className="today-stats">
+        <div><b>{summary.todaySeconds === 0 ? '0' : summary.todayMinutes < 1 ? '<1' : summary.todayMinutes}</b><span>今日分钟</span></div>
+        <div><b>{summary.activeDays}</b><span>有效学习天</span></div>
+        <div><b>{progress.completed}/{progress.total}</b><span>模块完成</span></div>
+      </div>
 
-      <button type="button" className="primary-button" onClick={handleStart} disabled={starting}>
-        {starting ? '正在打开…' : started ? '继续学习' : '开始学习'}
-      </button>
+      <section className="today-goal">
+        <p className="today-goal-label">今天的目标</p>
+        <p>{course.goal}</p>
+      </section>
+
       {course.source === 'sample' && <Notice>这是一节示例课程，用于验证流程，不计入正式学习记录。</Notice>}
-    </>
+    </div>
   );
 }

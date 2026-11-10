@@ -201,6 +201,185 @@ button {
   cursor: not-allowed;
 }
 
+.today-page {
+  display: grid;
+  gap: 14px;
+}
+
+.today-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px 0;
+}
+
+.today-eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.today-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.today-date {
+  color: var(--muted);
+  font-size: 0.78rem;
+  padding-top: 4px;
+}
+
+.today-hero {
+  padding: 22px 18px 14px;
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.today-course-label {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.today-course-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.today-rail {
+  display: flex;
+  margin: 20px 0 16px;
+}
+
+.today-step {
+  position: relative;
+  flex: 1;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.today-step:before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: -50%;
+  width: 100%;
+  height: 2px;
+  background: var(--line);
+}
+
+.today-step:first-child:before {
+  display: none;
+}
+
+.today-step b {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin: 0 auto 6px;
+  border: 2px solid #d9d5cb;
+  border-radius: 50%;
+  background: var(--card);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 600;
+}
+
+.today-step.done b,
+.today-step.now b {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.today-step.now b {
+  box-shadow: 0 0 0 4px var(--accent-pale);
+}
+
+.today-step.done:before,
+.today-step.now:before {
+  background: var(--accent);
+}
+
+.today-step.done,
+.today-step.now {
+  color: var(--accent);
+}
+
+.today-actions {
+  display: grid;
+  gap: 4px;
+}
+
+.today-secondary {
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.today-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.today-stats div {
+  padding: 12px 10px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.today-stats b {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.today-stats span {
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.today-goal {
+  padding: 2px 4px;
+}
+
+.today-goal-label {
+  margin: 0 0 5px;
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+}
+
+.today-goal p:last-child {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
 .course-card {
   border: 1px solid var(--line);
 }
@@ -771,9 +950,28 @@ button {
 }
 
 .review-counts {
+  display: flex;
+  gap: 8px;
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
+}
+
+.review-counts span {
+  flex: 1;
+  padding: 10px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  text-align: center;
+}
+
+.review-counts b {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  margin-left: 2px;
 }
 
 .review-list {
@@ -984,14 +1182,35 @@ button {
 }
 
 .word-card {
-  padding: 24px 20px;
+  padding: 30px 22px;
+  box-shadow: var(--shadow);
+  border: 0;
 }
 
 .word-term {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 2rem;
+  font-size: 2.35rem;
+  font-weight: 500;
   line-height: 1.2;
+}
+
+.word-progress-track {
+  display: block;
+  flex: 1;
+  height: 4px;
+  margin-left: 12px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.word-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+  transition: width 180ms ease;
 }
 
 .word-phonetic {
