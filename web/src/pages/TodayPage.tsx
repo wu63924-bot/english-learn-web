@@ -10,7 +10,7 @@ import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport'
 import { coursePreset } from '../data/coursePlan';
 import type { StudySummary } from '../repositories/studyRepository';
 import type { Course, CourseModule } from '../types/domain';
-import { moduleLabels, moduleProgress } from '../utils/course';
+import { moduleLabels, moduleOrder, moduleProgress } from '../utils/course';
 
 export function TodayPage() {
   const navigate = useNavigate();
@@ -93,7 +93,9 @@ export function TodayPage() {
   const nextModule = modules.find(module => module.status === 'draft' || module.status === 'answered')
     ?? modules.find(module => module.status !== 'graded')
     ?? modules[0];
-  const today = new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric' }).format(new Date());
+  const today = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
+  const doneCount = progress.completed;
+  const ringLength = 113;
 
   async function handleStart() {
     if (!course || starting) return;
@@ -115,23 +117,41 @@ export function TodayPage() {
     <div className="today-page">
       <header className="today-top">
         <div>
-          <p className="today-eyebrow">今日 · 第 {course.number} 课</p>
-          <h1 className="today-title">{started ? '继续这一节' : '今天，学一节'}</h1>
+          <p className="today-date">{today}</p>
+          <h1 className="today-title">{started ? '继续这一节' : '今天也读一点'}</h1>
         </div>
-        <span className="today-date">{today}</span>
+        <span className="today-chip">第 {course.number} 课</span>
       </header>
 
       <section className="today-hero">
-        <p className="today-course-label">{course.topic}</p>
+        <p className="today-course-label">Today</p>
         <h2 className="today-course-title">{course.title}</h2>
-        <div className="today-rail" aria-label="模块进度">
+        <p className="today-course-topic">{course.topic}</p>
+        <div className="today-progress">
+          <svg className="today-ring" viewBox="0 0 44 44" aria-hidden="true">
+            <circle cx="22" cy="22" r="18" className="track" />
+            <circle
+              cx="22"
+              cy="22"
+              r="18"
+              className="value"
+              strokeDasharray={ringLength}
+              strokeDashoffset={ringLength - (ringLength * doneCount) / progress.total}
+            />
+          </svg>
+          <div className="today-ring-text">
+            <b>{doneCount} / {progress.total} 模块</b>
+            <span>{nextModule ? `下一步：${moduleLabels[nextModule.kind]}` : '全部完成'}</span>
+          </div>
+        </div>
+        <div className="today-chips">
           {modules.map(module => {
-            const state = module.status === 'graded' ? 'done' : module.id === nextModule?.id ? 'now' : 'todo';
+            const index = moduleOrder.indexOf(module.kind);
+            const state = module.status === 'graded' ? ' done' : module.id === nextModule?.id ? ' now' : '';
             return (
-              <div key={module.id} className={`today-step ${state}`}>
-                <b>{module.status === 'graded' ? '✓' : ''}</b>
-                <span>{moduleLabels[module.kind]}</span>
-              </div>
+              <span key={module.id} className={`today-tag tag-${index}${state}`}>
+                {moduleLabels[module.kind]}
+              </span>
             );
           })}
         </div>
@@ -140,7 +160,7 @@ export function TodayPage() {
             {starting ? '正在打开…' : started ? '继续学习' : '开始学习'}
           </button>
           <button type="button" className="today-secondary" onClick={() => navigate(`/course/${course.id}`)}>
-            查看课程
+            查看课程内容
           </button>
         </div>
       </section>

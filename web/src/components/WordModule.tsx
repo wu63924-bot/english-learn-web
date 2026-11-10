@@ -73,19 +73,20 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
       </div>
 
       <article className="card word-card">
+        <p className="word-tag">{revealed ? '已揭示' : '先回忆'}</p>
         <h2 className="word-term">{word.term}</h2>
         {word.phonetic && <p className="word-phonetic">{word.phonetic}</p>}
         {revealed ? (
-          <>
+          <div className="word-reveal-panel">
             <ul className="word-meanings">
               {word.meanings.map(meaning => <li key={meaning}>{meaning}</li>)}
             </ul>
             <p className="word-example">{word.example}</p>
             <p className="word-example-translation">{word.exampleTranslation}</p>
             {word.note && <p className="word-note">{word.note}</p>}
-          </>
+          </div>
         ) : (
-          <p className="word-reveal-hint">先选择“认识 / 模糊 / 不认识”，再显示释义和例句。</p>
+          <p className="word-reveal-hint">还记得它的意思吗？先选一个，再显示释义。</p>
         )}
       </article>
 
