@@ -39,6 +39,7 @@ function payload(title: string): GeneratedCoursePayload {
       }
     ],
     passage: 'This is a test passage for the generated course.',
+    passageGlossary: [{ term: 'passage', phonetic: '/ˈpæsɪdʒ/', meaning: '短文' }],
     readingQuestions: [
       {
         kind: 'choice',
@@ -103,6 +104,11 @@ describe('generated course import', () => {
     const grammarQuestions = grammar && 'questions' in grammar.content ? grammar.content.questions : [];
     expect(grammarQuestions.map(question => question.knowledgeIds)).toEqual([[ids[0]], [ids[1]]]);
     expect(grammarQuestions.every(question => question.knowledgeIndex === undefined)).toBe(true);
+
+    const reading = modules.find(module => module.kind === 'reading');
+    expect(reading && 'glossary' in reading.content ? reading.content.glossary : []).toEqual([
+      { term: 'passage', phonetic: '/ˈpæsɪdʒ/', meaning: '短文' }
+    ]);
   });
 
   it('returns the stored course instead of creating a duplicate', async () => {

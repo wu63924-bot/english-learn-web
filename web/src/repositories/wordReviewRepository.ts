@@ -25,7 +25,8 @@ export async function saveWordReview(input: {
 
 export async function listWeakWordReviews(): Promise<WordReview[]> {
   const items = await db.wordReviews.toArray();
+  const rank: Record<WordReview['status'], number> = { unknown: 0, fuzzy: 1, known: 2 };
   return items
     .filter(item => item.status !== 'known')
-    .sort((a, b) => b.updatedAt - a.updatedAt);
+    .sort((a, b) => rank[a.status] - rank[b.status] || b.updatedAt - a.updatedAt);
 }

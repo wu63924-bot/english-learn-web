@@ -19,6 +19,9 @@ const COURSE_SCHEMA = `{
   "grammarQuestions": [{ "kind": "choice", "prompt": "题干", "options": ["选项A","选项B","选项C","选项D"], "answerIndex": 0, "explanation": "中文解析", "knowledge": 0 }],
   "passage": "英文短文，120-180 词",
   "passageTranslation": "中文译文",
+  "passageGlossary": [
+    { "term": "短文中不在 words 里的生词", "phonetic": "/音标/", "meaning": "中文释义" }
+  ],
   "readingQuestions": [
     { "kind": "choice", "prompt": "英文题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析", "knowledge": 1 },
     { "kind": "translate", "prompt": "把这句话译成中文：……", "reference": "参考译文", "keyPoints": ["要点1","要点2"], "knowledge": 1 }
@@ -39,6 +42,7 @@ export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
     '- grammarSections 2 段：每段用 2-4 句讲清一个规则，需要对比时用 Markdown 表格（例如 | 主语 | 正确表达 |），表格最多 3 列；',
     '- grammarQuestions 10 道单选题，每题 4 个选项，answerIndex 是正确选项下标（0-3）；',
     '- passage 120-180 词，配中文译文；readingQuestions 5 道，其中 4 道选择题和 1 道翻译题；',
+    '- passageGlossary 列出短文中未出现在 words 里的生词 5-10 个，给音标和中文释义；',
     '- knowledgeLabels 3 条，reviewQuestions 5 道单选题，覆盖本节知识点；',
     '- 所有题目只有一个明确正确答案，解析说明原因，不要出现歧义或超出本课内容的题；',
     '- 每道题带 "knowledge" 字段：它是 knowledgeLabels 的下标（0 开始），表示这道题考哪个知识点；',

@@ -190,6 +190,17 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
   if (raw.readingQuestions.length < 1 || raw.readingQuestions.length > LIMITS.questions) badOutput();
   const readingQuestions = raw.readingQuestions.map((question, index) =>
     rawQuestion(question, `${prefix}-rq${index + 1}`, true));
+  const passageGlossary = Array.isArray(raw.passageGlossary)
+    ? raw.passageGlossary.slice(0, 12).map(item => {
+      if (!item || typeof item !== 'object') badOutput();
+      const entry = item as Record<string, unknown>;
+      return {
+        term: text(entry.term, '生词', 40, false),
+        ...(entry.phonetic === undefined ? {} : { phonetic: text(entry.phonetic, '音标', 60, false) }),
+        meaning: text(entry.meaning, '生词释义', 80, false)
+      };
+    })
+    : undefined;
 
   if (!Array.isArray(raw.reviewQuestions) || !Array.isArray(raw.knowledgeLabels)) badOutput();
   if (raw.reviewQuestions.length < 1 || raw.reviewQuestions.length > LIMITS.questions) badOutput();
@@ -211,6 +222,7 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
     grammarQuestions,
     passage: text(raw.passage, '短文', 4000, false),
     passageTranslation: optionalText(raw.passageTranslation, 4000, false),
+    ...(passageGlossary && passageGlossary.length ? { passageGlossary } : {}),
     readingQuestions,
     knowledgeLabels,
     reviewQuestions

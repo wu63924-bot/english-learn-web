@@ -33,6 +33,12 @@ export interface WordItem {
   note?: string;
 }
 
+export interface GlossaryItem {
+  term: string;
+  phonetic?: string;
+  meaning: string;
+}
+
 export interface GrammarSection {
   title: string;
   body: string;
@@ -78,7 +84,7 @@ export interface TranslateQuestion {
 export interface ModuleContentMap {
   word: { words: WordItem[] };
   grammar: { sections: GrammarSection[]; questions: ChoiceQuestion[] };
-  reading: { passage: string; passageTranslation?: string; questions: Question[] };
+  reading: { passage: string; passageTranslation?: string; glossary?: GlossaryItem[]; questions: Question[] };
   review: { knowledgeIds: string[]; questions: Question[] };
 }
 

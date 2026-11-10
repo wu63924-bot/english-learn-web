@@ -526,6 +526,41 @@ button {
   line-height: 1.8;
 }
 
+.passage-glossary {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.passage-glossary summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
+.passage-glossary ul {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passage-glossary li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+
+.glossary-phonetic {
+  color: var(--accent);
+}
+
+.glossary-meaning {
+  color: var(--ink-soft);
+}
+
 .answer-row {
   display: flex;
   gap: 8px;
@@ -950,6 +985,14 @@ button {
   background: var(--accent-pale);
   color: var(--ink-soft);
   font-size: 0.85rem;
+}
+
+.word-reveal-hint {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .word-feedback {

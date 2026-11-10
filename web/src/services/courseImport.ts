@@ -90,6 +90,7 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
         content: {
           passage: payload.passage,
           passageTranslation: payload.passageTranslation,
+          glossary: payload.passageGlossary ?? [],
           questions: withKnowledge(payload.readingQuestions, knowledgeIds)
         }
       },

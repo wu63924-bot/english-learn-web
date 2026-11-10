@@ -206,13 +206,13 @@ export function ReviewPage() {
       {words.length > 0 && (
         <Card title="单词复习">
           <ul className="review-list">
-            {words.slice(0, 10).map(item => (
+            {words.map(item => (
               <li key={item.id} className="review-item">
                 <div className="review-main">
                   <span className="review-label">{item.term}</span>
                   <span className="review-reason">{item.status === 'unknown' ? '不认识' : '模糊'}</span>
                 </div>
-                <Link className="ghost-button" to={`/course/${item.courseId}/module/word`}>回看</Link>
+                <Link className="ghost-button" to={`/course/${item.courseId}/module/word?word=${encodeURIComponent(item.wordId)}`}>回看</Link>
               </li>
             ))}
           </ul>

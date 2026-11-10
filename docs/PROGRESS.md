@@ -75,6 +75,8 @@
 - AI 离线队列：批改请求遇到断网 / 超时写入 `pendingAi`，页面提示“批改已排队”；启动、恢复联网或设置页手动触发时自动重试。
 - 数据库 v4：新增 `pendingAi` 与 `wordReviews` 表；备份升到 v4，仍兼容 v1–v3 并补空表。
 - 单词反馈：认识 / 模糊 / 不认识写入 `wordReviews`，重进单词模块从第一个未掌握的词开始；复习页列出模糊和不认识的词并可回看。
+- 单词学习先只显示词形和音标，选择“认识 / 模糊 / 不认识”后才显示释义与例句；复习页回看会定位到所点的单词。
+- 阅读生词：生成课程时输出 `passageGlossary`，列出短文中不在本课词表里的生词、音标和释义，阅读模块可展开查看。
 - 部署配置（沿用 FitFlow）：`build:github` 支持 Pages 子路径 base、`404.html` 与 `.nojekyll`；`build:api` 编译零依赖 FC 代码包到 `api-dist/server`；新增 Pages Actions workflow 与 `docs/DEPLOY.md`。
 - FC 自动部署：`.github/workflows/deploy-fc.yml` 在服务端代码变化时构建并上传代码，使用 RAM AccessKey，更新后校验环境变量未被覆盖。
 - 作答存储：确定性 id `课程:模块:题号`，同一题重复保存为覆盖；答案与批改在同一事务写入。

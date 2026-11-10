@@ -1,4 +1,4 @@
-import type { ChoiceQuestion, GrammarSection, Question, WordItem } from '../types/domain';
+import type { ChoiceQuestion, GlossaryItem, GrammarSection, Question, WordItem } from '../types/domain';
 
 export interface GeneratedCoursePayload {
   title: string;
@@ -10,6 +10,7 @@ export interface GeneratedCoursePayload {
   grammarQuestions: ChoiceQuestion[];
   passage: string;
   passageTranslation?: string;
+  passageGlossary?: GlossaryItem[];
   readingQuestions: Question[];
   knowledgeLabels: string[];
   reviewQuestions: Question[];
@@ -53,6 +54,12 @@ export function assertGeneratedCourse(value: unknown): GeneratedCoursePayload {
   if (!Array.isArray(value.reviewQuestions) || value.reviewQuestions.length < 1) throw new Error('复习题缺失');
   if (!Array.isArray(value.knowledgeLabels) || value.knowledgeLabels.length < 1) throw new Error('知识点缺失');
   if (!isText(value.passage)) throw new Error('短文缺失');
+  if (value.passageGlossary !== undefined) {
+    if (!Array.isArray(value.passageGlossary)) throw new Error('阅读生词格式不正确');
+    for (const item of value.passageGlossary) {
+      if (!isRecord(item) || !isText(item.term) || !isText(item.meaning)) throw new Error('阅读生词不完整');
+    }
+  }
   for (const question of [...(value.readingQuestions as unknown[]), ...(value.reviewQuestions as unknown[])]) {
     if (!isQuestion(question)) throw new Error('题目结构不完整');
   }
