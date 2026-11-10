@@ -96,6 +96,18 @@ button {
 .app-main {
   padding: 20px 20px 8px;
   min-width: 0;
+  animation: page-in 220ms ease-out;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .page-header {
@@ -112,15 +124,16 @@ button {
 .page-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.85rem;
+  font-size: 1.6rem;
   line-height: 1.25;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .page-subtitle {
-  margin: 8px 0 0;
+  margin: 7px 0 0;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.86rem;
+  line-height: 1.6;
 }
 
 .card {
@@ -193,6 +206,12 @@ button {
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
+  transition: transform 140ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.primary-button:not(:disabled):active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 2px 8px rgba(31, 36, 48, 0.12);
 }
 
 .primary-button:disabled {
@@ -333,6 +352,11 @@ button {
   color: var(--muted);
   font-size: 0.84rem;
   cursor: pointer;
+  transition: color 160ms ease;
+}
+
+.today-secondary:active {
+  color: var(--accent);
 }
 
 .today-stats {
@@ -794,6 +818,30 @@ button {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.record-summary {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.record-summary span {
+  flex: 1;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.record-summary b {
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin-right: 3px;
 }
 
 .record-list li + li {
@@ -1277,6 +1325,11 @@ button {
   color: var(--ink-soft);
   font-size: 0.88rem;
   cursor: pointer;
+  transition: transform 140ms ease, border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.word-rate:active {
+  transform: scale(0.97);
 }
 
 .word-rate.known.active {
@@ -1316,6 +1369,12 @@ button {
   color: var(--ink-soft);
   font-size: 0.92rem;
   cursor: pointer;
+  transition: transform 140ms ease, border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.ghost-button:not(:disabled):active {
+  transform: translateY(1px) scale(0.99);
+  background: var(--accent-pale);
 }
 
 .ghost-button:disabled {
@@ -1382,6 +1441,11 @@ button {
   border-radius: 12px;
   color: var(--muted);
   text-decoration: none;
+  transition: color 160ms ease, background 160ms ease, transform 140ms ease;
+}
+
+.tab-item:active {
+  transform: scale(0.96);
 }
 
 .tab-icon svg {

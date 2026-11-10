@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useLocation } from 'react-router';
 import { UpdateBanner } from './UpdateBanner';
 
 const tabs = [
@@ -9,6 +9,7 @@ const tabs = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const location = useLocation();
   return (
     <div className="app-shell">
       <header className="app-bar">
@@ -18,7 +19,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </NavLink>
       </header>
       <UpdateBanner />
-      <main className="app-main">{children}</main>
+      <main className="app-main" key={location.pathname}>{children}</main>
       <nav className="tab-bar" aria-label="主导航">
         {tabs.map(tab => (
           <NavLink key={tab.to} to={tab.to} end={tab.to === '/'} className={({ isActive }) => `tab-item${isActive ? ' active' : ''}`}>

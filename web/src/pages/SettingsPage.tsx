@@ -268,7 +268,7 @@ export function SettingsPage() {
       <div className="back-row">
         <button type="button" className="back-button" onClick={() => navigate(-1)} aria-label="返回">‹</button>
       </div>
-      <PageHeader title="设置" subtitle="数据、AI 用量与版本信息" />
+      <PageHeader eyebrow="设置" title="学习设置" subtitle="数据、AI 与课程生成" />
 
       <Card title="数据">
         <p className="muted">数据只保存在这台设备的浏览器里。换设备或清理浏览器前先导出备份。</p>

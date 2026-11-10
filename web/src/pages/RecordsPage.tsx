@@ -54,6 +54,11 @@ export function RecordsPage() {
     <>
       <PageHeader eyebrow="记录" title="学习记录" subtitle="按日期查看已开始的课程与错题" />
 
+      <div className="record-summary">
+        <span><b>{records.length}</b>节课</span>
+        <span><b>{mistakes.length}</b>道错题</span>
+      </div>
+
       <Card title="课程">
         {records.length === 0 ? (
           <p className="muted">还没有学习记录。完成一节课程后会出现在这里。</p>
