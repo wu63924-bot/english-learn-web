@@ -2,6 +2,36 @@ export type ExplainBlock =
   | { type: 'text'; value: string }
   | { type: 'table'; headers: string[]; rows: string[][] };
 
+const MIN_POINT_LENGTH = 6;
+const SPLIT_THRESHOLD = 30;
+
+/**
+ * Splits a long explanation paragraph into short, separate points so the
+ * grammar panel reads as rules instead of one dense wall of text. Short lines
+ * stay untouched, and fragments that would read as leftovers are merged back.
+ */
+export function splitExplainPoints(text: string): string[] {
+  const points: string[] = [];
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.length <= SPLIT_THRESHOLD) {
+      points.push(line);
+      continue;
+    }
+    const sentences = line.match(/[^。！？!?]+[。！？!?]?/g) ?? [line];
+    for (const sentence of sentences.map(item => item.trim()).filter(Boolean)) {
+      const previous = points[points.length - 1];
+      if (sentence.length < MIN_POINT_LENGTH && previous !== undefined) {
+        points[points.length - 1] = `${previous}${sentence}`;
+        continue;
+      }
+      points.push(sentence);
+    }
+  }
+  return points;
+}
+
 function cells(line: string): string[] {
   return line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim());
 }

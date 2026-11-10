@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { CourseModule } from '../types/domain';
-import { parseExplainBody } from '../utils/explain';
+import { parseExplainBody, splitExplainPoints } from '../utils/explain';
 import { QuizModule } from './QuizModule';
 
 interface Props {
@@ -21,10 +21,16 @@ export function GrammarModule({ module, onFinish, finishing }: Props) {
           open={showExplain}
           onToggle={event => setShowExplain(event.currentTarget.open)}
         >
-          <summary>语法讲解</summary>
-          {sections.map(section => (
+          <summary>
+            <span>语法讲解</span>
+            <span className="explain-count">{sections.length} 条规则</span>
+          </summary>
+          {sections.map((section, sectionIndex) => (
             <div key={section.title} className="explain-section">
-              <h3 className="explain-title">{section.title}</h3>
+              <h3 className="explain-title">
+                <span className="explain-index">{String(sectionIndex + 1).padStart(2, '0')}</span>
+                {section.title}
+              </h3>
               {parseExplainBody(section.body).map((block, index) => (
                 block.type === 'table' ? (
                   <div key={index} className="explain-table-wrap">
@@ -40,7 +46,11 @@ export function GrammarModule({ module, onFinish, finishing }: Props) {
                     </table>
                   </div>
                 ) : (
-                  <p key={index} className="explain-body">{block.value}</p>
+                  <ul key={index} className="explain-points">
+                    {splitExplainPoints(block.value).map((point, pointIndex) => (
+                      <li key={pointIndex}>{point}</li>
+                    ))}
+                  </ul>
                 )
               ))}
             </div>

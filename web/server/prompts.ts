@@ -15,7 +15,7 @@ const COURSE_SCHEMA = `{
   "words": [
     { "term": "英文单词或短语", "phonetic": "国际音标，含斜杠", "meanings": ["词性与中文释义"], "example": "英文例句", "exampleTranslation": "中文译文" }
   ],
-  "grammarSections": [{ "title": "要点标题", "body": "中文讲解 2-4 句；需要对比时接 Markdown 表格，如：\\n| 主语 | 正确表达 |\\n| --- | --- |\\n| I | I want to study. |" }],
+  "grammarSections": [{ "title": "要点标题，≤12 字", "body": "中文讲解 1-2 句、合计 ≤60 字：第一句给规则，第二句给最短例句；需要对比时另起一行接 Markdown 表格，如：\\n| 说法 | 判断 |\\n| --- | --- |\\n| I want to study. | ✅ |" }],
   "grammarQuestions": [{ "kind": "choice", "prompt": "题干", "options": ["选项A","选项B","选项C","选项D"], "answerIndex": 0, "explanation": "中文解析", "knowledge": 0 }],
   "passage": "英文短文，120-180 词",
   "passageTranslation": "中文译文",
@@ -39,7 +39,8 @@ export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
     '',
     '硬性要求：',
     '- words 恰好 20 个，不重复，音标用国际音标并带斜杠，例句难度与等级匹配；优先四级核心词；',
-    '- grammarSections 2 段：每段用 2-4 句讲清一个规则，需要对比时用 Markdown 表格（例如 | 主语 | 正确表达 |），表格最多 3 列；',
+    '- grammarSections 2 段：每段只讲 1 个规则，标题不超过 12 字；正文最多 2 句、合计不超过 60 字，第一句直接说规则，第二句给一个最短例句；不要重复题干，不要“注意/记住/总之”这类套话；',
+    '- 每段尽量附 1 个对比表格：表头加 2-4 行、最多 3 列，用 ✅/❌ 标出对错，例如 | 说法 | 判断 |；表格只放对比，不写解释；',
     '- grammarQuestions 10 道单选题，每题 4 个选项，answerIndex 是正确选项下标（0-3）；',
     '- passage 120-180 词，配中文译文；readingQuestions 5 道，其中 4 道选择题和 1 道翻译题；',
     '- passageGlossary 列出短文中未出现在 words 里的生词 5-10 个，给音标和中文释义；',
