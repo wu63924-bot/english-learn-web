@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import type { NewWordCandidate } from '../repositories/wordReviewRepository';
 import { saveWordRating } from '../repositories/wordReviewRepository';
 import type { WordReview, WordReviewStatus } from '../types/domain';
+import { WordSketchPad } from './WordSketchPad';
 
 interface QueueItem {
   key: string;
@@ -153,6 +154,7 @@ export function WordReviewSession({ due, fresh, onFinish }: Props) {
         ) : (
           <p className="word-reveal-hint">还记得它的意思吗？想起来后点“显示答案”。</p>
         )}
+        <WordSketchPad resetKey={current.key} />
       </article>
 
       {error && <p className="error-text">{error}</p>}

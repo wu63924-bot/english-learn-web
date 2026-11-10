@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { CourseModule, WordReviewStatus } from '../types/domain';
 import { saveWordRating, wordStatusesForModule } from '../repositories/wordReviewRepository';
+import { WordSketchPad } from './WordSketchPad';
 
 interface Props {
   module: CourseModule<'word'>;
@@ -90,6 +91,7 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
         ) : (
           <p className="word-reveal-hint">还记得它的意思吗？先选一个，再显示释义。</p>
         )}
+        <WordSketchPad resetKey={word.id} />
       </article>
 
       <div className="word-feedback" role="group" aria-label="单词掌握程度">
