@@ -9,7 +9,7 @@ import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
 import { pendingGradeCount, processPendingGrades } from '../services/aiQueue';
-import { getAiAccessToken, setAiAccessToken, getDailyNewWordLimit, setDailyNewWordLimit } from '../repositories/settingsRepository';
+import { getAiAccessToken, setAiAccessToken } from '../repositories/settingsRepository';
 import { resetAllData } from '../services/resetService';
 import {
   applyHistoryImport,
@@ -56,12 +56,10 @@ export function SettingsPage() {
   const [accessToken, setAccessToken] = useState('');
   const [tokenStatus, setTokenStatus] = useState('');
   const [savingToken, setSavingToken] = useState(false);
-  const [newLimit, setNewLimit] = useState(10);
-  const [limitStatus, setLimitStatus] = useState('');
 
   useEffect(() => {
     let active = true;
-    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary(), listWeakLabels(), pendingGradeCount(), getAiAccessToken(), getDailyNewWordLimit()]).then(([healthResult, usageResult, number, historyResult, weak, pending, token, limit]) => {
+    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary(), listWeakLabels(), pendingGradeCount(), getAiAccessToken()]).then(([healthResult, usageResult, number, historyResult, weak, pending, token]) => {
       if (!active) return;
       setHealth(healthResult);
       setUsage(usageResult);
@@ -70,20 +68,11 @@ export function SettingsPage() {
       setWeakLabels(weak);
       setPendingGrades(pending);
       setAccessToken(token);
-      setNewLimit(limit);
     });
     return () => {
       active = false;
     };
   }, []);
-
-  async function handleSaveNewLimit() {
-    setLimitStatus('');
-    const value = Math.min(30, Math.max(0, Math.round(Number(newLimit) || 0)));
-    setNewLimit(value);
-    await setDailyNewWordLimit(value);
-    setLimitStatus(`已保存：每天最多 ${value} 个新词`);
-  }
 
   async function handleExport() {
     setError('');
@@ -322,26 +311,6 @@ export function SettingsPage() {
 
         {status && <p className="status-text">{status}</p>}
         {error && <p className="error-text">{error}</p>}
-      </Card>
-
-      <Card title="学习">
-        <label className="form-field">
-          <span>每日新词上限（0–30）</span>
-          <input
-            className="text-input"
-            type="number"
-            min={0}
-            max={30}
-            value={newLimit}
-            onChange={event => setNewLimit(Number(event.target.value) || 0)}
-            aria-label="每日新词上限"
-          />
-        </label>
-        <p className="muted">只影响复习页每天拉进多少个没学过的词；课程里的词照常学完，到期复习不受限制。</p>
-        <button type="button" className="ghost-button" onClick={() => { void handleSaveNewLimit(); }}>
-          保存上限
-        </button>
-        {limitStatus && <p className="status-text">{limitStatus}</p>}
       </Card>
 
       <Card title="历史导入">

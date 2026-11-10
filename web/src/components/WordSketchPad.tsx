@@ -77,6 +77,7 @@ export function WordSketchPad({ resetKey }: Props) {
   }
 
   function start(event: ReactPointerEvent<HTMLCanvasElement>) {
+    event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     drawing.current = true;
     strokes.current.push([point(event)]);
@@ -85,6 +86,7 @@ export function WordSketchPad({ resetKey }: Props) {
 
   function move(event: ReactPointerEvent<HTMLCanvasElement>) {
     if (!drawing.current) return;
+    event.preventDefault();
     const stroke = strokes.current[strokes.current.length - 1];
     if (!stroke) return;
     stroke.push(point(event));
@@ -115,11 +117,13 @@ export function WordSketchPad({ resetKey }: Props) {
             ref={canvasRef}
             className="sketch-canvas"
             aria-label="手写草稿"
+            draggable={false}
             onPointerDown={start}
             onPointerMove={move}
             onPointerUp={end}
             onPointerCancel={end}
             onPointerLeave={end}
+            onContextMenu={event => event.preventDefault()}
           />
           <div className="sketch-actions">
             <button type="button" className="sketch-button" onClick={undo}>撤销</button>

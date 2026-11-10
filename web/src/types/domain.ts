@@ -250,8 +250,6 @@ export interface AppSettings {
   id: 'app';
   appVersion: string;
   dailyGoalMinutes?: number;
-  /** 每天最多引入多少个新词，0 表示不拉新词 */
-  dailyNewWordLimit?: number;
   aiDailyBudget?: number;
   aiAccessToken?: string;
   knowledgeUnifiedAt?: Timestamp;

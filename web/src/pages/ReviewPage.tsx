@@ -3,13 +3,11 @@ import { Card, ErrorState, LoadingState, PageHeader } from '../components/UI';
 import { WordReviewSession } from '../components/WordReviewSession';
 import { listDueKnowledge, knowledgeCounts, saveKnowledgePoint } from '../repositories/knowledgeRepository';
 import {
-  countNewWordsToday,
   countWordReviews,
   listDueWordReviews,
   listNewWordCandidates
 } from '../repositories/wordReviewRepository';
 import type { NewWordCandidate } from '../repositories/wordReviewRepository';
-import { getDailyNewWordLimit } from '../repositories/settingsRepository';
 import { AiError, generateDrill, type DrillResult } from '../services/aiClient';
 import { applyAttempt, reviewReasonText } from '../services/reviewRules';
 import type { KnowledgePoint, WordReview } from '../types/domain';
@@ -21,6 +19,9 @@ const STATUS_LABELS: Record<KnowledgePoint['status'], string> = {
   needs_review: '需巩固',
   mastered: '已掌握'
 };
+
+/** 一轮最多带多少个没学过的词，避免一次排几百张卡。 */
+const NEW_WORDS_PER_SESSION = 20;
 
 interface Result {
   correct: boolean;
@@ -36,10 +37,9 @@ export function ReviewPage() {
   const [items, setItems] = useState<KnowledgePoint[]>([]);
   const [words, setWords] = useState<WordReview[]>([]);
   const [wordDue, setWordDue] = useState(0);
-  const [newLimit, setNewLimit] = useState(10);
-  const [newToday, setNewToday] = useState(0);
   const [session, setSession] = useState<{ due: WordReview[]; fresh: NewWordCandidate[] } | null>(null);
   const [starting, setStarting] = useState(false);
+  const [wordHint, setWordHint] = useState('');
   const [counts, setCounts] = useState<Record<KnowledgePoint['status'], number> | null>(null);
   const [active, setActive] = useState<KnowledgePoint | null>(null);
   const [drill, setDrill] = useState<DrillResult | null>(null);
@@ -56,18 +56,14 @@ export function ReviewPage() {
       listDueKnowledge(),
       knowledgeCounts(),
       listDueWordReviews(),
-      countWordReviews(),
-      countNewWordsToday(),
-      getDailyNewWordLimit()
+      countWordReviews()
     ])
-      .then(([due, summary, dueWords, wordSummary, todayNew, limit]) => {
+      .then(([due, summary, dueWords, wordSummary]) => {
         if (!alive) return;
         setItems(due);
         setCounts(summary);
         setWords(dueWords);
         setWordDue(wordSummary.due);
-        setNewToday(todayNew);
-        setNewLimit(limit);
       })
       .catch(reason => {
         if (alive) setError(reason instanceof Error ? reason.message : '读取复习列表失败');
@@ -83,13 +79,16 @@ export function ReviewPage() {
   async function startWordSession() {
     if (starting) return;
     setStarting(true);
-    setError('');
+    setWordHint('');
     try {
-      const remaining = Math.max(0, newLimit - newToday);
-      const fresh = remaining > 0 ? await listNewWordCandidates(remaining) : [];
+      const fresh = await listNewWordCandidates(NEW_WORDS_PER_SESSION);
+      if (!words.length && !fresh.length) {
+        setWordHint('暂时没有到期的词，也没有可学的新词。');
+        return;
+      }
       setSession({ due: words, fresh });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '无法准备单词复习');
+      setWordHint(reason instanceof Error ? reason.message : '无法准备单词复习');
     } finally {
       setStarting(false);
     }
@@ -97,16 +96,14 @@ export function ReviewPage() {
 
   async function refreshWords() {
     try {
-      const [dueWords, wordSummary, todayNew] = await Promise.all([
+      const [dueWords, wordSummary] = await Promise.all([
         listDueWordReviews(),
-        countWordReviews(),
-        countNewWordsToday()
+        countWordReviews()
       ]);
       setWords(dueWords);
       setWordDue(wordSummary.due);
-      setNewToday(todayNew);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : '刷新单词列表失败');
+      setWordHint(reason instanceof Error ? reason.message : '刷新单词列表失败');
     }
   }
 
@@ -192,7 +189,6 @@ export function ReviewPage() {
   }
 
   const remaining = items.filter(point => !doneIds.has(point.id));
-  const newLeft = Math.max(0, newLimit - newToday);
 
   return (
     <>
@@ -285,22 +281,18 @@ export function ReviewPage() {
       <Card title="单词复习">
         <div className="word-summary">
           <span><b>{wordDue}</b> 个到期</span>
-          <span>今日新词 <b>{newToday}</b> / {newLimit}</span>
+          <span>可学新词最多 20 个</span>
         </div>
         <button
           type="button"
           className="primary-button"
           onClick={() => { void startWordSession(); }}
-          disabled={starting || (wordDue === 0 && newLeft === 0)}
+          disabled={starting}
         >
-          {starting ? '正在准备…' : wordDue > 0 ? '开始复习' : newLeft > 0 ? '学新词' : '今天已完成'}
+          {starting ? '正在准备…' : wordDue > 0 ? '开始复习' : '学新词'}
         </button>
-        {wordDue === 0 && newLeft > 0 && (
-          <p className="muted">今天没有到期的词，可以学几个新词。</p>
-        )}
-        {newLeft === 0 && (
-          <p className="muted">今日新词额度已用完，到期复习不受影响。</p>
-        )}
+        {wordDue === 0 && <p className="muted">今天没有到期的词，可以直接学新词。</p>}
+        {wordHint && <p className="muted">{wordHint}</p>}
       </Card>
 
       <details className="explain-block">
@@ -311,7 +303,7 @@ export function ReviewPage() {
         </p>
         <p className="review-rule">
           单词：认识的间隔按 1 → 3 → 7 → 15 → 30 → 60 天拉长；模糊明天再来、间隔减半；不认识本轮再见一次、间隔归零。
-          同一个词在多节课出现只算一个，每天最多引入设置的新词数量。
+          同一个词在多节课出现只算一个，每一轮最多带 20 个新词。
         </p>
       </details>
     </>
