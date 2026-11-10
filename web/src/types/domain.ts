@@ -236,6 +236,7 @@ export interface AppSettings {
   aiDailyBudget?: number;
   aiAccessToken?: string;
   knowledgeUnifiedAt?: Timestamp;
+  samplesSeededAt?: Timestamp;
   historyImportedAt?: Timestamp;
   updatedAt: Timestamp;
 }

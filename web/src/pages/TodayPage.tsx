@@ -7,6 +7,7 @@ import { getStudySummary } from '../repositories/studyRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
 import { generateCourse } from '../services/aiClient';
 import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport';
+import { coursePreset } from '../data/coursePlan';
 import type { StudySummary } from '../repositories/studyRepository';
 import type { Course, CourseModule } from '../types/domain';
 import { moduleLabels, moduleProgress, moduleStatusLabels } from '../utils/course';
@@ -57,11 +58,13 @@ export function TodayPage() {
       try {
         const weak = await listWeakLabels();
         const number = await nextCourseNumber();
-        const focus = weak.slice(0, 3).join('、').slice(0, 80);
+        const preset = coursePreset(number);
         const { course: payload, provider } = await generateCourse({
           number,
-          topic: focus ? `继续学习：${focus}` : '继续学习：综合复习',
-          level: 'A2-B1'
+          topic: preset.topic,
+          level: preset.level,
+          goal: preset.goal,
+          focus: weak.slice(0, 3).join('、').slice(0, 80) || undefined
         });
         const saved = await saveGeneratedCourse({ number, payload, provider });
         navigate(`/course/${saved.course.id}`);

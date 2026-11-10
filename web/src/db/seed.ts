@@ -27,7 +27,10 @@ export async function initializeDatabase(): Promise<void> {
  * so edits made later (and any progress) are never replaced on boot.
  */
 export async function seedSampleCourses(): Promise<void> {
-  await db.transaction('rw', [db.courses, db.courseModules, db.knowledge], async () => {
+  const settings = await db.settings.get('app');
+  if (settings?.samplesSeededAt) return;
+
+  await db.transaction('rw', [db.courses, db.courseModules, db.knowledge, db.settings], async () => {
     for (const bundle of sampleCourseBundles) {
       if (await db.courses.get(bundle.course.id)) continue;
       await db.courses.put(bundle.course);
@@ -36,5 +39,11 @@ export async function seedSampleCourses(): Promise<void> {
         if (!await db.knowledge.get(point.id)) await db.knowledge.put(point);
       }
     }
+    const current = await db.settings.get('app');
+    await db.settings.put({
+      ...(current ?? defaultSettings),
+      samplesSeededAt: Date.now(),
+      updatedAt: Date.now()
+    });
   });
 }

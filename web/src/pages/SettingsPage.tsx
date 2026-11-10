@@ -4,6 +4,7 @@ import { Card, PageHeader } from '../components/UI';
 import { backupCounts, createBackup, parseBackup, restoreBackup } from '../services/backupService';
 import { generateCourse, getAiHealth, aiBaseUrl, AiError, type AiHealth } from '../services/aiClient';
 import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport';
+import { coursePreset } from '../data/coursePlan';
 import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
@@ -34,8 +35,6 @@ export function SettingsPage() {
   const [health, setHealth] = useState<AiHealth | null>(null);
   const [usage, setUsage] = useState<AiUsageSummary>({ requests: 0, tokens: 0 });
   const [nextNumber, setNextNumber] = useState<number | null>(null);
-  const [topic, setTopic] = useState('');
-  const [level, setLevel] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [aiMessage, setAiMessage] = useState('');
@@ -156,15 +155,17 @@ export function SettingsPage() {
   }
 
   async function handleGenerate() {
-    if (!nextNumber || generating || !topic.trim()) return;
+    if (!nextNumber || generating) return;
+    const preset = coursePreset(nextNumber);
     setGenerating(true);
     setAiError('');
     setAiMessage('');
     try {
       const { course, provider } = await generateCourse({
         number: nextNumber,
-        topic: topic.trim(),
-        level: level.trim() || undefined,
+        topic: preset.topic,
+        level: preset.level,
+        goal: preset.goal,
         focus: weakLabels.length ? weakLabels.join('；') : undefined
       });
       const saved = await saveGeneratedCourse({ number: nextNumber, payload: course, provider });
@@ -172,7 +173,6 @@ export function SettingsPage() {
       setAiMessage(saved.existing
         ? `第 ${nextNumber} 课已存在，没有重复生成。`
         : `已生成第 ${nextNumber} 课《${saved.course.title}》${provider === 'mock' ? '（模拟内容）' : ''}，点击打开。`);
-      setTopic('');
       const [nextHealth, nextUsage, number] = await Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber()]);
       setHealth(nextHealth);
       setUsage(nextUsage);
@@ -261,6 +261,7 @@ export function SettingsPage() {
   }
 
   const counts = pending ? backupCounts(pending) : null;
+  const preset = nextNumber === null ? null : coursePreset(nextNumber);
 
   return (
     <>
@@ -436,33 +437,13 @@ export function SettingsPage() {
         )}
 
         <div className="ai-form">
-          <label className="form-field">
-            <span>下一课编号</span>
-            <input className="text-input" type="text" value={nextNumber ?? '—'} readOnly aria-label="下一课编号" />
-          </label>
-          <label className="form-field">
-            <span>课程主题</span>
-            <input
-              className="text-input"
-              type="text"
-              value={topic}
-              onChange={event => setTopic(event.target.value)}
-              placeholder="例如：在咖啡店点单"
-              aria-label="课程主题"
-            />
-          </label>
-          <label className="form-field">
-            <span>等级（可选）</span>
-            <input
-              className="text-input"
-              type="text"
-              value={level}
-              onChange={event => setLevel(event.target.value)}
-              placeholder="A2 / B1"
-              aria-label="课程等级"
-            />
-          </label>
-          <button type="button" className="primary-button" onClick={() => { void handleGenerate(); }} disabled={!topic.trim() || generating || nextNumber === null}>
+          <div className="ai-preset">
+            <span className="eyebrow">下一课</span>
+            <strong>{nextNumber ? `第 ${nextNumber} 课` : '尚未确定'}</strong>
+            <p>{preset?.topic ?? '—'}</p>
+            <p className="muted">等级 {preset?.level ?? '—'} · 主题按预设路线自动选择</p>
+          </div>
+          <button type="button" className="primary-button" onClick={() => { void handleGenerate(); }} disabled={generating || nextNumber === null}>
             {generating ? '正在生成…' : '生成并保存这节课'}
           </button>
           {weakLabels.length > 0 && (

@@ -11,6 +11,18 @@ export interface CourseRecord {
   objectiveCorrect: number;
 }
 
+export async function deleteCourseRecord(courseId: string): Promise<void> {
+  await db.transaction('rw', [db.courses, db.courseModules, db.answers, db.grades, db.mistakes, db.pendingAi], async () => {
+    const answers = await db.answers.where('courseId').equals(courseId).toArray();
+    await db.grades.bulkDelete(answers.map(answer => gradeRecordId(answer.id)));
+    await db.answers.bulkDelete(answers.map(answer => answer.id));
+    await db.mistakes.where('courseId').equals(courseId).delete();
+    await db.pendingAi.filter(item => item.courseId === courseId).delete();
+    await db.courseModules.where('courseId').equals(courseId).delete();
+    await db.courses.delete(courseId);
+  });
+}
+
 export async function listCourseRecords(): Promise<CourseRecord[]> {
   const courses = (await db.courses.toArray()).filter(course => course.status !== 'not_started');
   const records: CourseRecord[] = [];

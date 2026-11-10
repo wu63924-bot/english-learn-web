@@ -631,6 +631,26 @@ button {
   text-decoration: none;
 }
 
+.record-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.record-row .record-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.record-delete {
+  flex: none;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.28);
+}
+
 .record-main {
   display: flex;
   flex-direction: column;
@@ -898,6 +918,34 @@ button {
   display: grid;
   gap: 12px;
   margin-top: 14px;
+}
+
+.ai-preset {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--accent-pale);
+}
+
+.ai-preset .eyebrow {
+  margin: 0 0 4px;
+}
+
+.ai-preset strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.ai-preset p {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.ai-preset p.muted {
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
 .form-field {

@@ -5,7 +5,7 @@ import { initializeDatabase } from '../db/seed';
 import type { ChoiceQuestion } from '../types/domain';
 import { saveGradedAnswer } from './answerRepository';
 import { listMistakes } from './mistakeRepository';
-import { listCourseRecords } from './recordRepository';
+import { deleteCourseRecord, listCourseRecords } from './recordRepository';
 import { startCourse } from './courseRepository';
 
 const question: ChoiceQuestion = {
@@ -58,5 +58,24 @@ describe('mistakes and records', () => {
     expect(records[0].objectiveAnswered).toBe(1);
     expect(records[0].objectiveCorrect).toBe(1);
     expect(records[0].moduleTotal).toBe(4);
+  });
+
+  it('deletes one course record and its answers, grades and mistakes', async () => {
+    await startCourse('sample-1');
+    await saveGradedAnswer({
+      courseId: 'sample-1',
+      moduleId: 'sample-1-grammar',
+      question,
+      value: 'sample-1-g1-0',
+      status: 'incorrect'
+    });
+    await deleteCourseRecord('sample-1');
+    expect(await db.courses.get('sample-1')).toBeUndefined();
+    expect(await db.courseModules.where('courseId').equals('sample-1').count()).toBe(0);
+    expect(await db.answers.where('courseId').equals('sample-1').count()).toBe(0);
+    expect(await db.grades.count()).toBe(0);
+    expect(await listMistakes()).toHaveLength(0);
+    await initializeDatabase();
+    expect(await db.courses.get('sample-1')).toBeUndefined();
   });
 });
