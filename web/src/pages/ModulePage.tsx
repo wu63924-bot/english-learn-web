@@ -75,7 +75,7 @@ export function ModulePage() {
         await completeCourse(module.courseId);
         await addCompletedCourse();
       }
-      navigate(`/course/${module.courseId}`);
+      navigate('/');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '保存模块状态失败');
       setBusy(false);
@@ -85,7 +85,7 @@ export function ModulePage() {
   return (
     <>
       <div className="back-row">
-        <button type="button" className="back-button" onClick={() => navigate(`/course/${course.id}`)} aria-label="返回课程">‹</button>
+        <button type="button" className="back-button" onClick={() => navigate('/')} aria-label="返回今日">‹</button>
         <span className="back-hint">第 {course.number} 课 · 模块 {order} / {moduleOrder.length}</span>
       </div>
       <header className="page-header">
