@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import type { CourseModule, WordReviewStatus } from '../types/domain';
 import { saveWordRating, wordStatusesForModule } from '../repositories/wordReviewRepository';
+import { getModulePosition, saveModulePosition } from '../repositories/modulePositionRepository';
 import { WordSketchPad } from './WordSketchPad';
 
 interface Props {
@@ -18,6 +19,7 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
   const [reviews, setReviews] = useState<Record<string, WordReviewStatus>>({});
   const [revealed, setRevealed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [restored, setRestored] = useState(false);
   const word = words[index];
   const isFirst = index === 0;
   const isLast = index === words.length - 1;
@@ -28,22 +30,31 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
 
   useEffect(() => {
     let active = true;
-    void wordStatusesForModule(words).then(map => {
+    void Promise.all([wordStatusesForModule(words), getModulePosition(module.id)]).then(([map, position]) => {
       if (!active) return;
       setReviews(map);
-      const target = targetWord;
-      const targetIndex = target ? words.findIndex(item => item.id === target) : -1;
-      if (targetIndex >= 0) {
-        setIndex(targetIndex);
-        return;
+      const candidates = [targetWord, position?.wordId].filter((id): id is string => Boolean(id));
+      for (const id of candidates) {
+        const index = words.findIndex(item => item.id === id);
+        if (index >= 0) {
+          setIndex(index);
+          setRestored(true);
+          return;
+        }
       }
       const firstUnfinished = words.findIndex(item => map[item.id] !== 'known');
       if (firstUnfinished > 0) setIndex(firstUnfinished);
+      setRestored(true);
     });
     return () => {
       active = false;
     };
-  }, [words, targetWord]);
+  }, [module.id, words, targetWord]);
+
+  useEffect(() => {
+    if (!restored || !word) return;
+    void saveModulePosition(module.id, { wordId: word.id });
+  }, [module.id, restored, word?.id]);
 
   async function rate(status: WordReviewStatus) {
     if (!word || saving) return;

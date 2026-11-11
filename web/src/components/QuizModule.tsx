@@ -3,6 +3,7 @@ import type { ChoiceQuestion, FillQuestion, ModuleStatus, Question, TranslateQue
 import { getModuleAnswers, saveAiGrade, saveAnswer, saveGradedAnswer } from '../repositories/answerRepository';
 import { updateModuleStatus } from '../repositories/courseRepository';
 import { gradeOrQueue, listPendingGrades } from '../services/aiQueue';
+import { getModulePosition, saveModulePosition } from '../repositories/modulePositionRepository';
 import { AiError } from '../services/aiClient';
 import { recordKnowledgeAttempt } from '../services/knowledgeUpdate';
 import { gradeChoice, gradeFill, isAnswered } from '../utils/grading';
@@ -36,7 +37,7 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
 
   useEffect(() => {
     let active = true;
-    void Promise.all([getModuleAnswers(courseId, moduleId), listPendingGrades()]).then(([{ answers, grades: storedGrades }, pending]) => {
+    void Promise.all([getModuleAnswers(courseId, moduleId), listPendingGrades(), getModulePosition(moduleId)]).then(([{ answers, grades: storedGrades }, pending, position]) => {
         if (!active) return;
         const restoredValues: Record<string, string> = {};
         const restoredGrades: Record<string, QuestionGrade> = {};
@@ -51,6 +52,8 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
         setGrades(restoredGrades);
         setSavedIds(restoredSaved);
         setQueuedIds(new Set(pending.filter(item => item.status === 'pending' && item.moduleId === moduleId).map(item => item.questionId)));
+        const lastIndex = position?.questionId ? questions.findIndex(item => item.id === position.questionId) : -1;
+        if (lastIndex >= 0) setIndex(lastIndex);
         setLoaded(true);
       })
       .catch(reason => {
@@ -61,7 +64,14 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
     return () => {
       active = false;
     };
-  }, [courseId, moduleId]);
+  }, [courseId, moduleId, questions]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const current = questions[index];
+    if (!current) return;
+    void saveModulePosition(moduleId, { questionId: current.id });
+  }, [loaded, moduleId, index, questions]);
 
   async function markDraft() {
     if (draftMarked.current) return;

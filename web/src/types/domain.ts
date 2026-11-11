@@ -267,6 +267,8 @@ export interface AppSettings {
   appVersion: string;
   dailyGoalMinutes?: number;
   aiDailyBudget?: number;
+  /** 每个模块最后停留的位置，用于点进模块时接着学 */
+  modulePositions?: Record<string, { wordId?: string; questionId?: string }>;
   aiAccessToken?: string;
   knowledgeUnifiedAt?: Timestamp;
   wordReviewsMigratedAt?: Timestamp;
