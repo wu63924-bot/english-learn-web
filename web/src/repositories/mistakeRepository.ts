@@ -47,6 +47,9 @@ export async function getOrCreateDrillPlan(): Promise<DrillPlan> {
   const candidates: Mistake[] = [];
   for (const mistake of mistakes) {
     if (mistake.drillMasteredAt) continue;
+    const module = await db.courseModules.get(mistake.moduleId);
+    // 阅读模块的错题不进入记录页和每日巩固。
+    if (!module || module.kind === 'reading') continue;
     const question = await questionOf(mistake);
     if (!question || (question.kind !== 'choice' && question.kind !== 'fill')) continue;
     candidates.push(mistake);
@@ -75,7 +78,7 @@ export async function listDrillItems(): Promise<DrillItem[]> {
     if (!question || (question.kind !== 'choice' && question.kind !== 'fill')) continue;
     const course = await db.courses.get(mistake.courseId);
     const module = await db.courseModules.get(mistake.moduleId);
-    if (!course || !module) continue;
+    if (!course || !module || module.kind === 'reading') continue;
     items.push({ mistake, question, courseNumber: course.number, moduleKind: module.kind });
   }
   return items;
@@ -123,6 +126,8 @@ export async function listMistakes(): Promise<MistakeView[]> {
       db.courseModules.get(mistake.moduleId)
     ]);
     if (!course || !module) continue;
+    // 阅读模块的错题只在阅读模块里回看，不进入记录页。
+    if (module.kind === 'reading') continue;
     const questions = 'questions' in module.content ? module.content.questions as Question[] : [];
     const question = questions.find(item => item.id === mistake.questionId);
     if (!question) continue;

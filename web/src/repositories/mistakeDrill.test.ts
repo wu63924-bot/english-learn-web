@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../db/db';
 import { initializeDatabase } from '../db/seed';
 import type { CourseModule, Mistake } from '../types/domain';
-import { DRILL_MASTER_STREAK, drillSummary, getOrCreateDrillPlan, listDrillItems, recordDrillResult } from './mistakeRepository';
+import { DRILL_MASTER_STREAK, drillSummary, getOrCreateDrillPlan, listDrillItems, listMistakes, recordDrillResult } from './mistakeRepository';
 
 function mistakeOf(moduleId: string, questionId: string, courseId = 'sample-1'): Mistake {
   return {
@@ -71,6 +71,22 @@ describe('mistake drill', () => {
     await db.settings.update('app', { drillPlan: undefined });
     const next = await getOrCreateDrillPlan();
     expect(next.mistakeIds).not.toContain(first.id);
+  });
+
+  it('keeps reading mistakes out of records and drills', async () => {
+    const reading = await db.courseModules.get('sample-1-reading') as CourseModule<'reading'> | undefined;
+    if (!reading) throw new Error('sample reading missing');
+    const choice = reading.content.questions.find(question => question.kind === 'choice');
+    const grammar = await db.courseModules.get('sample-1-grammar') as CourseModule<'grammar'> | undefined;
+    if (!choice || !grammar) throw new Error('sample questions missing');
+
+    await db.mistakes.bulkPut([
+      mistakeOf(grammar.id, grammar.content.questions[0].id),
+      mistakeOf(reading.id, choice.id)
+    ]);
+
+    expect((await listMistakes()).map(view => view.moduleKind)).toEqual(['grammar']);
+    expect((await getOrCreateDrillPlan()).mistakeIds).toEqual([`sample-1:${grammar.id}:${grammar.content.questions[0].id}`]);
   });
 
   it('resets the streak when answered wrong again', async () => {
