@@ -32,7 +32,7 @@ export async function listMistakes(): Promise<MistakeView[]> {
       prompt: question.prompt,
       yourAnswer: formatAnswer(question, mistake.wrongValue),
       correctAnswer: correctAnswerOf(question),
-      explanation: 'explanation' in question ? question.explanation : question.reference
+      explanation: 'explanation' in question && question.explanation ? question.explanation : question.kind === 'translate' ? question.reference : ''
     });
   }
   return views;

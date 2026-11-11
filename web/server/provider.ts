@@ -1,4 +1,4 @@
-import type { ChoiceQuestion, GrammarSection, GlossaryItem, Question, WordItem } from '../src/types/domain.ts';
+import type { ChoiceQuestion, GrammarSection, GlossaryItem, PhraseItem, Question, WordItem } from '../src/types/domain.ts';
 
 export interface GenerateCourseRequest {
   number: number;
@@ -38,6 +38,7 @@ export interface GeneratedCourse {
   goal: string;
   level?: string;
   words: WordItem[];
+  phrases?: PhraseItem[];
   grammarSections: GrammarSection[];
   grammarQuestions: ChoiceQuestion[];
   passage: string;
@@ -73,6 +74,8 @@ export interface RawTranslateQuestion {
   prompt: string;
   reference: string;
   keyPoints?: string[];
+  variant?: 'translate' | 'correct';
+  explanation?: string;
   knowledge?: number;
 }
 
@@ -84,7 +87,8 @@ export interface RawCourse {
   goal: string;
   level?: string;
   words: { term: string; phonetic?: string; meanings: string[]; example: string; exampleTranslation: string }[];
-  grammarSections: { title: string; body: string }[];
+  phrases?: { phrase: string; meaning: string }[];
+  grammarSections: { title: string; body: string; examples?: { en: string; zh: string }[] }[];
   grammarQuestions: RawQuestion[];
   passage: string;
   passageTranslation?: string;

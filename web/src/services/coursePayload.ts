@@ -1,4 +1,4 @@
-import type { ChoiceQuestion, GlossaryItem, GrammarSection, Question, WordItem } from '../types/domain';
+import type { ChoiceQuestion, GlossaryItem, GrammarSection, PhraseItem, Question, WordItem } from '../types/domain';
 
 export interface GeneratedCoursePayload {
   title: string;
@@ -6,6 +6,7 @@ export interface GeneratedCoursePayload {
   goal: string;
   level?: string;
   words: WordItem[];
+  phrases?: PhraseItem[];
   grammarSections: GrammarSection[];
   grammarQuestions: ChoiceQuestion[];
   passage: string;
@@ -54,6 +55,12 @@ export function assertGeneratedCourse(value: unknown): GeneratedCoursePayload {
   if (!Array.isArray(value.reviewQuestions) || value.reviewQuestions.length < 1) throw new Error('复习题缺失');
   if (!Array.isArray(value.knowledgeLabels) || value.knowledgeLabels.length < 1) throw new Error('知识点缺失');
   if (!isText(value.passage)) throw new Error('短文缺失');
+  if (value.phrases !== undefined) {
+    if (!Array.isArray(value.phrases)) throw new Error('短语格式不正确');
+    for (const item of value.phrases) {
+      if (!isRecord(item) || !isText(item.phrase) || !isText(item.meaning)) throw new Error('短语内容不完整');
+    }
+  }
   if (value.passageGlossary !== undefined) {
     if (!Array.isArray(value.passageGlossary)) throw new Error('阅读生词格式不正确');
     for (const item of value.passageGlossary) {
@@ -68,6 +75,12 @@ export function assertGeneratedCourse(value: unknown): GeneratedCoursePayload {
   }
   for (const section of value.grammarSections as unknown[]) {
     if (!isRecord(section) || !isText(section.title) || !isText(section.body)) throw new Error('语法讲解结构不完整');
+    if (section.examples !== undefined) {
+      if (!Array.isArray(section.examples)) throw new Error('语法例句格式不正确');
+      for (const example of section.examples) {
+        if (!isRecord(example) || !isText(example.en) || !isText(example.zh)) throw new Error('语法例句不完整');
+      }
+    }
   }
   return value as unknown as GeneratedCoursePayload;
 }

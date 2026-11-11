@@ -65,6 +65,7 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
   if (!word) return <p className="muted">这个模块没有单词内容。</p>;
 
   const currentStatus = reviews[word.id];
+  const phrases = module.content.phrases ?? [];
 
   return (
     <div className="word-module">
@@ -74,6 +75,20 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
           <i style={{ width: `${((index + 1) / words.length) * 100}%` }} />
         </span>
       </div>
+
+      {phrases.length > 0 && (
+        <details className="phrase-block">
+          <summary>重要短语 · {phrases.length} 条</summary>
+          <ul className="phrase-list">
+            {phrases.map(item => (
+              <li key={item.phrase}>
+                <span className="phrase-en">{item.phrase}</span>
+                <span className="phrase-zh">{item.meaning}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       <article className="card word-card">
         <p className="word-tag">{revealed ? '已揭示' : '先回忆'}</p>
@@ -89,22 +104,21 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
             {word.note && <p className="word-note">{word.note}</p>}
           </div>
         ) : (
-          <p className="word-reveal-hint">还记得它的意思吗？先选一个，再显示释义。</p>
+          <p className="word-reveal-hint">先判断认不认识，选完再看释义。</p>
         )}
         <WordSketchPad resetKey={word.id} />
       </article>
 
-      <div className="word-feedback" role="group" aria-label="单词掌握程度">
-        <button type="button" className={`word-rate known${currentStatus === 'known' ? ' active' : ''}`} onClick={() => { void rate('known'); }}>
-          认识
-        </button>
-        <button type="button" className={`word-rate fuzzy${currentStatus === 'fuzzy' ? ' active' : ''}`} onClick={() => { void rate('fuzzy'); }}>
-          模糊
-        </button>
-        <button type="button" className={`word-rate unknown${currentStatus === 'unknown' ? ' active' : ''}`} onClick={() => { void rate('unknown'); }}>
-          不认识
-        </button>
-      </div>
+      {!revealed && (
+        <div className="word-feedback two" role="group" aria-label="单词掌握程度">
+          <button type="button" className={`word-rate known${currentStatus === 'known' ? ' active' : ''}`} onClick={() => { void rate('known'); }}>
+            认识
+          </button>
+          <button type="button" className={`word-rate unknown${currentStatus === 'unknown' ? ' active' : ''}`} onClick={() => { void rate('unknown'); }}>
+            不认识
+          </button>
+        </div>
+      )}
 
       <nav className="module-nav">
         <button type="button" className="ghost-button" onClick={() => setIndex(value => Math.max(0, value - 1))} disabled={isFirst}>

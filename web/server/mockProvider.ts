@@ -130,15 +130,37 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
         exampleTranslation: '用空闲时间听英语。'
       }
     ],
+    phrases: [
+      { phrase: 'practise speaking English', meaning: '练习说英语' },
+      { phrase: 'keep a habit', meaning: '保持习惯' },
+      { phrase: 'write down new words', meaning: '记下新词' },
+      { phrase: 'listen to a podcast', meaning: '听播客' },
+      { phrase: 'make progress', meaning: '取得进步' }
+    ],
     grammarSections: [
-      { title: '一般现在时', body: '表示习惯和规律。第三人称单数动词加 -s：She practices every day。' },
-      { title: '频率副词', body: 'always、usually、often、sometimes、never 放在实义动词之前、be 动词之后。' }
+      {
+        title: '一般现在时',
+        body: '一般现在时表示习惯、规律和事实。主语是第三人称单数时，动词要加 -s 或 -es（She practices every day.）。否定句用 do not / does not 加动词原形，不能用 -s。常见错误是在 does not 后面仍然加 -s。',
+        examples: [
+          { en: 'She practices English every morning.', zh: '她每天早上练英语。' },
+          { en: 'She does not practise on Sundays.', zh: '她周日不练习。' }
+        ]
+      },
+      {
+        title: '频率副词',
+        body: '频率副词表示做某事的频繁程度。它们放在实义动词之前，放在 be 动词之后（I always review. / She is often tired.）。不要放在句末，也不要和 am/is/are 混在一起。',
+        examples: [
+          { en: 'I always review my notes.', zh: '我总是复习笔记。' },
+          { en: 'She is often tired after work.', zh: '她下班后常常很累。' }
+        ]
+      }
     ],
     grammarQuestions: [
       { kind: 'choice', prompt: 'She ___ English every morning.', options: ['practice', 'practices', 'practicing', 'practiced'], answerIndex: 1, explanation: '主语 she 是第三人称单数，动词加 -s。', knowledge: 0 },
       { kind: 'choice', prompt: 'He doesn’t ___ time for TV.', options: ['has', 'have', 'having', 'had'], answerIndex: 1, explanation: 'doesn’t 后用动词原形。', knowledge: 0 },
       { kind: 'choice', prompt: 'I ___ review my notes before class.', options: ['always', 'am always', 'always am', 'review always'], answerIndex: 0, explanation: '频率副词放在实义动词前。', knowledge: 1 },
-      { kind: 'choice', prompt: 'They ___ study on Sundays.', options: ['don’t', 'doesn’t', 'aren’t', 'not'], answerIndex: 0, explanation: '复数主语用 don’t 加动词原形。', knowledge: 0 }
+      { kind: 'choice', prompt: 'They ___ study on Sundays.', options: ['don’t', 'doesn’t', 'aren’t', 'not'], answerIndex: 0, explanation: '复数主语用 don’t 加动词原形。', knowledge: 0 },
+      { kind: 'choice', prompt: 'She ___ late for class.', options: ['never is', 'is never', 'never be', 'be never'], answerIndex: 1, explanation: '频率副词放在 be 动词之后。', knowledge: 1 }
     ],
     passage: 'Mia practices English for twenty minutes every morning. She usually reads a short article and writes down three new words. Before class, she reviews her notes for five minutes. She does not study for long hours; instead, she keeps a steady habit. On busy days, she listens to a podcast while walking to work. Her teacher says progress comes from small steps, not from one long night of study.',
     passageTranslation: '米娅每天早上练二十分钟英语。她通常读一篇短文，记下三个新词。上课前，她用五分钟复习笔记。她不会长时间学习，而是保持稳定的习惯。忙碌的日子里，她走路去上班时听播客。老师说，进步来自小步积累，而不是熬一个长夜。',
@@ -152,17 +174,50 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
         knowledge: 2
       },
       {
-        kind: 'translate',
-        prompt: '把这句话译成中文：Progress comes from small steps, not from one long night of study.',
-        reference: '进步来自小步积累，而不是熬一个长夜学习。',
-        keyPoints: ['progress 进步', 'small steps 小步', 'not from 而不是'],
+        kind: 'choice',
+        prompt: 'How long does Mia practise English every morning?',
+        options: ['Five minutes.', 'Ten minutes.', 'Twenty minutes.', 'One hour.'],
+        answerIndex: 2,
+        explanation: '第一句写明 twenty minutes。',
+        knowledge: 2
+      },
+      {
+        kind: 'choice',
+        prompt: 'What does she do while walking to work?',
+        options: ['She reads a book.', 'She listens to a podcast.', 'She writes emails.', 'She calls her teacher.'],
+        answerIndex: 1,
+        explanation: '文中说走路去上班时听播客。',
+        knowledge: 2
+      },
+      {
+        kind: 'choice',
+        prompt: 'What does her teacher say about progress?',
+        options: ['It comes from long nights.', 'It comes from small steps.', 'It comes from tests.', 'It comes from travel.'],
+        answerIndex: 1,
+        explanation: '老师说进步来自小步积累。',
+        knowledge: 2
+      },
+      {
+        kind: 'choice',
+        prompt: 'Which sentence is true about Mia?',
+        options: ['She studies for long hours.', 'She keeps a steady habit.', 'She never reviews notes.', 'She skips English on busy days.'],
+        answerIndex: 1,
+        explanation: '文中强调她保持稳定习惯，而不是长时间学习。',
         knowledge: 2
       }
     ],
     knowledgeLabels: ['一般现在时第三人称单数', '频率副词的位置', '保持稳定的学习习惯'],
     reviewQuestions: [
-      { kind: 'choice', prompt: 'She ___ a podcast every day.', options: ['listen', 'listens', 'listening', 'listened'], answerIndex: 1, explanation: '第三人称单数用 listens。', knowledge: 0 },
-      { kind: 'choice', prompt: 'We ___ study for long hours.', options: ['don’t', 'doesn’t', 'aren’t', 'not'], answerIndex: 0, explanation: '复数主语用 don’t。', knowledge: 0 }
+      { kind: 'translate', variant: 'correct', prompt: '改正这个句子：She want to study English.', reference: 'She wants to study English.', explanation: '主语 she 是第三人称单数，want 要加 -s。', knowledge: 0 },
+      { kind: 'translate', variant: 'correct', prompt: '改正这个句子：He enjoys to play basketball.', reference: 'He enjoys playing basketball.', explanation: 'enjoy 后面接 doing。', knowledge: 0 },
+      { kind: 'translate', variant: 'correct', prompt: '改正这个句子：I am good at speak English.', reference: 'I am good at speaking English.', explanation: '介词 at 后面接动词 -ing。', knowledge: 1 },
+      { kind: 'translate', prompt: '把这句话译成中文：She practises English for twenty minutes every morning.', reference: '她每天早上练二十分钟英语。', keyPoints: ['practise 练习', 'for + 时间'], knowledge: 2 },
+      { kind: 'translate', prompt: '把这句话译成中文：Progress comes from small steps.', reference: '进步来自小步积累。', keyPoints: ['progress 进步', 'come from 来自'], knowledge: 2 },
+      { kind: 'translate', prompt: '把这句话译成英文：我想学习英语。', reference: 'I want to study English.', keyPoints: ['want to do'], knowledge: 0 },
+      { kind: 'translate', prompt: '把这句话译成英文：她喜欢读英语书。', reference: 'She enjoys reading English books.', keyPoints: ['enjoy doing', '第三人称单数'], knowledge: 0 },
+      { kind: 'translate', prompt: '把这句话译成英文：我擅长打篮球。', reference: 'I am good at playing basketball.', keyPoints: ['be good at doing'], knowledge: 1 },
+      { kind: 'translate', prompt: '把这句话译成英文：他经常在课前复习笔记。', reference: 'He often reviews his notes before class.', keyPoints: ['频率副词位置', '第三人称单数'], knowledge: 1 },
+      { kind: 'translate', prompt: '把这句话译成英文：如果明天下雨，我就待在家里学习。', reference: 'If it rains tomorrow, I will stay at home and study.', keyPoints: ['主将从现', 'stay at home'], knowledge: 2 }
     ]
   };
 }

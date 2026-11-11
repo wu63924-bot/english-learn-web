@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { Badge, Card, ErrorState, LoadingState, PageHeader } from '../components/UI';
+import { Badge, ErrorState, LoadingState, PageHeader } from '../components/UI';
 import { listCourseRecords, deleteCourseRecord } from '../repositories/recordRepository';
 import type { CourseRecord } from '../repositories/recordRepository';
 import { listMistakes } from '../repositories/mistakeRepository';
@@ -59,7 +59,11 @@ export function RecordsPage() {
         <span><b>{mistakes.length}</b>道错题</span>
       </div>
 
-      <Card title="课程">
+      <details className="record-fold card">
+        <summary>
+          <span>课程</span>
+          <span className="fold-count">{records.length} 节</span>
+        </summary>
         {records.length === 0 ? (
           <p className="muted">还没有学习记录。完成一节课程后会出现在这里。</p>
         ) : (
@@ -95,9 +99,13 @@ export function RecordsPage() {
             ))}
           </ul>
         )}
-      </Card>
+      </details>
 
-      <Card title="错题">
+      <details className="record-fold card">
+        <summary>
+          <span>错题</span>
+          <span className="fold-count">{mistakes.length} 道</span>
+        </summary>
         {mistakes.length === 0 ? (
           <p className="muted">还没有错题。答错的题会记录在这里。</p>
         ) : (
@@ -115,7 +123,7 @@ export function RecordsPage() {
             ))}
           </ul>
         )}
-      </Card>
+      </details>
     </>
   );
 }

@@ -39,9 +39,20 @@ export interface GlossaryItem {
   meaning: string;
 }
 
+export interface PhraseItem {
+  phrase: string;
+  meaning: string;
+}
+
+export interface GrammarExample {
+  en: string;
+  zh: string;
+}
+
 export interface GrammarSection {
   title: string;
   body: string;
+  examples?: GrammarExample[];
 }
 
 export type Question =
@@ -77,12 +88,15 @@ export interface TranslateQuestion {
   prompt: string;
   reference: string;
   keyPoints?: string[];
+  /** correct：改写/改错题，输入与反馈文案不同 */
+  variant?: 'translate' | 'correct';
+  explanation?: string;
   knowledgeIds?: string[];
   knowledgeIndex?: number;
 }
 
 export interface ModuleContentMap {
-  word: { words: WordItem[] };
+  word: { words: WordItem[]; phrases?: PhraseItem[] };
   grammar: { sections: GrammarSection[]; questions: ChoiceQuestion[] };
   reading: { passage: string; passageTranslation?: string; glossary?: GlossaryItem[]; questions: Question[] };
   review: { knowledgeIds: string[]; questions: Question[] };

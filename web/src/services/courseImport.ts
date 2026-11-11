@@ -72,7 +72,7 @@ export async function saveGeneratedCourse(input: SaveGeneratedInput): Promise<{ 
     }
 
     const modules: CourseModule[] = [
-      { id: `${id}-word`, courseId: id, kind: 'word', order: 1, status: 'todo', content: { words: payload.words } },
+      { id: `${id}-word`, courseId: id, kind: 'word', order: 1, status: 'todo', content: { words: payload.words, ...(payload.phrases?.length ? { phrases: payload.phrases } : {}) } },
       {
         id: `${id}-grammar`,
         courseId: id,

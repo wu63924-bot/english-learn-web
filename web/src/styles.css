@@ -754,6 +754,32 @@ button {
   white-space: nowrap;
 }
 
+.grammar-examples {
+  display: grid;
+  gap: 10px;
+  margin: 6px 0 12px;
+}
+
+.grammar-example {
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 12px 12px 0;
+  background: rgba(253, 238, 230, 0.55);
+}
+
+.grammar-example-en {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.grammar-example-zh {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .question-card {
   padding: 22px 20px;
 }
@@ -986,6 +1012,52 @@ button {
   font-size: 1.05rem;
   font-weight: 500;
   margin-right: 3px;
+}
+
+.record-fold {
+  margin-top: 16px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.record-fold summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 600;
+  list-style: none;
+}
+
+.record-fold summary::-webkit-details-marker {
+  display: none;
+}
+
+.record-fold summary:before {
+  content: '▸';
+  color: var(--accent);
+}
+
+.record-fold[open] summary:before {
+  content: '▾';
+}
+
+.fold-count {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.record-fold > *:not(summary) {
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.record-fold > :last-child {
+  margin-bottom: 16px;
 }
 
 .record-list li + li {
@@ -1500,6 +1572,54 @@ button {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-top: 14px;
+}
+
+.word-feedback.two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.phrase-block {
+  margin: 10px 0 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--accent-pale);
+}
+
+.phrase-block summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  list-style: none;
+}
+
+.phrase-block summary::-webkit-details-marker {
+  display: none;
+}
+
+.phrase-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.phrase-list li {
+  display: grid;
+  gap: 2px;
+}
+
+.phrase-en {
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+
+.phrase-zh {
+  font-size: 0.76rem;
+  color: var(--muted);
 }
 
 .word-session {

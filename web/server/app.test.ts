@@ -72,9 +72,9 @@ describe('AI proxy', () => {
       expect(response.status).toBe(200);
       expect(payload.meta).toEqual({ provider: 'mock', cached: false });
       expect(payload.data.words).toHaveLength(5);
-      expect(payload.data.grammarQuestions).toHaveLength(4);
-      expect(payload.data.readingQuestions.map(question => question.kind)).toEqual(['choice', 'translate']);
-      expect(payload.data.reviewQuestions).toHaveLength(2);
+      expect(payload.data.grammarQuestions).toHaveLength(5);
+      expect(payload.data.readingQuestions.map(question => question.kind)).toEqual(['choice', 'choice', 'choice', 'choice', 'choice']);
+      expect(payload.data.reviewQuestions).toHaveLength(10);
       expect(payload.usage.inputTokens).toBe(0);
     } finally {
       await app.close();

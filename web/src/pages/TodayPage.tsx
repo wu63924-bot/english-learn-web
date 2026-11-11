@@ -103,10 +103,15 @@ export function TodayPage() {
     try {
       await startCourse(course.id);
       const lastModuleId = await getLastAnsweredModuleId(course.id);
-      const resumed = modules.find(module => module.id === lastModuleId)
-        ?? modules.find(module => module.status === 'draft' || module.status === 'answered');
-      const nextModule = resumed ?? modules.find(module => module.status !== 'graded') ?? modules[0];
-      navigate(nextModule ? `/course/${course.id}/module/${nextModule.kind}` : `/course/${course.id}`);
+      const lastIndex = lastModuleId ? modules.findIndex(module => module.id === lastModuleId) : -1;
+      const lastModule = lastIndex >= 0 ? modules[lastIndex] : undefined;
+      // 回到最后学的那一节；如果它已完成，就往后找第一个还没完成的模块。
+      const target = lastModule && lastModule.status !== 'graded'
+        ? lastModule
+        : modules.slice(lastIndex + 1).find(module => module.status !== 'graded')
+          ?? modules.find(module => module.status !== 'graded')
+          ?? modules[0];
+      navigate(target ? `/course/${course.id}/module/${target.kind}` : `/course/${course.id}`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '无法开始课程');
       setStarting(false);

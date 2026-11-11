@@ -10,7 +10,7 @@ import type {
   TutorAnswer,
   TutorRequest
 } from './provider.ts';
-import type { ChoiceQuestion, Question, WordItem } from '../src/types/domain.ts';
+import type { ChoiceQuestion, PhraseItem, Question, WordItem } from '../src/types/domain.ts';
 
 const LIMITS = {
   title: 120,
@@ -133,11 +133,15 @@ function rawTranslate(value: Record<string, unknown>, prefix: string): Question 
   const knowledge = typeof value.knowledge === 'number' && Number.isSafeInteger(value.knowledge) && value.knowledge >= 0
     ? value.knowledge
     : undefined;
+  const variant = value.variant === 'correct' ? 'correct' : undefined;
+  const explanation = optionalText(value.explanation, 600, false);
   return {
     kind: 'translate',
     id: prefix,
     prompt: text(value.prompt, '题目', 400, false),
     reference: text(value.reference, '参考译文', 600, false),
+    ...(variant ? { variant } : {}),
+    ...(explanation ? { explanation } : {}),
     ...(knowledge === undefined ? {} : { knowledgeIndex: knowledge }),
     ...(keyPoints && keyPoints.length ? { keyPoints } : {})
   };
@@ -172,13 +176,38 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
     });
   });
 
+  const phrasesRaw = raw.phrases;
+  const phrases: PhraseItem[] = [];
+  if (phrasesRaw !== undefined) {
+    if (!Array.isArray(phrasesRaw) || phrasesRaw.length > 8) badOutput();
+    for (const item of phrasesRaw) {
+      if (!item || typeof item !== 'object') badOutput();
+      const entry = item as Record<string, unknown>;
+      phrases.push({
+        phrase: text(entry.phrase, '短语', 100, false),
+        meaning: text(entry.meaning, '短语释义', 100, false)
+      });
+    }
+  }
+
   const grammarSectionsRaw = raw.grammarSections;
   if (!Array.isArray(grammarSectionsRaw) || grammarSectionsRaw.length < 1 || grammarSectionsRaw.length > LIMITS.sections) badOutput();
-  if (!Array.isArray(raw.grammarQuestions) || raw.grammarQuestions.length < 2 || raw.grammarQuestions.length > LIMITS.questions) badOutput();
+  if (!Array.isArray(raw.grammarQuestions) || raw.grammarQuestions.length !== 5) badOutput();
   const grammarSections = grammarSectionsRaw.map(section => {
     if (!section || typeof section !== 'object') badOutput();
     const item = section as Record<string, unknown>;
-    return { title: text(item.title, '语法标题', 60, false), body: text(item.body, '语法讲解', 600, false) };
+    const examples = Array.isArray(item.examples)
+      ? item.examples.slice(0, 8).map(example => {
+        if (!example || typeof example !== 'object') badOutput();
+        const entry = example as Record<string, unknown>;
+        return { en: text(entry.en, '例句', 300, false), zh: text(entry.zh, '例句翻译', 300, false) };
+      })
+      : undefined;
+    return {
+      title: text(item.title, '语法标题', 60, false),
+      body: text(item.body, '语法讲解', 1200, false),
+      ...(examples && examples.length ? { examples } : {})
+    };
   });
   const grammarQuestions = raw.grammarQuestions.map((question, index) => {
     const normalized = rawQuestion(question, `${prefix}-gq${index + 1}`, false);
@@ -187,7 +216,7 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
   });
 
   if (!Array.isArray(raw.readingQuestions)) badOutput();
-  if (raw.readingQuestions.length < 1 || raw.readingQuestions.length > LIMITS.questions) badOutput();
+  if (raw.readingQuestions.length !== 5) badOutput();
   const readingQuestions = raw.readingQuestions.map((question, index) =>
     rawQuestion(question, `${prefix}-rq${index + 1}`, true));
   const passageGlossary = Array.isArray(raw.passageGlossary)
@@ -203,10 +232,12 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
     : undefined;
 
   if (!Array.isArray(raw.reviewQuestions) || !Array.isArray(raw.knowledgeLabels)) badOutput();
-  if (raw.reviewQuestions.length < 1 || raw.reviewQuestions.length > LIMITS.questions) badOutput();
+  if (raw.reviewQuestions.length !== 10) badOutput();
   if (raw.knowledgeLabels.length < 1 || raw.knowledgeLabels.length > LIMITS.words) badOutput();
   const reviewQuestions = raw.reviewQuestions.map((question, index) =>
     rawQuestion(question, `${prefix}-vq${index + 1}`, true));
+  const corrections = reviewQuestions.filter(question => question.kind === 'translate' && question.variant === 'correct');
+  if (corrections.length !== 3) badOutput();
   const knowledgeLabels = raw.knowledgeLabels.map(label => text(label, '知识点', 80, false));
   for (const question of [...grammarQuestions, ...readingQuestions, ...reviewQuestions]) {
     if (question.knowledgeIndex !== undefined && question.knowledgeIndex >= knowledgeLabels.length) badOutput();
@@ -218,6 +249,7 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
     goal: text(raw.goal, 'goal', LIMITS.goal, false),
     level: optionalText(raw.level, LIMITS.level, false),
     words,
+    ...(phrases.length ? { phrases } : {}),
     grammarSections,
     grammarQuestions,
     passage: text(raw.passage, '短文', 4000, false),

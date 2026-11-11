@@ -29,6 +29,7 @@ const GRADE_LABELS: Record<GradeStatus, string> = {
 
 export function QuestionCard({ question, value, grade, saved, error, disabled, grading, onChange, onChoose, onBlur, onSubmitText, onAiGrade }: Props) {
   const locked = Boolean(grade && grade.status !== 'uncertain');
+  const isCorrectTask = question.kind === 'translate' && question.variant === 'correct';
 
   return (
     <article className="card question-card">
@@ -89,9 +90,9 @@ export function QuestionCard({ question, value, grade, saved, error, disabled, g
             value={value ?? ''}
             onChange={event => onChange(event.target.value)}
             onBlur={onBlur}
-            aria-label="翻译答案"
+            aria-label={isCorrectTask ? '改写答案' : '翻译答案'}
             rows={4}
-            placeholder="写下你的翻译"
+            placeholder={isCorrectTask ? '写出正确的英文句子' : '写下你的翻译'}
             spellCheck={false}
             disabled={locked || disabled}
           />
@@ -115,7 +116,10 @@ export function QuestionCard({ question, value, grade, saved, error, disabled, g
           <strong>{GRADE_LABELS[grade.status]}</strong>
           <span className="saved-hint">已自动保存</span>
           {grade.feedback && <p className="explanation">{grade.feedback}</p>}
-          {'explanation' in question && !grade.feedback && <p className="explanation">{question.explanation}</p>}
+          {'explanation' in question && !grade.feedback && question.explanation && <p className="explanation">{question.explanation}</p>}
+          {question.kind === 'translate' && (
+            <p className="explanation">参考：{question.reference}</p>
+          )}
         </div>
       )}
 

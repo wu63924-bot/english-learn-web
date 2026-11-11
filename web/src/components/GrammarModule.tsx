@@ -53,6 +53,16 @@ export function GrammarModule({ module, onFinish, finishing }: Props) {
                   </ul>
                 )
               ))}
+              {section.examples?.length ? (
+                <div className="grammar-examples">
+                  {section.examples.map(example => (
+                    <div className="grammar-example" key={example.en}>
+                      <p className="grammar-example-en">{example.en}</p>
+                      <p className="grammar-example-zh">{example.zh}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ))}
         </details>
