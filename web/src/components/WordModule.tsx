@@ -7,17 +7,17 @@ import { WordSketchPad } from './WordSketchPad';
 interface Props {
   module: CourseModule<'word'>;
   alreadyDone: boolean;
-  busy: boolean;
   onFinish: () => void;
 }
 
-export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
+export function WordModule({ module, alreadyDone, onFinish }: Props) {
   const words = module.content.words;
   const [searchParams] = useSearchParams();
   const targetWord = searchParams.get('word');
   const [index, setIndex] = useState(0);
   const [reviews, setReviews] = useState<Record<string, WordReviewStatus>>({});
   const [revealed, setRevealed] = useState(false);
+  const [saving, setSaving] = useState(false);
   const word = words[index];
   const isFirst = index === 0;
   const isLast = index === words.length - 1;
@@ -46,20 +46,30 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
   }, [words, targetWord]);
 
   async function rate(status: WordReviewStatus) {
-    if (!word) return;
-    await saveWordRating({
-      term: word.term,
-      status,
-      courseId: module.courseId,
-      moduleId: module.id,
-      wordId: word.id,
-      phonetic: word.phonetic,
-      meanings: word.meanings,
-      example: word.example,
-      exampleTranslation: word.exampleTranslation
-    });
-    setReviews(current => ({ ...current, [word.id]: status }));
-    setRevealed(true);
+    if (!word || saving) return;
+    setSaving(true);
+    try {
+      await saveWordRating({
+        term: word.term,
+        status,
+        courseId: module.courseId,
+        moduleId: module.id,
+        wordId: word.id,
+        phonetic: word.phonetic,
+        meanings: word.meanings,
+        example: word.example,
+        exampleTranslation: word.exampleTranslation
+      });
+      setReviews(current => ({ ...current, [word.id]: status }));
+      if (isLast) {
+        onFinish();
+        return;
+      }
+      setIndex(value => value + 1);
+      setRevealed(false);
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (!word) return <p className="muted">这个模块没有单词内容。</p>;
@@ -104,33 +114,32 @@ export function WordModule({ module, alreadyDone, busy, onFinish }: Props) {
             {word.note && <p className="word-note">{word.note}</p>}
           </div>
         ) : (
-          <p className="word-reveal-hint">先判断认不认识，选完再看释义。</p>
+          <p className="word-reveal-hint">还记得它的意思吗？点「显示答案」核对。</p>
         )}
         <WordSketchPad resetKey={word.id} />
       </article>
 
-      {!revealed && (
-        <div className="word-feedback two" role="group" aria-label="单词掌握程度">
-          <button type="button" className={`word-rate known${currentStatus === 'known' ? ' active' : ''}`} onClick={() => { void rate('known'); }}>
+      {revealed && (
+        <div className="word-feedback" role="group" aria-label="单词掌握程度">
+          <button type="button" className={`word-rate known${currentStatus === 'known' ? ' active' : ''}`} onClick={() => { void rate('known'); }} disabled={saving}>
             认识
           </button>
-          <button type="button" className={`word-rate unknown${currentStatus === 'unknown' ? ' active' : ''}`} onClick={() => { void rate('unknown'); }}>
+          <button type="button" className={`word-rate fuzzy${currentStatus === 'fuzzy' ? ' active' : ''}`} onClick={() => { void rate('fuzzy'); }} disabled={saving}>
+            模糊
+          </button>
+          <button type="button" className={`word-rate unknown${currentStatus === 'unknown' ? ' active' : ''}`} onClick={() => { void rate('unknown'); }} disabled={saving}>
             不认识
           </button>
         </div>
       )}
 
       <nav className="module-nav">
-        <button type="button" className="ghost-button" onClick={() => setIndex(value => Math.max(0, value - 1))} disabled={isFirst}>
+        <button type="button" className="ghost-button" onClick={() => setIndex(value => Math.max(0, value - 1))} disabled={isFirst || saving}>
           上一个
         </button>
-        {isLast ? (
-          <button type="button" className="primary-button" onClick={onFinish} disabled={busy || !revealed}>
-            {busy ? '正在保存…' : alreadyDone ? '回到课程' : '完成单词模块'}
-          </button>
-        ) : (
-          <button type="button" className="primary-button" onClick={() => setIndex(value => Math.min(words.length - 1, value + 1))} disabled={!revealed}>
-            下一个
+        {!revealed && (
+          <button type="button" className="primary-button" onClick={() => setRevealed(true)}>
+            显示答案
           </button>
         )}
       </nav>

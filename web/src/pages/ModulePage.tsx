@@ -97,7 +97,6 @@ export function ModulePage() {
         <WordModule
           module={module as CourseModule<'word'>}
           alreadyDone={module.status === 'graded'}
-          busy={busy}
           onFinish={completeModule}
         />
       )}
