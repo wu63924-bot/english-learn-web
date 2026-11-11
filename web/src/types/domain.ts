@@ -234,6 +234,14 @@ export interface Mistake {
   knowledgeId?: string;
   wrongValue: string;
   reason: string;
+  /** 错题练习里连续答对的次数，达到 2 次就不再出题 */
+  drillCorrectStreak?: number;
+  /** 最近一次参与错题练习的日期 */
+  lastDrillDate?: DateKey;
+  /** 累计在错题练习里答错的次数，用于选题权重 */
+  drillWrongCount?: number;
+  /** 已巩固，不再进入每日练习，但保留记录 */
+  drillMasteredAt?: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -269,6 +277,8 @@ export interface AppSettings {
   aiDailyBudget?: number;
   /** 每个模块最后停留的位置，用于点进模块时接着学 */
   modulePositions?: Record<string, { wordId?: string; questionId?: string }>;
+  /** 当天的错题练习计划 */
+  drillPlan?: { dateKey: string; mistakeIds: string[]; answeredIds: string[] };
   aiAccessToken?: string;
   knowledgeUnifiedAt?: Timestamp;
   wordReviewsMigratedAt?: Timestamp;

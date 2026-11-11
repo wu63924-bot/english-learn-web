@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { Badge, ErrorState, LoadingState, PageHeader } from '../components/UI';
 import { listCourseRecords, deleteCourseRecord } from '../repositories/recordRepository';
 import type { CourseRecord } from '../repositories/recordRepository';
-import { listMistakes } from '../repositories/mistakeRepository';
+import { listMistakes, drillSummary } from '../repositories/mistakeRepository';
 import type { MistakeView } from '../repositories/mistakeRepository';
 import { moduleLabels } from '../utils/course';
 
@@ -13,14 +13,16 @@ export function RecordsPage() {
   const [records, setRecords] = useState<CourseRecord[]>([]);
   const [mistakes, setMistakes] = useState<MistakeView[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [drill, setDrill] = useState<{ total: number; done: number } | null>(null);
 
   useEffect(() => {
     let active = true;
-    void Promise.all([listCourseRecords(), listMistakes()])
-      .then(([courseRecords, mistakeViews]) => {
+    void Promise.all([listCourseRecords(), listMistakes(), drillSummary()])
+      .then(([courseRecords, mistakeViews, summary]) => {
         if (!active) return;
         setRecords(courseRecords);
         setMistakes(mistakeViews);
+        setDrill(summary);
       })
       .catch(reason => {
         if (active) setError(reason instanceof Error ? reason.message : '读取记录失败');
@@ -58,6 +60,18 @@ export function RecordsPage() {
         <span><b>{records.length}</b>节课</span>
         <span><b>{mistakes.length}</b>道错题</span>
       </div>
+
+      {drill && drill.total > 0 && (
+        <Link className="drill-entry" to="/drill">
+          <span className="drill-entry-main">
+            <span className="drill-entry-title">错题巩固</span>
+            <span className="drill-entry-meta">每天最多 10 道，连对 2 次不再出现</span>
+          </span>
+          <span className={`drill-entry-count${drill.done >= drill.total ? ' done' : ''}`}>
+            {drill.done} / {drill.total}
+          </span>
+        </Link>
+      )}
 
       <details className="record-fold card">
         <summary>
