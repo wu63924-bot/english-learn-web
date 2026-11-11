@@ -172,18 +172,16 @@ export function ReviewPage() {
   if (session) {
     return (
       <>
-        <PageHeader eyebrow="复习" title="单词复习" subtitle="先回想，再选择掌握程度" />
-        <WordReviewSession due={session.due} fresh={session.fresh} onFinish={() => { void finishWordSession(); }} />
-        <button
-          type="button"
-          className="ghost-button"
-          onClick={() => {
+        <PageHeader eyebrow="复习" title="单词复习" />
+        <WordReviewSession
+          due={session.due}
+          fresh={session.fresh}
+          onFinish={() => { void finishWordSession(); }}
+          onExit={() => {
             setSession(null);
             void refreshWords();
           }}
-        >
-          退出本轮
-        </button>
+        />
       </>
     );
   }

@@ -1624,15 +1624,67 @@ button {
 
 .word-session {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  padding-bottom: 96px;
 }
 
 .word-session-top {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
   color: var(--muted);
   font-size: 0.76rem;
+}
+
+.word-session-top > span:last-child {
+  margin-left: auto;
+}
+
+.word-session-exit {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+
+.word-session-actions {
+  position: fixed;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  width: min(100%, 560px);
+  padding: 8px 20px 10px;
+  background: linear-gradient(to top, var(--page) 72%, rgba(255, 248, 241, 0));
+  transform: translateX(-50%);
+}
+
+.word-session-actions .word-feedback {
+  margin-top: 0;
+}
+
+.word-session .word-card {
+  padding: 18px 16px;
+}
+
+.word-session .word-term {
+  font-size: 2rem;
+}
+
+.word-session .word-tag {
+  margin-bottom: 8px;
+}
+
+.word-session .word-reveal-panel {
+  margin-top: 12px;
+  padding: 12px 14px;
+}
+
+.word-session .sketch-block {
+  margin-top: 12px;
+  padding-top: 10px;
 }
 
 .word-session-track {

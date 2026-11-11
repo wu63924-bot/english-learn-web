@@ -58,9 +58,10 @@ interface Props {
   due: WordReview[];
   fresh: NewWordCandidate[];
   onFinish: () => void;
+  onExit: () => void;
 }
 
-export function WordReviewSession({ due, fresh, onFinish }: Props) {
+export function WordReviewSession({ due, fresh, onFinish, onExit }: Props) {
   const [queue, setQueue] = useState<QueueItem[]>(() => [...due.map(fromReview), ...fresh.map(fromCandidate)]);
   const [revealed, setRevealed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -120,6 +121,7 @@ export function WordReviewSession({ due, fresh, onFinish }: Props) {
   return (
     <section className="word-session">
       <div className="word-session-top">
+        <button type="button" className="word-session-exit" onClick={onExit}>退出</button>
         <span>还剩 {queue.length} 个</span>
         <span>{position} / {total}</span>
       </div>
@@ -159,17 +161,19 @@ export function WordReviewSession({ due, fresh, onFinish }: Props) {
 
       {error && <p className="error-text">{error}</p>}
 
-      {revealed ? (
-        <div className="word-feedback" role="group" aria-label="单词掌握程度">
-          <button type="button" className="word-rate known" onClick={() => { void rate('known'); }} disabled={busy}>认识</button>
-          <button type="button" className="word-rate fuzzy" onClick={() => { void rate('fuzzy'); }} disabled={busy}>模糊</button>
-          <button type="button" className="word-rate unknown" onClick={() => { void rate('unknown'); }} disabled={busy}>不认识</button>
-        </div>
-      ) : (
-        <button type="button" className="primary-button" onClick={() => setRevealed(true)}>
-          显示答案
-        </button>
-      )}
+      <div className="word-session-actions">
+        {revealed ? (
+          <div className="word-feedback" role="group" aria-label="单词掌握程度">
+            <button type="button" className="word-rate known" onClick={() => { void rate('known'); }} disabled={busy}>认识</button>
+            <button type="button" className="word-rate fuzzy" onClick={() => { void rate('fuzzy'); }} disabled={busy}>模糊</button>
+            <button type="button" className="word-rate unknown" onClick={() => { void rate('unknown'); }} disabled={busy}>不认识</button>
+          </div>
+        ) : (
+          <button type="button" className="primary-button" onClick={() => setRevealed(true)}>
+            显示答案
+          </button>
+        )}
+      </div>
     </section>
   );
 }
