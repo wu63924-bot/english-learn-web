@@ -118,6 +118,16 @@ export function TodayPage() {
     }
   }
 
+  async function openModule(kind: CourseModule['kind']) {
+    if (!course) return;
+    try {
+      await startCourse(course.id);
+    } catch {
+      // 课程状态写不进去也不挡着进模块
+    }
+    navigate(`/course/${course.id}/module/${kind}`);
+  }
+
   return (
     <div className="today-page">
       <header className="today-top">
@@ -154,18 +164,20 @@ export function TodayPage() {
             const index = moduleOrder.indexOf(module.kind);
             const state = module.status === 'graded' ? ' done' : module.id === nextModule?.id ? ' now' : '';
             return (
-              <span key={module.id} className={`today-tag tag-${index}${state}`}>
+              <button
+                key={module.id}
+                type="button"
+                className={`today-tag tag-${index}${state}`}
+                onClick={() => { void openModule(module.kind); }}
+              >
                 {moduleLabels[module.kind]}
-              </span>
+              </button>
             );
           })}
         </div>
         <div className="today-actions">
           <button type="button" className="primary-button" onClick={handleStart} disabled={starting}>
             {starting ? '正在打开…' : started ? '继续学习' : '开始学习'}
-          </button>
-          <button type="button" className="today-secondary" onClick={() => navigate(`/course/${course.id}`)}>
-            查看课程内容
           </button>
         </div>
       </section>

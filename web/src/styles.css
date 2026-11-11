@@ -347,10 +347,18 @@ button {
 
 .today-tag {
   padding: 5px 10px;
+  border: 0;
   border-radius: 9px;
   background: var(--accent-pale);
   color: var(--accent);
+  font-family: inherit;
   font-size: 0.7rem;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 160ms ease;
+}
+
+.today-tag:active {
+  transform: scale(0.97);
 }
 
 .today-tag.tag-0 {
@@ -386,20 +394,6 @@ button {
   display: grid;
   gap: 6px;
   margin-top: 20px;
-}
-
-.today-secondary {
-  padding: 8px;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.84rem;
-  cursor: pointer;
-  transition: color 160ms ease;
-}
-
-.today-secondary:active {
-  color: var(--accent);
 }
 
 .today-stats {
