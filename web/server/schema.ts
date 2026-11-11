@@ -135,12 +135,14 @@ function rawTranslate(value: Record<string, unknown>, prefix: string): Question 
     : undefined;
   const variant = value.variant === 'correct' ? 'correct' : undefined;
   const explanation = optionalText(value.explanation, 600, false);
+  const instruction = optionalText(value.instruction, 200, false);
   return {
     kind: 'translate',
     id: prefix,
     prompt: text(value.prompt, '题目', 400, false),
     reference: text(value.reference, '参考译文', 600, false),
     ...(variant ? { variant } : {}),
+    ...(instruction ? { instruction } : {}),
     ...(explanation ? { explanation } : {}),
     ...(knowledge === undefined ? {} : { knowledgeIndex: knowledge }),
     ...(keyPoints && keyPoints.length ? { keyPoints } : {})

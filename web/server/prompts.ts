@@ -32,8 +32,8 @@ const COURSE_SCHEMA = `{
   ],
   "knowledgeLabels": ["本节知识点，中文短句"],
   "reviewQuestions": [
-    { "kind": "translate", "variant": "correct", "prompt": "改正这个句子：She wants to studying English.", "reference": "She wants to study English.", "explanation": "want 后接 to do", "knowledge": 0 },
-    { "kind": "translate", "prompt": "把这句话译成中文：……", "reference": "参考译文", "keyPoints": ["要点1"], "knowledge": 1 }
+    { "kind": "translate", "variant": "correct", "prompt": "改正这个句子：She wants to studying English.", "instruction": "改写为正确的英文句子：考查 want 后接 to do", "reference": "She wants to study English.", "explanation": "want 后接 to do", "knowledge": 0 },
+    { "kind": "translate", "prompt": "把这句话译成中文：……", "instruction": "注意 decided 是过去式，wants 是一般现在时", "reference": "参考译文", "keyPoints": ["要点1"], "knowledge": 1 }
   ]
 }`;
 
@@ -54,8 +54,9 @@ export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
     '- passageGlossary 列出短文中未出现在 words 里的生词 5-10 个，给音标和中文释义；',
     '- knowledgeLabels 3-5 条；',
     '- reviewQuestions 恰好 10 道，顺序固定：前 3 道改错、接着 2 道英译汉、最后 5 道汉译英；',
-    '- 改错题用 {"kind":"translate","variant":"correct","prompt":"改正这个句子：<错误句>","reference":"<正确句>","explanation":"<错因>","knowledge":n}；',
-    '- 英译汉/汉译英用 {"kind":"translate","prompt":"把这句话译成中文：<英文句>" 或 "把这句话译成英文：<中文句>","reference":"<参考译文>","keyPoints":["要点"],"knowledge":n}；',
+    '- 改错题用 {"kind":"translate","variant":"correct","prompt":"改正这个句子：<错误句>","instruction":"改写为正确的英文句子：考查 <语法点>","reference":"<正确句>","explanation":"<错因>","knowledge":n}；',
+    '- 英译汉/汉译英用 {"kind":"translate","prompt":"把这句话译成中文：<英文句>" 或 "把这句话译成英文：<中文句>","instruction":"<要求或注意点>","reference":"<参考译文>","keyPoints":["要点"],"knowledge":n}；',
+    '- 每道开放题都必须带 instruction（不超过 80 字）：改错题写清考查点，汉译英写“要求：使用 …”且不提供单词提示，英译汉可提示时态或难点；没有要提示的可以省略该字段，但改错题和汉译英必须写；',
     '- 所有题目只有一个明确正确答案，解析说明原因，不要出现歧义或超出本课内容的题；',
     '- 每道题带 "knowledge" 字段：它是 knowledgeLabels 的下标（0 开始），表示这道题考哪个知识点；',
     '- 不要输出 id 字段，服务器会统一生成；',

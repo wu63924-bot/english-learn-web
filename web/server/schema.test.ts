@@ -38,7 +38,7 @@ const raw = {
   readingQuestions: [choice('R1'), choice('R2'), choice('R3'), choice('R4'), choice('R5')],
   knowledgeLabels: ['Test point'],
   reviewQuestions: [
-    { kind: 'translate', variant: 'correct', prompt: '改正：He enjoy to read.', reference: 'He enjoys reading.', explanation: 'enjoy 接 doing', knowledge: 0 },
+    { kind: 'translate', variant: 'correct', prompt: '改正：He enjoy to read.', instruction: '改写为正确的英文句子：考查 enjoy 后接 doing', reference: 'He enjoys reading.', explanation: 'enjoy 接 doing', knowledge: 0 },
     { kind: 'translate', variant: 'correct', prompt: '改正：She want go.', reference: 'She wants to go.', explanation: '第三人称单数', knowledge: 0 },
     { kind: 'translate', variant: 'correct', prompt: '改正：I am good at speak.', reference: 'I am good at speaking.', explanation: '介词后接 doing', knowledge: 0 },
     { kind: 'translate', prompt: '把这句话译成中文：I enjoy reading.', reference: '我喜欢阅读。', knowledge: 0 },
@@ -60,6 +60,8 @@ describe('course schema', () => {
     ]);
     expect(course.grammarSections[0].examples).toEqual([{ en: 'I enjoy reading.', zh: '我喜欢阅读。' }]);
     expect(course.reviewQuestions.filter(question => question.kind === 'translate' && question.variant === 'correct')).toHaveLength(3);
+    const first = course.reviewQuestions[0];
+    expect(first.kind === 'translate' && first.instruction).toBe('改写为正确的英文句子：考查 enjoy 后接 doing');
   });
 
   it('keeps a reading glossary and fills missing phonetics', () => {

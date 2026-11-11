@@ -90,6 +90,8 @@ export interface TranslateQuestion {
   keyPoints?: string[];
   /** correct：改写/改错题，输入与反馈文案不同 */
   variant?: 'translate' | 'correct';
+  /** 题干下的要求或注意点，例如“要求：使用 enjoy” */
+  instruction?: string;
   explanation?: string;
   knowledgeIds?: string[];
   knowledgeIndex?: number;

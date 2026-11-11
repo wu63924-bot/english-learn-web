@@ -75,6 +75,7 @@ export interface RawTranslateQuestion {
   reference: string;
   keyPoints?: string[];
   variant?: 'translate' | 'correct';
+  instruction?: string;
   explanation?: string;
   knowledge?: number;
 }

@@ -208,16 +208,16 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
     ],
     knowledgeLabels: ['一般现在时第三人称单数', '频率副词的位置', '保持稳定的学习习惯'],
     reviewQuestions: [
-      { kind: 'translate', variant: 'correct', prompt: '改正这个句子：She want to study English.', reference: 'She wants to study English.', explanation: '主语 she 是第三人称单数，want 要加 -s。', knowledge: 0 },
-      { kind: 'translate', variant: 'correct', prompt: '改正这个句子：He enjoys to play basketball.', reference: 'He enjoys playing basketball.', explanation: 'enjoy 后面接 doing。', knowledge: 0 },
-      { kind: 'translate', variant: 'correct', prompt: '改正这个句子：I am good at speak English.', reference: 'I am good at speaking English.', explanation: '介词 at 后面接动词 -ing。', knowledge: 1 },
-      { kind: 'translate', prompt: '把这句话译成中文：She practises English for twenty minutes every morning.', reference: '她每天早上练二十分钟英语。', keyPoints: ['practise 练习', 'for + 时间'], knowledge: 2 },
-      { kind: 'translate', prompt: '把这句话译成中文：Progress comes from small steps.', reference: '进步来自小步积累。', keyPoints: ['progress 进步', 'come from 来自'], knowledge: 2 },
-      { kind: 'translate', prompt: '把这句话译成英文：我想学习英语。', reference: 'I want to study English.', keyPoints: ['want to do'], knowledge: 0 },
-      { kind: 'translate', prompt: '把这句话译成英文：她喜欢读英语书。', reference: 'She enjoys reading English books.', keyPoints: ['enjoy doing', '第三人称单数'], knowledge: 0 },
-      { kind: 'translate', prompt: '把这句话译成英文：我擅长打篮球。', reference: 'I am good at playing basketball.', keyPoints: ['be good at doing'], knowledge: 1 },
-      { kind: 'translate', prompt: '把这句话译成英文：他经常在课前复习笔记。', reference: 'He often reviews his notes before class.', keyPoints: ['频率副词位置', '第三人称单数'], knowledge: 1 },
-      { kind: 'translate', prompt: '把这句话译成英文：如果明天下雨，我就待在家里学习。', reference: 'If it rains tomorrow, I will stay at home and study.', keyPoints: ['主将从现', 'stay at home'], knowledge: 2 }
+      { kind: 'translate', variant: 'correct', prompt: '改正这个句子：She want to study English.', instruction: '改写为正确的英文句子：考查 want 后接 to do', reference: 'She wants to study English.', explanation: '主语 she 是第三人称单数，want 要加 -s。', knowledge: 0 },
+      { kind: 'translate', variant: 'correct', prompt: '改正这个句子：He enjoys to play basketball.', instruction: '改写为正确的英文句子：考查 enjoy 后接 doing', reference: 'He enjoys playing basketball.', explanation: 'enjoy 后面接 doing。', knowledge: 0 },
+      { kind: 'translate', variant: 'correct', prompt: '改正这个句子：I am good at speak English.', instruction: '改写为正确的英文句子：介词 at 后面接 doing', reference: 'I am good at speaking English.', explanation: '介词 at 后面接动词 -ing。', knowledge: 1 },
+      { kind: 'translate', prompt: '把这句话译成中文：She practises English for twenty minutes every morning.', instruction: '注意 practise 是英式拼写，for 后接时间段', reference: '她每天早上练二十分钟英语。', keyPoints: ['practise 练习', 'for + 时间'], knowledge: 2 },
+      { kind: 'translate', prompt: '把这句话译成中文：Progress comes from small steps.', instruction: '注意 progress 是不可数名词', reference: '进步来自小步积累。', keyPoints: ['progress 进步', 'come from 来自'], knowledge: 2 },
+      { kind: 'translate', prompt: '把这句话译成英文：我想学习英语。', instruction: '要求：使用 want to do', reference: 'I want to study English.', keyPoints: ['want to do'], knowledge: 0 },
+      { kind: 'translate', prompt: '把这句话译成英文：她喜欢读英语书。', instruction: '要求：使用 enjoy doing，注意第三人称单数', reference: 'She enjoys reading English books.', keyPoints: ['enjoy doing', '第三人称单数'], knowledge: 0 },
+      { kind: 'translate', prompt: '把这句话译成英文：我擅长打篮球。', instruction: '要求：使用 be good at doing', reference: 'I am good at playing basketball.', keyPoints: ['be good at doing'], knowledge: 1 },
+      { kind: 'translate', prompt: '把这句话译成英文：他经常在课前复习笔记。', instruction: '要求：频率副词放在实义动词之前', reference: 'He often reviews his notes before class.', keyPoints: ['频率副词位置', '第三人称单数'], knowledge: 1 },
+      { kind: 'translate', prompt: '把这句话译成英文：如果明天下雨，我就待在家里学习。', instruction: '要求：同时使用主将从现（if 从句用一般现在时）', reference: 'If it rains tomorrow, I will stay at home and study.', keyPoints: ['主将从现', 'stay at home'], knowledge: 2 }
     ]
   };
 }

@@ -791,6 +791,17 @@ button {
   line-height: 1.55;
 }
 
+.question-instruction {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  background: var(--accent-pale);
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
 .choice-list {
   display: grid;
   gap: 8px;

@@ -35,6 +35,10 @@ export function QuestionCard({ question, value, grade, saved, error, disabled, g
     <article className="card question-card">
       <p className="question-prompt">{question.prompt}</p>
 
+      {question.kind === 'translate' && question.instruction && (
+        <p className="question-instruction">{question.instruction}</p>
+      )}
+
       {question.kind === 'choice' && (
         <div className="choice-list" role="group" aria-label="选项">
           {question.options.map(option => {
