@@ -3,6 +3,8 @@ import { useSearchParams } from 'react-router';
 import type { CourseModule, WordReviewStatus } from '../types/domain';
 import { saveWordRating, wordStatusesForModule } from '../repositories/wordReviewRepository';
 import { getModulePosition, saveModulePosition } from '../repositories/modulePositionRepository';
+import { useWordSpeech } from '../hooks/useWordSpeech';
+import { SpeakerIcon } from './SpeakerIcon';
 import { WordSketchPad } from './WordSketchPad';
 
 interface Props {
@@ -21,6 +23,7 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
   const [saving, setSaving] = useState(false);
   const [restored, setRestored] = useState(false);
   const word = words[index];
+  const speech = useWordSpeech(word?.term);
   const isFirst = index === 0;
   const isLast = index === words.length - 1;
 
@@ -112,9 +115,28 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
       )}
 
       <article className="card word-card">
-        <p className="word-tag">{revealed ? '已揭示' : '先回忆'}</p>
+        <div className="word-card-top">
+          <p className="word-tag">{revealed ? '已揭示' : '先回忆'}</p>
+          {speech.supported && (
+            <button
+              type="button"
+              className={`auto-speak${speech.autoSpeak ? ' on' : ''}`}
+              onClick={speech.toggle}
+              aria-pressed={speech.autoSpeak}
+            >
+              自动读{speech.autoSpeak ? '开' : '关'}
+            </button>
+          )}
+        </div>
         <h2 className="word-term">{word.term}</h2>
-        {word.phonetic && <p className="word-phonetic">{word.phonetic}</p>}
+        <div className="word-sound">
+          {word.phonetic && <span className="word-phonetic">{word.phonetic}</span>}
+          {speech.supported && (
+            <button type="button" className="speak-button" onClick={speech.speak} aria-label={`朗读 ${word.term}`}>
+              <SpeakerIcon />
+            </button>
+          )}
+        </div>
         {revealed ? (
           <div className="word-reveal-panel">
             <ul className="word-meanings">

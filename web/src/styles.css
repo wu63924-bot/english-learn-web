@@ -1538,6 +1538,63 @@ button {
   font-size: 0.68rem;
 }
 
+.word-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.word-card-top .word-tag {
+  margin: 0;
+}
+
+.auto-speak {
+  flex: none;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.68rem;
+  cursor: pointer;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.auto-speak.on {
+  border-color: var(--accent);
+  background: var(--accent-pale);
+  color: var(--accent);
+}
+
+.word-sound {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.speak-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 160ms ease, transform 140ms ease;
+}
+
+.speak-button:active {
+  transform: scale(0.94);
+  background: var(--accent-pale);
+}
+
 .word-term {
   margin: 0;
   font-family: var(--font-display);
@@ -1573,7 +1630,7 @@ button {
 }
 
 .word-phonetic {
-  margin: 6px 0 0;
+  margin: 0;
   color: var(--accent);
   font-size: 0.95rem;
 }
@@ -1726,10 +1783,6 @@ button {
 
 .word-session .word-term {
   font-size: 2rem;
-}
-
-.word-session .word-tag {
-  margin-bottom: 8px;
 }
 
 .word-session .word-reveal-panel {

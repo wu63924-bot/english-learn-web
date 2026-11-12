@@ -277,6 +277,8 @@ export interface AppSettings {
   aiDailyBudget?: number;
   /** 每个模块最后停留的位置，用于点进模块时接着学 */
   modulePositions?: Record<string, { wordId?: string; questionId?: string }>;
+  /** 单词自动朗读开关 */
+  autoSpeakWord?: boolean;
   /** 当天的错题练习计划 */
   drillPlan?: { dateKey: string; mistakeIds: string[]; answeredIds: string[] };
   aiAccessToken?: string;

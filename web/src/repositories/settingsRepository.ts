@@ -15,3 +15,18 @@ export async function setAiAccessToken(token: string): Promise<void> {
     updatedAt: Date.now()
   });
 }
+
+export async function getAutoSpeakWord(): Promise<boolean> {
+  const settings = await db.settings.get('app');
+  return settings?.autoSpeakWord === true;
+}
+
+export async function setAutoSpeakWord(enabled: boolean): Promise<void> {
+  const settings = await db.settings.get('app');
+  if (!settings) return;
+  await db.settings.put({
+    ...settings,
+    autoSpeakWord: enabled,
+    updatedAt: Date.now()
+  });
+}

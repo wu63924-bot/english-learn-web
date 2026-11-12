@@ -3,6 +3,8 @@ import { Link } from 'react-router';
 import type { NewWordCandidate } from '../repositories/wordReviewRepository';
 import { saveWordRating } from '../repositories/wordReviewRepository';
 import type { WordReview, WordReviewStatus } from '../types/domain';
+import { useWordSpeech } from '../hooks/useWordSpeech';
+import { SpeakerIcon } from './SpeakerIcon';
 import { WordSketchPad } from './WordSketchPad';
 
 interface QueueItem {
@@ -70,6 +72,7 @@ export function WordReviewSession({ due, fresh, onFinish, onExit }: Props) {
   const [known, setKnown] = useState(0);
   const total = due.length + fresh.length;
   const current = queue[0];
+  const speech = useWordSpeech(current?.term);
 
   async function rate(status: WordReviewStatus) {
     if (!current || busy) return;
@@ -130,9 +133,28 @@ export function WordReviewSession({ due, fresh, onFinish, onExit }: Props) {
       </div>
 
       <article className="card word-card">
-        <p className="word-tag">{revealed ? '已揭示' : '先回忆'}</p>
+        <div className="word-card-top">
+          <p className="word-tag">{revealed ? '已揭示' : '先回忆'}</p>
+          {speech.supported && (
+            <button
+              type="button"
+              className={`auto-speak${speech.autoSpeak ? ' on' : ''}`}
+              onClick={speech.toggle}
+              aria-pressed={speech.autoSpeak}
+            >
+              自动读{speech.autoSpeak ? '开' : '关'}
+            </button>
+          )}
+        </div>
         <h2 className="word-term">{current.term}</h2>
-        {current.phonetic && <p className="word-phonetic">{current.phonetic}</p>}
+        <div className="word-sound">
+          {current.phonetic && <span className="word-phonetic">{current.phonetic}</span>}
+          {speech.supported && (
+            <button type="button" className="speak-button" onClick={speech.speak} aria-label={`朗读 ${current.term}`}>
+              <SpeakerIcon />
+            </button>
+          )}
+        </div>
         {revealed ? (
           <div className="word-reveal-panel">
             {current.meanings?.length ? (
