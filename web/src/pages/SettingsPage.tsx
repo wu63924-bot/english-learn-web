@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router';
 import { Card, PageHeader } from '../components/UI';
 import { backupCounts, createBackup, parseBackup, restoreBackup } from '../services/backupService';
 import { generateCourse, getAiHealth, aiBaseUrl, AiError, type AiHealth } from '../services/aiClient';
-import { saveGeneratedCourse, nextCourseNumber } from '../services/courseImport';
-import { nextCourseInput, ensurePlanBatch } from '../services/nextCourse';
+import { saveGeneratedCourse } from '../services/courseImport';
+import { nextCourseInput, ensurePlanBatch, nextPlanStartNumber } from '../services/nextCourse';
 import {
   appendPlanUnits,
   createPlan,
@@ -191,7 +191,7 @@ export function SettingsPage() {
     setPlanBusy(true);
     setPlanError('');
     try {
-      const startNumber = await nextCourseNumber();
+      const startNumber = await nextPlanStartNumber();
       const learned = (plan?.units ?? [])
         .filter(unit => unit.status === 'done')
         .map(unit => `${unit.topic}（${unit.grammar}）`);
@@ -211,7 +211,7 @@ export function SettingsPage() {
     setPlanBusy(true);
     setPlanError('');
     try {
-      const startNumber = await nextCourseNumber();
+      const startNumber = await nextPlanStartNumber();
       const learned = plan.units.map(unit => `${unit.topic}（${unit.grammar}）`);
       const units = await generatePlan({
         startNumber,
@@ -233,7 +233,7 @@ export function SettingsPage() {
     setPlanError('');
     try {
       const kept = await dropPendingFrom(1);
-      const startNumber = await nextCourseNumber();
+      const startNumber = await nextPlanStartNumber();
       const learned = (kept?.units ?? plan?.units ?? [])
         .filter(unit => unit.status === 'done')
         .map(unit => `${unit.topic}（${unit.grammar}）`);

@@ -4,13 +4,20 @@ import type { LearningPlan, LevelKey } from '../types/domain';
 import { generatePlan } from './aiClient';
 import { nextCourseNumber } from './courseImport';
 
+/** 下一批规划的起始课号：接在已有规划（或已生成课程）的最大编号之后。 */
+export async function nextPlanStartNumber(): Promise<number> {
+  const [plan, courseNumber] = await Promise.all([getLearningPlan(), nextCourseNumber()]);
+  const planMax = plan?.units.length ? Math.max(...plan.units.map(unit => unit.number)) + 1 : 1;
+  return Math.max(courseNumber, planMax);
+}
+
 /** 路线里没有待学课的时候，自动续一批 10 课；失败就交给预设兜底。 */
 export async function ensurePlanBatch(): Promise<LearningPlan | undefined> {
   const plan = await getLearningPlan();
   if (!plan) return undefined;
   if (plan.units.some(unit => unit.status === 'pending')) return plan;
   try {
-    const startNumber = await nextCourseNumber();
+    const startNumber = await nextPlanStartNumber();
     const units = await generatePlan({
       startNumber,
       startLevel: plan.startLevel,

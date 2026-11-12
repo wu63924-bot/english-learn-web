@@ -80,6 +80,15 @@ describe('learning plan repository', () => {
     expect(next.targetLevel).toBe('cet6');
   });
 
+  it('appends after the highest planned number even with gaps', async () => {
+    await createPlan({ startLevel: 'senior', targetLevel: 'cet4', startNumber: 9, units: units(10) });
+    await removePlanUnit(12);
+    const plan = await getLearningPlan();
+    if (!plan) throw new Error('plan missing');
+    const next = await appendPlanUnits(plan, 9, units(2));
+    expect(next.units.slice(-2).map(unit => unit.number)).toEqual([19, 20]);
+  });
+
   it('pins a unit as next and removes units', async () => {
     await createPlan({ startLevel: 'senior', targetLevel: 'cet4', startNumber: 32, units: units() });
     expect(await setPlanCurrent(34)).toBe(true);

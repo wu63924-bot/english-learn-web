@@ -56,10 +56,11 @@ export async function createPlan(input: {
   return plan;
 }
 
-/** 追加一批后续课程；跳过已占用的课号。 */
+/** 追加一批后续课程；始终接在已有规划的最大课号之后，避免编号穿插。 */
 export async function appendPlanUnits(plan: LearningPlan, startNumber: number, units: PlanUnitResult[]): Promise<LearningPlan> {
   const numbers = new Set(plan.units.map(unit => unit.number));
-  let number = startNumber;
+  const planMax = plan.units.length ? Math.max(...plan.units.map(unit => unit.number)) + 1 : 1;
+  let number = Math.max(startNumber, planMax);
   const added: PlanUnit[] = [];
   for (const unit of units) {
     while (numbers.has(number)) number += 1;
