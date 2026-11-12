@@ -1,6 +1,22 @@
 import { db } from '../db/db';
-import type { Course, CourseModule, ModuleKind, ModuleStatus } from '../types/domain';
+import type { Course, CourseModule, ModuleKind, ModuleStatus, PhraseItem } from '../types/domain';
 import { todayKey } from '../utils/date';
+
+/** 取若干单词模块的短语表，用于复习卡片给例句做搭配注释。 */
+export async function listModulePhrases(moduleIds: string[]): Promise<Record<string, PhraseItem[]>> {
+  const unique = [...new Set(moduleIds.filter(Boolean))];
+  if (!unique.length) return {};
+  const modules = await db.courseModules.bulkGet(unique);
+  const result: Record<string, PhraseItem[]> = {};
+  for (const module of modules) {
+    if (!module || module.kind !== 'word') continue;
+    const wordModule = module as CourseModule<'word'>;
+    if (wordModule.content.phrases?.length) {
+      result[wordModule.id] = wordModule.content.phrases;
+    }
+  }
+  return result;
+}
 
 export async function listCourses(): Promise<Course[]> {
   const courses = await db.courses.toArray();

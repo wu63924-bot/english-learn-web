@@ -168,13 +168,21 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
     if (!word || typeof word !== 'object') badOutput();
     const item = word as Record<string, unknown>;
     if (!Array.isArray(item.meanings) || item.meanings.length < 1 || item.meanings.length > 4) badOutput();
+    const examplePhrases = Array.isArray(item.examplePhrases)
+      ? item.examplePhrases.slice(0, 3).map(entry => {
+        if (!entry || typeof entry !== 'object') badOutput();
+        const phrase = entry as Record<string, unknown>;
+        return { phrase: text(phrase.phrase, '例句搭配', 60, false), meaning: text(phrase.meaning, '搭配释义', 60, false) };
+      })
+      : undefined;
     words.push({
       id: `${prefix}-w${index + 1}`,
       term: text(item.term, '单词', 40, false),
       phonetic: optionalText(item.phonetic, 60, false),
       meanings: item.meanings.map(meaning => text(meaning, '释义', 80, false)),
       example: text(item.example, '例句', 300, false),
-      exampleTranslation: text(item.exampleTranslation, '例句翻译', 300, false)
+      exampleTranslation: text(item.exampleTranslation, '例句翻译', 300, false),
+      ...(examplePhrases && examplePhrases.length ? { examplePhrases } : {})
     });
   });
 

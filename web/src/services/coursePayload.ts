@@ -48,6 +48,12 @@ export function assertGeneratedCourse(value: unknown): GeneratedCoursePayload {
     if (!isRecord(word) || !isText(word.term) || !Array.isArray(word.meanings) || !isText(word.example) || !isText(word.exampleTranslation)) {
       throw new Error('单词内容不完整');
     }
+    if (word.examplePhrases !== undefined) {
+      if (!Array.isArray(word.examplePhrases)) throw new Error('例句搭配格式不正确');
+      for (const phrase of word.examplePhrases) {
+        if (!isRecord(phrase) || !isText(phrase.phrase) || !isText(phrase.meaning)) throw new Error('例句搭配不完整');
+      }
+    }
   }
   if (!Array.isArray(value.grammarSections) || value.grammarSections.length < 1) throw new Error('语法讲解缺失');
   if (!Array.isArray(value.grammarQuestions) || value.grammarQuestions.length < 2) throw new Error('语法练习题不足');

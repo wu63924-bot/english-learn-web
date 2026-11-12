@@ -1,5 +1,5 @@
 import { db } from '../db/db';
-import type { CourseModule, WordItem, WordReview, WordReviewStatus } from '../types/domain';
+import type { CourseModule, PhraseItem, WordItem, WordReview, WordReviewStatus } from '../types/domain';
 import { applyWordRating } from '../services/wordReviewRules';
 import { normalizeWordTerm, wordReviewId } from '../utils/wordTerm';
 
@@ -17,6 +17,7 @@ export interface WordRatingInput {
   meanings?: string[];
   example?: string;
   exampleTranslation?: string;
+  examplePhrases?: PhraseItem[];
   now?: Date;
 }
 
@@ -50,6 +51,7 @@ export async function saveWordRating(input: WordRatingInput): Promise<WordReview
     meanings: mergeMeanings(base.meanings, input.meanings),
     example: input.example ?? base.example,
     exampleTranslation: input.exampleTranslation ?? base.exampleTranslation,
+    examplePhrases: input.examplePhrases ?? base.examplePhrases,
     courseId: input.courseId ?? base.courseId,
     moduleId: input.moduleId ?? base.moduleId,
     wordId: input.wordId ?? base.wordId,
@@ -90,6 +92,7 @@ export interface NewWordCandidate {
   meanings: string[];
   example: string;
   exampleTranslation: string;
+  examplePhrases?: PhraseItem[];
   courseId: string;
   moduleId: string;
   wordId: string;
@@ -119,6 +122,7 @@ export async function listNewWordCandidates(limit: number): Promise<NewWordCandi
         meanings: word.meanings,
         example: word.example,
         exampleTranslation: word.exampleTranslation,
+        examplePhrases: word.examplePhrases,
         courseId: module.courseId,
         moduleId: module.id,
         wordId: word.id

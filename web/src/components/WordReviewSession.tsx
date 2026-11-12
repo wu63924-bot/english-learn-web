@@ -3,7 +3,9 @@ import { Link } from 'react-router';
 import type { NewWordCandidate } from '../repositories/wordReviewRepository';
 import { saveWordRating } from '../repositories/wordReviewRepository';
 import type { WordReview, WordReviewStatus } from '../types/domain';
+import type { PhraseItem } from '../types/domain';
 import { useWordSpeech } from '../hooks/useWordSpeech';
+import { examplePhrasesFor } from '../utils/phrases';
 import { SpeakerIcon } from './SpeakerIcon';
 import { WordSketchPad } from './WordSketchPad';
 
@@ -14,6 +16,7 @@ interface QueueItem {
   meanings?: string[];
   example?: string;
   exampleTranslation?: string;
+  examplePhrases?: PhraseItem[];
   courseId?: string;
   moduleId?: string;
   wordId?: string;
@@ -34,6 +37,7 @@ function fromReview(review: WordReview): QueueItem {
     meanings: review.meanings,
     example: review.example,
     exampleTranslation: review.exampleTranslation,
+    examplePhrases: review.examplePhrases,
     courseId: review.courseId,
     moduleId: review.moduleId,
     wordId: review.wordId,
@@ -49,6 +53,7 @@ function fromCandidate(word: NewWordCandidate): QueueItem {
     meanings: word.meanings,
     example: word.example,
     exampleTranslation: word.exampleTranslation,
+    examplePhrases: word.examplePhrases,
     courseId: word.courseId,
     moduleId: word.moduleId,
     wordId: word.wordId,
@@ -59,11 +64,12 @@ function fromCandidate(word: NewWordCandidate): QueueItem {
 interface Props {
   due: WordReview[];
   fresh: NewWordCandidate[];
+  modulePhrases: Record<string, PhraseItem[]>;
   onFinish: () => void;
   onExit: () => void;
 }
 
-export function WordReviewSession({ due, fresh, onFinish, onExit }: Props) {
+export function WordReviewSession({ due, fresh, modulePhrases, onFinish, onExit }: Props) {
   const [queue, setQueue] = useState<QueueItem[]>(() => [...due.map(fromReview), ...fresh.map(fromCandidate)]);
   const [revealed, setRevealed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -73,6 +79,12 @@ export function WordReviewSession({ due, fresh, onFinish, onExit }: Props) {
   const total = due.length + fresh.length;
   const current = queue[0];
   const speech = useWordSpeech(current?.term);
+  const examplePhrases = current
+    ? examplePhrasesFor(
+      { example: current.example ?? '', examplePhrases: current.examplePhrases },
+      current.moduleId ? modulePhrases[current.moduleId] ?? [] : []
+    )
+    : [];
 
   async function rate(status: WordReviewStatus) {
     if (!current || busy) return;
@@ -166,6 +178,16 @@ export function WordReviewSession({ due, fresh, onFinish, onExit }: Props) {
             )}
             {current.example && <p className="word-example">{current.example}</p>}
             {current.exampleTranslation && <p className="word-example-translation">{current.exampleTranslation}</p>}
+            {examplePhrases.length > 0 && (
+              <ul className="example-phrases">
+                {examplePhrases.map(item => (
+                  <li key={item.phrase}>
+                    <span className="example-phrase-en">{item.phrase}</span>
+                    <span className="example-phrase-zh">{item.meaning}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {current.courseId && current.moduleId && current.wordId && (
               <Link
                 className="word-source-link"

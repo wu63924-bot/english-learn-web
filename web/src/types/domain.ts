@@ -30,6 +30,8 @@ export interface WordItem {
   meanings: string[];
   example: string;
   exampleTranslation: string;
+  /** 例句里的常用搭配，0-2 条 */
+  examplePhrases?: PhraseItem[];
   note?: string;
 }
 
@@ -170,6 +172,8 @@ export interface WordReview {
   meanings?: string[];
   example?: string;
   exampleTranslation?: string;
+  /** 例句里的常用搭配，来自评级时保存的快照 */
+  examplePhrases?: PhraseItem[];
   status: WordReviewStatus;
   /** 当前番茄间隔（天），0 表示还没记住 */
   intervalDays: number;

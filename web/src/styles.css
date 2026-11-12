@@ -1663,6 +1663,39 @@ button {
   font-size: 0.9rem;
 }
 
+.example-phrases {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0 0;
+  padding: 8px 0 0;
+  border-top: 1px dashed rgba(196, 105, 60, 0.25);
+  list-style: none;
+}
+
+.example-phrases li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.example-phrase-en {
+  color: var(--ink);
+  font-size: 0.8rem;
+}
+
+.example-phrase-en:before {
+  content: '搭配';
+  margin-right: 6px;
+  color: var(--accent);
+  font-size: 0.66rem;
+}
+
+.example-phrase-zh {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
 .word-note {
   margin: 12px 0 0;
   padding: 8px 12px;

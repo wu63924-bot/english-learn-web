@@ -13,7 +13,7 @@ const COURSE_SCHEMA = `{
   "goal": "本节课学习目标，中文，一句话，不超过 80 字",
   "level": "CEFR 等级，如 A2、B1",
   "words": [
-    { "term": "英文单词或短语", "phonetic": "国际音标，含斜杠", "meanings": ["词性与中文释义"], "example": "英文例句", "exampleTranslation": "中文译文" }
+    { "term": "英文单词或短语", "phonetic": "国际音标，含斜杠", "meanings": ["词性与中文释义"], "example": "英文例句", "exampleTranslation": "中文译文", "examplePhrases": [{ "phrase": "例句里的常用搭配", "meaning": "中文释义" }] }
   ],
   "phrases": [{ "phrase": "enjoy reading", "meaning": "喜欢阅读" }],
   "grammarSections": [{
@@ -46,6 +46,7 @@ export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
     '',
     '硬性要求：',
     '- words 恰好 20 个，不重复，音标用国际音标并带斜杠，例句难度与等级匹配；优先四级核心词；',
+    '- 每个词的例句里如果有常用搭配（如 be invited to / look forward to），给 0-2 条 examplePhrases：英文短语 + 中文释义；没有就省略，不要硬凑；',
     '- phrases 恰好 5 条：从本课单词出发的常用搭配（如 enjoy reading / be good at doing），每条给英文和中文，不要与单词例句重复；',
     '- grammarSections 2 段：每段 3-5 句、120-260 字。先讲规则，再讲为什么，最后点出典型错误；正文中出现的每个英文例句必须在括号里给中文；需要对比时附 Markdown 表格（最多 3 列、2-4 行）；',
     '- 每段必须带 examples：2-4 条 { "en": 英文例句, "zh": 中文翻译 }，句子与正文对应，覆盖正面和反面用法；',

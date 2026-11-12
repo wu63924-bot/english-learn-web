@@ -8,9 +8,10 @@ import {
   listNewWordCandidates
 } from '../repositories/wordReviewRepository';
 import type { NewWordCandidate } from '../repositories/wordReviewRepository';
+import { listModulePhrases } from '../repositories/courseRepository';
 import { AiError, generateDrill, type DrillResult } from '../services/aiClient';
 import { applyAttempt, reviewReasonText } from '../services/reviewRules';
-import type { KnowledgePoint, WordReview } from '../types/domain';
+import type { KnowledgePoint, PhraseItem, WordReview } from '../types/domain';
 import { todayKey } from '../utils/date';
 
 const STATUS_LABELS: Record<KnowledgePoint['status'], string> = {
@@ -37,7 +38,7 @@ export function ReviewPage() {
   const [items, setItems] = useState<KnowledgePoint[]>([]);
   const [words, setWords] = useState<WordReview[]>([]);
   const [wordDue, setWordDue] = useState(0);
-  const [session, setSession] = useState<{ due: WordReview[]; fresh: NewWordCandidate[] } | null>(null);
+  const [session, setSession] = useState<{ due: WordReview[]; fresh: NewWordCandidate[]; phrases: Record<string, PhraseItem[]> } | null>(null);
   const [starting, setStarting] = useState(false);
   const [wordHint, setWordHint] = useState('');
   const [counts, setCounts] = useState<Record<KnowledgePoint['status'], number> | null>(null);
@@ -86,7 +87,8 @@ export function ReviewPage() {
         setWordHint('暂时没有到期的词，也没有可学的新词。');
         return;
       }
-      setSession({ due: words, fresh });
+      const phrases = await listModulePhrases(words.map(word => word.moduleId ?? '').filter(Boolean));
+      setSession({ due: words, fresh, phrases });
     } catch (reason) {
       setWordHint(reason instanceof Error ? reason.message : '无法准备单词复习');
     } finally {
@@ -176,6 +178,7 @@ export function ReviewPage() {
         <WordReviewSession
           due={session.due}
           fresh={session.fresh}
+          modulePhrases={session.phrases}
           onFinish={() => { void finishWordSession(); }}
           onExit={() => {
             setSession(null);

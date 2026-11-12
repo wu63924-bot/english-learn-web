@@ -4,6 +4,7 @@ import type { CourseModule, WordReviewStatus } from '../types/domain';
 import { saveWordRating, wordStatusesForModule } from '../repositories/wordReviewRepository';
 import { getModulePosition, saveModulePosition } from '../repositories/modulePositionRepository';
 import { useWordSpeech } from '../hooks/useWordSpeech';
+import { examplePhrasesFor } from '../utils/phrases';
 import { SpeakerIcon } from './SpeakerIcon';
 import { WordSketchPad } from './WordSketchPad';
 
@@ -72,7 +73,8 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
         phonetic: word.phonetic,
         meanings: word.meanings,
         example: word.example,
-        exampleTranslation: word.exampleTranslation
+        exampleTranslation: word.exampleTranslation,
+        examplePhrases: examplePhrases.length ? examplePhrases : undefined
       });
       setReviews(current => ({ ...current, [word.id]: status }));
       if (isLast) {
@@ -90,6 +92,7 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
 
   const currentStatus = reviews[word.id];
   const phrases = module.content.phrases ?? [];
+  const examplePhrases = examplePhrasesFor(word, phrases);
 
   return (
     <div className="word-module">
@@ -144,6 +147,16 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
             </ul>
             <p className="word-example">{word.example}</p>
             <p className="word-example-translation">{word.exampleTranslation}</p>
+            {examplePhrases.length > 0 && (
+              <ul className="example-phrases">
+                {examplePhrases.map(item => (
+                  <li key={item.phrase}>
+                    <span className="example-phrase-en">{item.phrase}</span>
+                    <span className="example-phrase-zh">{item.meaning}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
             {word.note && <p className="word-note">{word.note}</p>}
           </div>
         ) : (

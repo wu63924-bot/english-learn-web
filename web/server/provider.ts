@@ -87,7 +87,7 @@ export interface RawCourse {
   topic: string;
   goal: string;
   level?: string;
-  words: { term: string; phonetic?: string; meanings: string[]; example: string; exampleTranslation: string }[];
+  words: { term: string; phonetic?: string; meanings: string[]; example: string; exampleTranslation: string; examplePhrases?: { phrase: string; meaning: string }[] }[];
   phrases?: { phrase: string; meaning: string }[];
   grammarSections: { title: string; body: string; examples?: { en: string; zh: string }[] }[];
   grammarQuestions: RawQuestion[];

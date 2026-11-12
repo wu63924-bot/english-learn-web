@@ -113,14 +113,16 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
         phonetic: '/rɪˈvjuː/',
         meanings: ['v. 复习', 'n. 回顾'],
         example: 'Review yesterday’s notes before the next lesson.',
-        exampleTranslation: '下节课前复习昨天的笔记。'
+        exampleTranslation: '下节课前复习昨天的笔记。',
+        examplePhrases: [{ phrase: 'review notes', meaning: '复习笔记' }]
       },
       {
         term: 'focus',
         phonetic: '/ˈfoʊkəs/',
         meanings: ['v. 集中注意力', 'n. 重点'],
         example: 'Focus on one grammar point at a time.',
-        exampleTranslation: '一次专注一个语法点。'
+        exampleTranslation: '一次专注一个语法点。',
+        examplePhrases: [{ phrase: 'focus on', meaning: '专注于' }]
       },
       {
         term: 'spare',
