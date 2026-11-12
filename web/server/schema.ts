@@ -6,6 +6,9 @@ import type {
   GenerateCourseRequest,
   GradeRequest,
   GradeResult,
+  PlanLevel,
+  PlanRequest,
+  PlanResult,
   RawCourse,
   TutorAnswer,
   TutorRequest
@@ -101,6 +104,50 @@ export function parseTutorRequest(value: unknown): TutorRequest {
   const context = optionalText(body.context, LIMITS.context, true);
   if (context) request.context = context;
   return request;
+}
+
+const PLAN_LEVELS: PlanLevel[] = ['junior', 'senior', 'cet4', 'cet6'];
+const PLAN_COUNT = 10;
+
+function planLevel(value: unknown): PlanLevel {
+  if (typeof value !== 'string' || !PLAN_LEVELS.includes(value as PlanLevel)) fail('等级必须是 junior / senior / cet4 / cet6');
+  return value as PlanLevel;
+}
+
+export function parsePlanRequest(value: unknown): PlanRequest {
+  if (!value || typeof value !== 'object') fail('请求体必须是对象');
+  const body = value as Record<string, unknown>;
+  const learned = Array.isArray(body.learned)
+    ? body.learned.slice(0, 60).map(item => text(item, '已学主题', 80, true))
+    : [];
+  return {
+    startNumber: integer(body.startNumber, 1, 999, 'startNumber'),
+    startLevel: planLevel(body.startLevel),
+    targetLevel: planLevel(body.targetLevel),
+    count: PLAN_COUNT,
+    learned
+  };
+}
+
+/** 校验 10 课大纲；少一条就整体拒绝，避免路线缺课。 */
+export function normalizePlan(value: unknown, count = PLAN_COUNT): PlanResult {
+  if (!value || typeof value !== 'object') badOutput();
+  const raw = value as Record<string, unknown>;
+  const units = raw.units;
+  if (!Array.isArray(units) || units.length !== count) badOutput();
+  return {
+    units: units.map(unit => {
+      if (!unit || typeof unit !== 'object') badOutput();
+      const item = unit as Record<string, unknown>;
+      return {
+        topic: text(item.topic, '主题', 80, false),
+        grammar: text(item.grammar, '语法点', 60, false),
+        vocabulary: text(item.vocabulary, '词汇方向', 60, false),
+        goal: text(item.goal, '目标', 120, false),
+        level: optionalText(item.level, LIMITS.level, false)
+      };
+    })
+  };
 }
 
 function rawChoice(value: Record<string, unknown>, prefix: string): ChoiceQuestion {

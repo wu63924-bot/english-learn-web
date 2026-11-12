@@ -6,8 +6,9 @@ import { getLastAnsweredModuleId } from '../repositories/answerRepository';
 import { getStudySummary } from '../repositories/studyRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
 import { generateCourse } from '../services/aiClient';
-import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport';
-import { coursePreset } from '../data/coursePlan';
+import { saveGeneratedCourse } from '../services/courseImport';
+import { nextCourseInput, ensurePlanBatch } from '../services/nextCourse';
+import { markUnitDone } from '../repositories/planRepository';
 import type { StudySummary } from '../repositories/studyRepository';
 import type { Course, CourseModule } from '../types/domain';
 import { moduleLabels, moduleOrder, moduleProgress } from '../utils/course';
@@ -57,16 +58,17 @@ export function TodayPage() {
       setGenerateError('');
       try {
         const weak = await listWeakLabels();
-        const number = await nextCourseNumber();
-        const preset = coursePreset(number);
+        await ensurePlanBatch();
+        const input = await nextCourseInput();
         const { course: payload, provider } = await generateCourse({
-          number,
-          topic: preset.topic,
-          level: preset.level,
-          goal: preset.goal,
+          number: input.number,
+          topic: input.topic,
+          level: input.level,
+          goal: input.goal,
           focus: weak.slice(0, 3).join('、').slice(0, 80) || undefined
         });
-        const saved = await saveGeneratedCourse({ number, payload, provider });
+        const saved = await saveGeneratedCourse({ number: input.number, payload, provider });
+        if (input.planUnitNumber !== undefined) await markUnitDone(input.planUnitNumber, saved.course.id);
         navigate(`/course/${saved.course.id}`);
       } catch (reason) {
         setGenerateError(reason instanceof Error ? reason.message : '生成失败');

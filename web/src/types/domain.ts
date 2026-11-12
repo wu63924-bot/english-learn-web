@@ -4,6 +4,27 @@ export type Timestamp = number;
 export type CourseSource = 'sample' | 'ai' | 'import';
 export type CourseStatus = 'not_started' | 'in_progress' | 'completed';
 
+export type LevelKey = 'junior' | 'senior' | 'cet4' | 'cet6';
+export type PlanUnitStatus = 'pending' | 'skipped' | 'done';
+
+export interface PlanUnit {
+  number: number;
+  topic: string;
+  grammar: string;
+  vocabulary: string;
+  goal: string;
+  level?: string;
+  status: PlanUnitStatus;
+  courseId?: string;
+}
+
+export interface LearningPlan {
+  startLevel: LevelKey;
+  targetLevel: LevelKey;
+  units: PlanUnit[];
+  updatedAt: Timestamp;
+}
+
 export type ModuleKind = 'word' | 'grammar' | 'reading' | 'review';
 export type ModuleStatus = 'todo' | 'draft' | 'answered' | 'graded';
 
@@ -259,7 +280,7 @@ export interface StudyDay {
   lastActiveAt: Timestamp;
 }
 
-export type AiCallKind = 'generate' | 'grade' | 'tutor' | 'drill';
+export type AiCallKind = 'generate' | 'grade' | 'tutor' | 'drill' | 'plan';
 export type AiCallStatus = 'ok' | 'error' | 'timeout' | 'rejected';
 
 export interface AiUsageRecord {
@@ -285,6 +306,8 @@ export interface AppSettings {
   autoSpeakWord?: boolean;
   /** 当天的错题练习计划 */
   drillPlan?: { dateKey: string; mistakeIds: string[]; answeredIds: string[] };
+  /** 学习路线：等级 → 目标 + 已规划课程 */
+  learningPlan?: LearningPlan;
   aiAccessToken?: string;
   knowledgeUnifiedAt?: Timestamp;
   wordReviewsMigratedAt?: Timestamp;

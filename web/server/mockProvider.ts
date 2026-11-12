@@ -8,12 +8,29 @@ import type {
   GenerateCourseRequest,
   GradeRequest,
   GradeResult,
+  PlanRequest,
+  PlanResult,
   ProviderResult,
   RawCourse,
   TutorAnswer,
   TutorRequest
 } from './provider.ts';
-import { normalizeCourse, normalizeDrill, normalizeGrade, normalizeTutor } from './schema.ts';
+import { normalizeCourse, normalizeDrill, normalizeGrade, normalizePlan, normalizeTutor } from './schema.ts';
+
+const MOCK_PLAN_TOPICS = [
+  ['一般现在时与日常作息', '一般现在时第三人称单数', '日常作息词汇'],
+  ['一般过去时与过去经历', '规则与不规则动词过去式', '周末活动词汇'],
+  ['现在进行时与当下场景', 'be + doing 的用法', '天气与场景词汇'],
+  ['比较级与最高级', '形容词比较级和最高级', '描述与评价词汇'],
+  ['there be 句型', 'there be 的单复数', '房间与城市词汇'],
+  ['when / if 引导的时间与条件句', '主将从现', '计划与天气词汇'],
+  ['动词不定式', 'want/need/decide + to do', '目标与计划词汇'],
+  ['动名词', 'enjoy/finish/avoid + doing', '兴趣与习惯词汇'],
+  ['现在完成时', 'have/has + 过去分词', '经历与变化词汇'],
+  ['被动语态', 'be + 过去分词', '新闻与流程词汇']
+];
+
+const MOCK_LEVELS: Record<string, string> = { junior: 'A2', senior: 'B1', cet4: 'B2', cet6: 'C1' };
 
 /** Deterministic provider used for tests and offline development. No network, no cost. */
 export class MockProvider implements AiProvider {
@@ -48,6 +65,22 @@ export class MockProvider implements AiProvider {
       explanation: `第三人称单数用 practices（模拟题目，目标知识点：${request.label}）。`
     });
     return { data: drill, usage: { inputTokens: 0, outputTokens: 0 } };
+  }
+
+  async generatePlan(request: PlanRequest, signal?: AbortSignal): Promise<ProviderResult<PlanResult>> {
+    await delay(this.config.mockLatencyMs, signal);
+    const level = MOCK_LEVELS[request.targetLevel] ?? 'B1';
+    const units = Array.from({ length: request.count }, (_, index) => {
+      const [topic, grammar, vocabulary] = MOCK_PLAN_TOPICS[index % MOCK_PLAN_TOPICS.length];
+      return {
+        topic,
+        grammar,
+        vocabulary,
+        goal: `掌握${grammar}，能围绕「${vocabulary}」完成一次综合练习`,
+        level: index < request.count / 2 ? MOCK_LEVELS[request.startLevel] ?? 'A2' : level
+      };
+    });
+    return { data: normalizePlan({ units }, request.count), usage: { inputTokens: 0, outputTokens: 0 } };
   }
 }
 

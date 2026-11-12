@@ -8,13 +8,15 @@ import type {
   GenerateCourseRequest,
   GradeRequest,
   GradeResult,
+  PlanRequest,
+  PlanResult,
   ProviderResult,
   TokenUsage,
   TutorAnswer,
   TutorRequest
 } from './provider.ts';
-import { courseMessages, drillMessages, gradeMessages, tutorMessages } from './prompts.ts';
-import { normalizeCourse, normalizeDrill, normalizeGrade, normalizeTutor } from './schema.ts';
+import { courseMessages, drillMessages, gradeMessages, planMessages, tutorMessages } from './prompts.ts';
+import { normalizeCourse, normalizeDrill, normalizeGrade, normalizePlan, normalizeTutor } from './schema.ts';
 
 interface ChatResult {
   json: unknown;
@@ -49,6 +51,11 @@ export class OpenAiProvider implements AiProvider {
   async generateDrill(request: DrillRequest, signal?: AbortSignal): Promise<ProviderResult<Drill>> {
     const result = await this.chat(drillMessages(request), signal);
     return { data: normalizeDrill(result.json), usage: result.usage };
+  }
+
+  async generatePlan(request: PlanRequest, signal?: AbortSignal): Promise<ProviderResult<PlanResult>> {
+    const result = await this.chat(planMessages(request), signal);
+    return { data: normalizePlan(result.json, request.count), usage: result.usage };
   }
 
   private async chat(messages: { role: string; content: string }[], signal?: AbortSignal): Promise<ChatResult> {

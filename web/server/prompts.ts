@@ -1,4 +1,4 @@
-import type { DrillRequest, GenerateCourseRequest, GradeRequest, TutorRequest } from './provider.ts';
+import type { DrillRequest, GenerateCourseRequest, GradeRequest, PlanRequest, TutorRequest } from './provider.ts';
 
 export interface ChatMessage {
   role: 'system' | 'user';
@@ -92,6 +92,47 @@ export function gradeMessages(request: GradeRequest): ChatMessage[] {
         '只输出 JSON：{"status":"correct|partial|uncertain","feedback":"中文说明，不超过 120 字"}'
       ].join('\n')
     }
+  ];
+}
+
+const PLAN_SCHEMA = `{
+  "units": [
+    {
+      "topic": "课程主题，中文，≤40 字",
+      "grammar": "本节语法点，中文短句",
+      "vocabulary": "词汇方向，中文",
+      "goal": "学习目标，一句话",
+      "level": "CEFR 等级，如 A2、B1、B2"
+    }
+  ]
+}`;
+
+const LEVEL_LABELS: Record<PlanRequest['startLevel'], string> = {
+  junior: '初中',
+  senior: '高中',
+  cet4: '四级',
+  cet6: '六级'
+};
+
+export function planMessages(request: PlanRequest): ChatMessage[] {
+  const lines = [
+    `请为一名英语学习者规划 ${request.count} 节课，从第 ${request.startNumber} 课开始。`,
+    `当前等级：${LEVEL_LABELS[request.startLevel]}；目标等级：${LEVEL_LABELS[request.targetLevel]}。`,
+    request.learned.length ? `已经学过的主题（不要重复）：${request.learned.slice(0, 40).join('；')}。` : '',
+    '',
+    '要求：',
+    `- 恰好 ${request.count} 节课，按难度递进，覆盖从当前等级到目标等级的核心语法与词汇；`,
+    '- 每节课只聚焦一个语法点，主题具体、一节课内能学完；',
+    '- 主题和语法点不要与已学内容重复；',
+    '- level 用 CEFR 表示，随进度从当前等级逐步升到目标等级；',
+    '- 只输出 JSON 对象，不要 Markdown 代码块，不要解释文字。',
+    '',
+    '输出结构：',
+    PLAN_SCHEMA
+  ];
+  return [
+    { role: 'system', content: SYSTEM },
+    { role: 'user', content: lines.filter(Boolean).join('\n') }
   ];
 }
 

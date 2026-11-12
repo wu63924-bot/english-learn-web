@@ -3,8 +3,20 @@ import { Link, useNavigate } from 'react-router';
 import { Card, PageHeader } from '../components/UI';
 import { backupCounts, createBackup, parseBackup, restoreBackup } from '../services/backupService';
 import { generateCourse, getAiHealth, aiBaseUrl, AiError, type AiHealth } from '../services/aiClient';
-import { nextCourseNumber, saveGeneratedCourse } from '../services/courseImport';
-import { coursePreset } from '../data/coursePlan';
+import { saveGeneratedCourse, nextCourseNumber } from '../services/courseImport';
+import { nextCourseInput, ensurePlanBatch } from '../services/nextCourse';
+import {
+  appendPlanUnits,
+  createPlan,
+  dropPendingFrom,
+  getLearningPlan,
+  LEVEL_LABELS,
+  markUnitDone,
+  markUnitSkipped,
+  updateUnitTopic
+} from '../repositories/planRepository';
+import type { LearningPlan, LevelKey } from '../types/domain';
+import { generatePlan } from '../services/aiClient';
 import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
@@ -35,6 +47,8 @@ export function SettingsPage() {
   const [health, setHealth] = useState<AiHealth | null>(null);
   const [usage, setUsage] = useState<AiUsageSummary>({ requests: 0, tokens: 0 });
   const [nextNumber, setNextNumber] = useState<number | null>(null);
+  const [nextTopic, setNextTopic] = useState('');
+  const [nextLevel, setNextLevel] = useState('');
   const [generating, setGenerating] = useState(false);
   const [generatedId, setGeneratedId] = useState<string | null>(null);
   const [aiMessage, setAiMessage] = useState('');
@@ -56,18 +70,31 @@ export function SettingsPage() {
   const [accessToken, setAccessToken] = useState('');
   const [tokenStatus, setTokenStatus] = useState('');
   const [savingToken, setSavingToken] = useState(false);
+  const [plan, setPlan] = useState<LearningPlan | null>(null);
+  const [startLevel, setStartLevel] = useState<LevelKey>('senior');
+  const [targetLevel, setTargetLevel] = useState<LevelKey>('cet4');
+  const [planBusy, setPlanBusy] = useState(false);
+  const [planError, setPlanError] = useState('');
+  const [editingUnit, setEditingUnit] = useState<{ number: number; topic: string } | null>(null);
 
   useEffect(() => {
     let active = true;
-    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber(), getHistorySummary(), listWeakLabels(), pendingGradeCount(), getAiAccessToken()]).then(([healthResult, usageResult, number, historyResult, weak, pending, token]) => {
+    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseInput(), getHistorySummary(), listWeakLabels(), pendingGradeCount(), getAiAccessToken(), getLearningPlan()]).then(([healthResult, usageResult, next, historyResult, weak, pending, token, savedPlan]) => {
       if (!active) return;
       setHealth(healthResult);
       setUsage(usageResult);
-      setNextNumber(number);
+      setNextNumber(next.number);
+      setNextTopic(next.topic);
+      setNextLevel(next.level);
       setHistorySummary(historyResult);
       setWeakLabels(weak);
       setPendingGrades(pending);
       setAccessToken(token);
+      if (savedPlan) {
+        setPlan(savedPlan);
+        setStartLevel(savedPlan.startLevel);
+        setTargetLevel(savedPlan.targetLevel);
+      }
     });
     return () => {
       active = false;
@@ -154,29 +181,123 @@ export function SettingsPage() {
     }
   }
 
+  async function handleCreatePlan() {
+    if (planBusy) return;
+    setPlanBusy(true);
+    setPlanError('');
+    try {
+      const startNumber = await nextCourseNumber();
+      const learned = (plan?.units ?? [])
+        .filter(unit => unit.status === 'done')
+        .map(unit => `${unit.topic}（${unit.grammar}）`);
+      const units = await generatePlan({ startNumber, startLevel, targetLevel, learned });
+      const created = await createPlan({ startLevel, targetLevel, startNumber, units });
+      setPlan(created);
+      await refreshNext();
+    } catch (reason) {
+      setPlanError(reason instanceof AiError ? reason.message : reason instanceof Error ? reason.message : '路线生成失败');
+    } finally {
+      setPlanBusy(false);
+    }
+  }
+
+  async function handleAppendPlan() {
+    if (!plan || planBusy) return;
+    setPlanBusy(true);
+    setPlanError('');
+    try {
+      const startNumber = await nextCourseNumber();
+      const learned = plan.units.map(unit => `${unit.topic}（${unit.grammar}）`);
+      const units = await generatePlan({
+        startNumber,
+        startLevel: plan.startLevel,
+        targetLevel: plan.targetLevel,
+        learned
+      });
+      setPlan(await appendPlanUnits(plan, startNumber, units));
+    } catch (reason) {
+      setPlanError(reason instanceof AiError ? reason.message : reason instanceof Error ? reason.message : '续规划失败');
+    } finally {
+      setPlanBusy(false);
+    }
+  }
+
+  async function handleReplan() {
+    if (planBusy) return;
+    setPlanBusy(true);
+    setPlanError('');
+    try {
+      const kept = await dropPendingFrom(1);
+      const startNumber = await nextCourseNumber();
+      const learned = (kept?.units ?? plan?.units ?? [])
+        .filter(unit => unit.status === 'done')
+        .map(unit => `${unit.topic}（${unit.grammar}）`);
+      const units = await generatePlan({ startNumber, startLevel, targetLevel, learned });
+      const created = await createPlan({
+        startLevel,
+        targetLevel,
+        startNumber,
+        units,
+        keep: kept?.units ?? []
+      });
+      setPlan(created);
+      await refreshNext();
+    } catch (reason) {
+      setPlanError(reason instanceof AiError ? reason.message : reason instanceof Error ? reason.message : '重新规划失败');
+    } finally {
+      setPlanBusy(false);
+    }
+  }
+
+  async function handleSkipUnit(number: number) {
+    await markUnitSkipped(number);
+    setPlan(await getLearningPlan() ?? null);
+    await refreshNext();
+  }
+
+  async function handleSaveTopic() {
+    if (!editingUnit) return;
+    await updateUnitTopic(editingUnit.number, editingUnit.topic);
+    setEditingUnit(null);
+    setPlan(await getLearningPlan() ?? null);
+    await refreshNext();
+  }
+
+  async function refreshNext() {
+    const next = await nextCourseInput();
+    setNextNumber(next.number);
+    setNextTopic(next.topic);
+    setNextLevel(next.level);
+  }
+
   async function handleGenerate() {
-    if (!nextNumber || generating) return;
-    const preset = coursePreset(nextNumber);
+    if (generating) return;
     setGenerating(true);
     setAiError('');
     setAiMessage('');
     try {
+      await ensurePlanBatch();
+      const input = await nextCourseInput();
       const { course, provider } = await generateCourse({
-        number: nextNumber,
-        topic: preset.topic,
-        level: preset.level,
-        goal: preset.goal,
+        number: input.number,
+        topic: input.topic,
+        level: input.level,
+        goal: input.goal,
         focus: weakLabels.length ? weakLabels.join('；') : undefined
       });
-      const saved = await saveGeneratedCourse({ number: nextNumber, payload: course, provider });
+      const saved = await saveGeneratedCourse({ number: input.number, payload: course, provider });
+      if (input.planUnitNumber !== undefined) await markUnitDone(input.planUnitNumber, saved.course.id);
       setGeneratedId(saved.course.id);
       setAiMessage(saved.existing
-        ? `第 ${nextNumber} 课已存在，没有重复生成。`
-        : `已生成第 ${nextNumber} 课《${saved.course.title}》${provider === 'mock' ? '（模拟内容）' : ''}，点击打开。`);
-      const [nextHealth, nextUsage, number] = await Promise.all([getAiHealth(), getTodayUsage(), nextCourseNumber()]);
+        ? `第 ${input.number} 课已存在，没有重复生成。`
+        : `已生成第 ${input.number} 课《${saved.course.title}》${provider === 'mock' ? '（模拟内容）' : ''}，点击打开。`);
+      const [nextHealth, nextUsage, next] = await Promise.all([getAiHealth(), getTodayUsage(), nextCourseInput()]);
       setHealth(nextHealth);
       setUsage(nextUsage);
-      setNextNumber(number);
+      setNextNumber(next.number);
+      setNextTopic(next.topic);
+      setNextLevel(next.level);
+      setPlan(await getLearningPlan() ?? null);
       setWeakLabels(await listWeakLabels());
     } catch (reason) {
       setAiError(reason instanceof AiError ? reason.message : reason instanceof Error ? reason.message : '生成失败');
@@ -224,7 +345,7 @@ export function SettingsPage() {
       setHistoryPreview(null);
       setHistoryText('');
       setHistorySummary(await getHistorySummary());
-      setNextNumber(await nextCourseNumber());
+      await refreshNext();
       setWeakLabels(await listWeakLabels());
     } catch (reason) {
       setHistoryError(`导入失败，本机数据未改变：${reason instanceof Error ? reason.message : '未知错误'}`);
@@ -239,7 +360,8 @@ export function SettingsPage() {
     setBridgeError('');
     setAiMessage('');
     try {
-      const number = await nextCourseNumber();
+      const nextInput = await nextCourseInput();
+      const number = nextInput.number;
       const { course, provider } = await generateCourse({
         number,
         topic: '衔接复习：第三人称单数、过去时、there be、比较级、并列句',
@@ -250,7 +372,7 @@ export function SettingsPage() {
       const saved = await saveGeneratedCourse({ number, payload: course, provider });
       setGeneratedId(saved.course.id);
       setAiMessage(`已生成衔接复习课（第 ${number} 课《${saved.course.title}》），点击打开。`);
-      setNextNumber(await nextCourseNumber());
+      await refreshNext();
       setHealth(await getAiHealth());
       setWeakLabels(await listWeakLabels());
     } catch (reason) {
@@ -261,7 +383,6 @@ export function SettingsPage() {
   }
 
   const counts = pending ? backupCounts(pending) : null;
-  const preset = nextNumber === null ? null : coursePreset(nextNumber);
 
   return (
     <>
@@ -395,6 +516,93 @@ export function SettingsPage() {
         {bridgeError && <p className="error-text">{bridgeError}</p>}
       </Card>
 
+      <Card title="学习路线">
+        <p className="muted">选当前等级和目标等级，系统按 10 课一批规划；学完一课再生成下一课，不会一次生成全部。</p>
+        <div className="plan-levels">
+          <label className="form-field">
+            <span>当前等级</span>
+            <select
+              className="text-input"
+              value={startLevel}
+              onChange={event => setStartLevel(event.target.value as LevelKey)}
+              aria-label="当前等级"
+            >
+              {(Object.keys(LEVEL_LABELS) as LevelKey[]).map(level => (
+                <option key={level} value={level}>{LEVEL_LABELS[level]}</option>
+              ))}
+            </select>
+          </label>
+          <label className="form-field">
+            <span>目标等级</span>
+            <select
+              className="text-input"
+              value={targetLevel}
+              onChange={event => setTargetLevel(event.target.value as LevelKey)}
+              aria-label="目标等级"
+            >
+              {(Object.keys(LEVEL_LABELS) as LevelKey[]).map(level => (
+                <option key={level} value={level}>{LEVEL_LABELS[level]}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {plan ? (
+          <>
+            <p className="plan-summary">
+              {LEVEL_LABELS[plan.startLevel]} → {LEVEL_LABELS[plan.targetLevel]} · 已规划 {plan.units.length} 课
+            </p>
+            <ul className="plan-list">
+              {plan.units.map(unit => (
+                <li key={unit.number} className={`plan-item ${unit.status}`}>
+                  <div className="plan-item-main">
+                    <span className="plan-number">第 {unit.number} 课</span>
+                    <span className="plan-topic">{unit.topic}</span>
+                    <span className="plan-meta">{unit.grammar} · {unit.level ?? '—'}</span>
+                  </div>
+                  <div className="plan-item-actions">
+                    {unit.status === 'done' && <span className="plan-badge done">已完成</span>}
+                    {unit.status === 'skipped' && <span className="plan-badge">已跳过</span>}
+                    {editingUnit?.number === unit.number ? (
+                      <>
+                        <input
+                          className="text-input plan-topic-input"
+                          value={editingUnit.topic}
+                          onChange={event => setEditingUnit({ ...editingUnit, topic: event.target.value })}
+                          aria-label="新主题"
+                        />
+                        <button type="button" className="ghost-button" onClick={() => { void handleSaveTopic(); }}>保存</button>
+                        <button type="button" className="ghost-button" onClick={() => setEditingUnit(null)}>取消</button>
+                      </>
+                    ) : unit.status === 'pending' ? (
+                      <>
+                        <button type="button" className="ghost-button" onClick={() => setEditingUnit({ number: unit.number, topic: unit.topic })}>换主题</button>
+                        <button type="button" className="ghost-button" onClick={() => { void handleSkipUnit(unit.number); }}>跳过</button>
+                      </>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <div className="button-row">
+              <button type="button" className="ghost-button" onClick={() => { void handleAppendPlan(); }} disabled={planBusy}>
+                续规划 10 课
+              </button>
+              <button type="button" className="ghost-button" onClick={() => { void handleReplan(); }} disabled={planBusy}>
+                重新规划
+              </button>
+            </div>
+            <p className="muted">改等级后点“重新规划”，会保留已完成课程，重排后面的课。</p>
+          </>
+        ) : (
+          <button type="button" className="primary-button" onClick={() => { void handleCreatePlan(); }} disabled={planBusy}>
+            {planBusy ? '正在规划…' : '生成 10 课路线'}
+          </button>
+        )}
+        {planBusy && plan && <p className="muted">正在调用 AI 规划，请稍候…</p>}
+        {planError && <p className="error-text">{planError}</p>}
+      </Card>
+
       <Card title="AI">
         <p className="ai-status">
           代理地址：{aiBaseUrl()}
@@ -440,8 +648,8 @@ export function SettingsPage() {
           <div className="ai-preset">
             <span className="eyebrow">下一课</span>
             <strong>{nextNumber ? `第 ${nextNumber} 课` : '尚未确定'}</strong>
-            <p>{preset?.topic ?? '—'}</p>
-            <p className="muted">等级 {preset?.level ?? '—'} · 主题按预设路线自动选择</p>
+            <p>{nextTopic || '—'}</p>
+            <p className="muted">等级 {nextLevel || '—'} · 主题按学习路线或预设自动选择</p>
           </div>
           <button type="button" className="primary-button" onClick={() => { void handleGenerate(); }} disabled={generating || nextNumber === null}>
             {generating ? '正在生成…' : '生成并保存这节课'}

@@ -104,6 +104,28 @@ export interface TokenUsage {
   outputTokens: number;
 }
 
+export type PlanLevel = 'junior' | 'senior' | 'cet4' | 'cet6';
+
+export interface PlanRequest {
+  startNumber: number;
+  startLevel: PlanLevel;
+  targetLevel: PlanLevel;
+  count: number;
+  learned: string[];
+}
+
+export interface PlanUnitDraft {
+  topic: string;
+  grammar: string;
+  vocabulary: string;
+  goal: string;
+  level?: string;
+}
+
+export interface PlanResult {
+  units: PlanUnitDraft[];
+}
+
 export interface ProviderResult<T> {
   data: T;
   usage: TokenUsage;
@@ -114,4 +136,5 @@ export interface AiProvider {
   grade(request: GradeRequest, signal?: AbortSignal): Promise<ProviderResult<GradeResult>>;
   tutor(request: TutorRequest, signal?: AbortSignal): Promise<ProviderResult<TutorAnswer>>;
   generateDrill(request: DrillRequest, signal?: AbortSignal): Promise<ProviderResult<Drill>>;
+  generatePlan(request: PlanRequest, signal?: AbortSignal): Promise<ProviderResult<PlanResult>>;
 }

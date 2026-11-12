@@ -99,6 +99,24 @@ describe('AI proxy', () => {
     }
   });
 
+  it('generates a ten-unit learning plan', async () => {
+    const app = await start();
+    try {
+      const response = await post(app.url, '/api/plan', {
+        startNumber: 32,
+        startLevel: 'senior',
+        targetLevel: 'cet4',
+        learned: []
+      });
+      const payload = await response.json() as { data: { units: { topic: string }[] } };
+      expect(response.status).toBe(200);
+      expect(payload.data.units).toHaveLength(10);
+      expect(payload.data.units[0].topic.length).toBeGreaterThan(0);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('rejects an invalid request body', async () => {
     const app = await start();
     try {
@@ -190,7 +208,8 @@ describe('AI proxy', () => {
       }),
       grade: async () => { throw new ApiError('AI_UNAVAILABLE'); },
       tutor: async () => { throw new ApiError('AI_UNAVAILABLE'); },
-      generateDrill: async () => { throw new ApiError('AI_UNAVAILABLE'); }
+      generateDrill: async () => { throw new ApiError('AI_UNAVAILABLE'); },
+      generatePlan: async () => { throw new ApiError('AI_UNAVAILABLE'); }
     };
     const app = await start({ timeoutMs: 50 }, hanging);
     try {

@@ -232,6 +232,31 @@ export async function generateDrill(input: { label: string; context?: string }, 
   return data;
 }
 
+export interface PlanUnitResult {
+  topic: string;
+  grammar: string;
+  vocabulary: string;
+  goal: string;
+  level?: string;
+}
+
+export async function generatePlan(
+  input: { startNumber: number; startLevel: string; targetLevel: string; learned: string[] },
+  overrides: AiCallOverrides = {}
+): Promise<PlanUnitResult[]> {
+  const envelope = await call<{ units: PlanUnitResult[] }>('/api/plan', input, {
+    idempotencyKey: `plan-${hash(`${input.startNumber}|${input.startLevel}|${input.targetLevel}|${input.learned.length}`)}`,
+    kind: 'plan',
+    ...overrides
+  });
+  const units = envelope.data?.units;
+  if (!Array.isArray(units) || units.length !== 10
+    || units.some(unit => !unit || typeof unit.topic !== 'string' || typeof unit.grammar !== 'string')) {
+    throw new AiError('BAD_PAYLOAD', 'AI 返回的路线不完整，已忽略');
+  }
+  return units;
+}
+
 export async function getAiHealth(overrides: AiCallOverrides = {}): Promise<AiHealth | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 4_000);
