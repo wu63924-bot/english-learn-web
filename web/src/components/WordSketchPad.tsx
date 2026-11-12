@@ -60,13 +60,27 @@ export function WordSketchPad({ resetKey }: Props) {
   useEffect(() => {
     strokes.current = [];
     if (!open) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    // 展开草稿期间整页禁止选择文字，避免 iPad 长按弹出拷贝/翻译菜单。
+    document.body.classList.add('sketching');
     resize();
     const onResize = () => {
       strokes.current = [];
       resize();
     };
+    const stopTouch = (event: TouchEvent) => {
+      if (event.cancelable) event.preventDefault();
+    };
+    canvas.addEventListener('touchstart', stopTouch, { passive: false });
+    canvas.addEventListener('touchmove', stopTouch, { passive: false });
     window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    return () => {
+      document.body.classList.remove('sketching');
+      canvas.removeEventListener('touchstart', stopTouch);
+      canvas.removeEventListener('touchmove', stopTouch);
+      window.removeEventListener('resize', onResize);
+    };
     // resetKey 变化时也要清空；open 变化时初始化画布
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, resetKey]);

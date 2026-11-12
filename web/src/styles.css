@@ -1885,6 +1885,13 @@ button {
   -webkit-touch-callout: none;
 }
 
+body.sketching,
+body.sketching * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .sketch-toggle {
   padding: 7px 14px;
   border: 1px dashed var(--line);
