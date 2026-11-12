@@ -22,6 +22,8 @@ export interface LearningPlan {
   startLevel: LevelKey;
   targetLevel: LevelKey;
   units: PlanUnit[];
+  /** 用户指定的下一课；生成时优先用它 */
+  currentNumber?: number;
   updatedAt: Timestamp;
 }
 
@@ -308,6 +310,8 @@ export interface AppSettings {
   drillPlan?: { dateKey: string; mistakeIds: string[]; answeredIds: string[] };
   /** 学习路线：等级 → 目标 + 已规划课程 */
   learningPlan?: LearningPlan;
+  /** 用户手动设为当前课程的课程 id */
+  currentCourseId?: string;
   aiAccessToken?: string;
   knowledgeUnifiedAt?: Timestamp;
   wordReviewsMigratedAt?: Timestamp;

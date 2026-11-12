@@ -12,7 +12,7 @@ export interface CourseRecord {
 }
 
 export async function deleteCourseRecord(courseId: string): Promise<void> {
-  await db.transaction('rw', [db.courses, db.courseModules, db.answers, db.grades, db.mistakes, db.pendingAi], async () => {
+  await db.transaction('rw', [db.courses, db.courseModules, db.answers, db.grades, db.mistakes, db.pendingAi, db.settings], async () => {
     const answers = await db.answers.where('courseId').equals(courseId).toArray();
     await db.grades.bulkDelete(answers.map(answer => gradeRecordId(answer.id)));
     await db.answers.bulkDelete(answers.map(answer => answer.id));
@@ -20,6 +20,10 @@ export async function deleteCourseRecord(courseId: string): Promise<void> {
     await db.pendingAi.filter(item => item.courseId === courseId).delete();
     await db.courseModules.where('courseId').equals(courseId).delete();
     await db.courses.delete(courseId);
+    const settings = await db.settings.get('app');
+    if (settings?.currentCourseId === courseId) {
+      await db.settings.put({ ...settings, currentCourseId: undefined, updatedAt: Date.now() });
+    }
   });
 }
 

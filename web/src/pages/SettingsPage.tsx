@@ -13,9 +13,13 @@ import {
   LEVEL_LABELS,
   markUnitDone,
   markUnitSkipped,
+  removePlanUnit,
+  setPlanCurrent,
   updateUnitTopic
 } from '../repositories/planRepository';
-import type { LearningPlan, LevelKey } from '../types/domain';
+import { pinCourse } from '../repositories/courseRepository';
+import { deleteCourseRecord } from '../repositories/recordRepository';
+import type { LearningPlan, LevelKey, PlanUnit } from '../types/domain';
 import { generatePlan } from '../services/aiClient';
 import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
@@ -76,6 +80,7 @@ export function SettingsPage() {
   const [planBusy, setPlanBusy] = useState(false);
   const [planError, setPlanError] = useState('');
   const [editingUnit, setEditingUnit] = useState<{ number: number; topic: string } | null>(null);
+  const [planMessage, setPlanMessage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -263,6 +268,35 @@ export function SettingsPage() {
     await refreshNext();
   }
 
+  async function handlePinUnit(unit: PlanUnit) {
+    setPlanMessage('');
+    if (unit.courseId) {
+      await pinCourse(unit.courseId);
+      setPlanMessage(`已把第 ${unit.number} 课设为当前课程`);
+    } else {
+      const ok = await setPlanCurrent(unit.number);
+      if (!ok) {
+        setPlanMessage('这节课已经不能作为下一课，换一节试试。');
+        return;
+      }
+      setPlanMessage(`下一课已切换到第 ${unit.number} 课`);
+      await refreshNext();
+    }
+    setPlan(await getLearningPlan() ?? null);
+  }
+
+  async function handleRemoveUnit(unit: PlanUnit) {
+    if (unit.courseId) {
+      const confirmed = window.confirm(`删除第 ${unit.number} 课？会同时删除这节课的学习记录，不可恢复。`);
+      if (!confirmed) return;
+      await deleteCourseRecord(unit.courseId);
+    }
+    await removePlanUnit(unit.number);
+    setPlanMessage(`已删除第 ${unit.number} 课`);
+    setPlan(await getLearningPlan() ?? null);
+    await refreshNext();
+  }
+
   async function refreshNext() {
     const next = await nextCourseInput();
     setNextNumber(next.number);
@@ -435,6 +469,8 @@ export function SettingsPage() {
       </Card>
 
       <Card title="历史导入">
+        <details className="ai-connect">
+          <summary>展开导入工具{historySummary?.days ? ` · 已导入 ${historySummary.days} 天` : ''}</summary>
         <p className="muted">导入从 ChatGPT 或课程材料整理出的学习历史。只写“学过／出现过”，不写成绩、错题或掌握状态。</p>
         {historySummary && historySummary.days > 0 && (
           <p className="ai-status">
@@ -514,6 +550,7 @@ export function SettingsPage() {
         {historyStatus && <p className="status-text">{historyStatus}</p>}
         {historyError && <p className="error-text">{historyError}</p>}
         {bridgeError && <p className="error-text">{bridgeError}</p>}
+        </details>
       </Card>
 
       <Card title="学习路线">
@@ -561,8 +598,6 @@ export function SettingsPage() {
                     <span className="plan-meta">{unit.grammar} · {unit.level ?? '—'}</span>
                   </div>
                   <div className="plan-item-actions">
-                    {unit.status === 'done' && <span className="plan-badge done">已完成</span>}
-                    {unit.status === 'skipped' && <span className="plan-badge">已跳过</span>}
                     {editingUnit?.number === unit.number ? (
                       <>
                         <input
@@ -574,12 +609,33 @@ export function SettingsPage() {
                         <button type="button" className="ghost-button" onClick={() => { void handleSaveTopic(); }}>保存</button>
                         <button type="button" className="ghost-button" onClick={() => setEditingUnit(null)}>取消</button>
                       </>
-                    ) : unit.status === 'pending' ? (
+                    ) : (
                       <>
-                        <button type="button" className="ghost-button" onClick={() => setEditingUnit({ number: unit.number, topic: unit.topic })}>换主题</button>
-                        <button type="button" className="ghost-button" onClick={() => { void handleSkipUnit(unit.number); }}>跳过</button>
+                        {unit.status === 'done' && (
+                          <>
+                            <span className="plan-badge done">已完成</span>
+                            {unit.courseId && (
+                              <button type="button" className="ghost-button" onClick={() => { void handlePinUnit(unit); }}>设为当前</button>
+                            )}
+                          </>
+                        )}
+                        {unit.status === 'skipped' && <span className="plan-badge">已跳过</span>}
+                        {unit.status === 'pending' && (
+                          <>
+                            <button type="button" className="ghost-button" onClick={() => setEditingUnit({ number: unit.number, topic: unit.topic })}>换主题</button>
+                            <button type="button" className="ghost-button" onClick={() => { void handlePinUnit(unit); }}>设为当前</button>
+                            <button type="button" className="ghost-button" onClick={() => { void handleSkipUnit(unit.number); }}>跳过</button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          className="ghost-button danger"
+                          onClick={() => { void handleRemoveUnit(unit); }}
+                        >
+                          删除
+                        </button>
                       </>
-                    ) : null}
+                    )}
                   </div>
                 </li>
               ))}
@@ -593,6 +649,7 @@ export function SettingsPage() {
               </button>
             </div>
             <p className="muted">改等级后点“重新规划”，会保留已完成课程，重排后面的课。</p>
+            {planMessage && <p className="status-text">{planMessage}</p>}
           </>
         ) : (
           <button type="button" className="primary-button" onClick={() => { void handleCreatePlan(); }} disabled={planBusy}>
@@ -603,7 +660,9 @@ export function SettingsPage() {
         {planError && <p className="error-text">{planError}</p>}
       </Card>
 
-      <Card title="AI">
+      <Card title="AI 与课程">
+        <details className="ai-connect">
+          <summary>连接与口令</summary>
         <p className="ai-status">
           代理地址：{aiBaseUrl()}
           <br />
@@ -643,6 +702,7 @@ export function SettingsPage() {
             </button>
           </p>
         )}
+        </details>
 
         <div className="ai-form">
           <div className="ai-preset">
@@ -667,9 +727,7 @@ export function SettingsPage() {
         {health?.provider === 'mock' && <p className="notice">模拟模式生成的内容只用于验证流程，不能当真实学习材料。</p>}
       </Card>
 
-      <Card title="关于">
-        <p className="muted">版本 0.1.0 · 本地学习版</p>
-      </Card>
+      <p className="settings-foot">英语学习 0.1.0 · 数据只在本机</p>
     </>
   );
 }

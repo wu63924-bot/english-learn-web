@@ -44,7 +44,19 @@ export async function updateModuleStatus(moduleId: string, status: ModuleStatus)
  * The course shown on the home page: an unfinished started course wins,
  * otherwise the lowest-numbered unstarted AI lesson, then the lowest-numbered course.
  */
+/** 把某节课设为当前课程；首页优先显示它。 */
+export async function pinCourse(courseId: string): Promise<void> {
+  const settings = await db.settings.get('app');
+  if (!settings) return;
+  await db.settings.put({ ...settings, currentCourseId: courseId, updatedAt: Date.now() });
+}
+
 export async function getCurrentCourse(): Promise<Course | undefined> {
+  const settings = await db.settings.get('app');
+  if (settings?.currentCourseId) {
+    const pinned = await db.courses.get(settings.currentCourseId);
+    if (pinned) return pinned;
+  }
   const started = await db.courses.where('status').equals('in_progress').toArray();
   if (started.length) {
     return started.sort((a, b) => (b.startedDate ?? '').localeCompare(a.startedDate ?? ''))[0];

@@ -1486,6 +1486,43 @@ button {
   font-size: 0.8rem;
 }
 
+.settings-foot {
+  margin: 28px 0 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.ai-connect {
+  margin-bottom: 12px;
+}
+
+.ai-connect summary {
+  padding: 2px 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.ai-connect summary::-webkit-details-marker {
+  display: none;
+}
+
+.ai-connect summary:before {
+  content: '▸';
+  margin-right: 6px;
+  color: var(--accent);
+}
+
+.ai-connect[open] summary:before {
+  content: '▾';
+}
+
+.ai-connect > *:not(summary) {
+  margin-top: 10px;
+}
+
 .plan-levels {
   display: grid;
   grid-template-columns: 1fr 1fr;

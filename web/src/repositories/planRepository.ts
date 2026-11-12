@@ -82,7 +82,32 @@ export async function appendPlanUnits(plan: LearningPlan, startNumber: number, u
 
 export async function nextPendingUnit(plan?: LearningPlan): Promise<PlanUnit | undefined> {
   const current = plan ?? await getLearningPlan();
-  return current?.units.find(unit => unit.status === 'pending');
+  if (!current) return undefined;
+  const preferred = current.currentNumber !== undefined
+    ? current.units.find(unit => unit.number === current.currentNumber && unit.status === 'pending')
+    : undefined;
+  return preferred ?? current.units.find(unit => unit.status === 'pending');
+}
+
+/** 指定下一课；找不到或已完成时返回 false。 */
+export async function setPlanCurrent(number: number): Promise<boolean> {
+  const plan = await getLearningPlan();
+  if (!plan) return false;
+  const unit = plan.units.find(item => item.number === number);
+  if (!unit || unit.status !== 'pending') return false;
+  await savePlan({ ...plan, currentNumber: number });
+  return true;
+}
+
+/** 从路线里移除一节课；已生成的课程不在这里删除。 */
+export async function removePlanUnit(number: number): Promise<void> {
+  const plan = await getLearningPlan();
+  if (!plan) return;
+  await savePlan({
+    ...plan,
+    units: plan.units.filter(unit => unit.number !== number),
+    ...(plan.currentNumber === number ? { currentNumber: undefined } : {})
+  });
 }
 
 export async function markUnitDone(number: number, courseId: string): Promise<void> {
@@ -90,7 +115,8 @@ export async function markUnitDone(number: number, courseId: string): Promise<vo
   if (!plan) return;
   const next: LearningPlan = {
     ...plan,
-    units: plan.units.map(unit => (unit.number === number ? { ...unit, status: 'done', courseId } : unit))
+    units: plan.units.map(unit => (unit.number === number ? { ...unit, status: 'done', courseId } : unit)),
+    ...(plan.currentNumber === number ? { currentNumber: undefined } : {})
   };
   await savePlan(next);
 }

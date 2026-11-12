@@ -12,6 +12,8 @@ import {
   markUnitSkipped,
   nextPendingUnit,
   planProgress,
+  removePlanUnit,
+  setPlanCurrent,
   updateUnitTopic
 } from './planRepository';
 
@@ -76,6 +78,18 @@ describe('learning plan repository', () => {
     expect(next.units.map(unit => unit.number)).toEqual([32, 33, 34]);
     expect(next.units[0].status).toBe('done');
     expect(next.targetLevel).toBe('cet6');
+  });
+
+  it('pins a unit as next and removes units', async () => {
+    await createPlan({ startLevel: 'senior', targetLevel: 'cet4', startNumber: 32, units: units() });
+    expect(await setPlanCurrent(34)).toBe(true);
+    expect((await nextPendingUnit())?.number).toBe(34);
+
+    await removePlanUnit(34);
+    const plan = await getLearningPlan();
+    expect(plan?.units.some(unit => unit.number === 34)).toBe(false);
+    expect(plan?.currentNumber).toBeUndefined();
+    expect((await nextPendingUnit())?.number).toBe(32);
   });
 
   it('appends a batch without reusing taken numbers', async () => {
