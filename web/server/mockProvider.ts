@@ -164,6 +164,16 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
     ],
     passage: 'Mia practices English for twenty minutes every morning. She usually reads a short article and writes down three new words. Before class, she reviews her notes for five minutes. She does not study for long hours; instead, she keeps a steady habit. On busy days, she listens to a podcast while walking to work. Her teacher says progress comes from small steps, not from one long night of study.',
     passageTranslation: '米娅每天早上练二十分钟英语。她通常读一篇短文，记下三个新词。上课前，她用五分钟复习笔记。她不会长时间学习，而是保持稳定的习惯。忙碌的日子里，她走路去上班时听播客。老师说，进步来自小步积累，而不是熬一个长夜。',
+    passageGlossary: [
+      { term: 'steady', phonetic: '/ˈstedi/', meaning: '稳定的' },
+      { term: 'article', phonetic: '/ˈɑːtɪkl/', meaning: '文章' },
+      { term: 'notes', phonetic: '/nəʊts/', meaning: '笔记' },
+      { term: 'instead', phonetic: '/ɪnˈsted/', meaning: '而是；代替' },
+      { term: 'progress', phonetic: '/ˈprəʊɡres/', meaning: '进步' },
+      { term: 'podcast', phonetic: '/ˈpɒdkɑːst/', meaning: '播客' },
+      { term: 'while', phonetic: '/waɪl/', meaning: '当……的时候' },
+      { term: 'long hours', phonetic: '/lɒŋ ˈaʊəz/', meaning: '长时间' }
+    ],
     readingQuestions: [
       {
         kind: 'choice',

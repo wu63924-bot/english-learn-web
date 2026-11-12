@@ -25,7 +25,7 @@ const COURSE_SCHEMA = `{
   "passage": "英文短文，120-180 词",
   "passageTranslation": "中文译文",
   "passageGlossary": [
-    { "term": "短文中不在 words 里的生词", "phonetic": "/音标/", "meaning": "中文释义" }
+    { "term": "短文中未出现在 words 里的单词或短语", "phonetic": "/音标/", "meaning": "中文释义" }
   ],
   "readingQuestions": [
     { "kind": "choice", "prompt": "英文题干", "options": ["A","B","C","D"], "answerIndex": 0, "explanation": "中文解析", "knowledge": 1 }
@@ -51,7 +51,7 @@ export function courseMessages(request: GenerateCourseRequest): ChatMessage[] {
     '- 每段必须带 examples：2-4 条 { "en": 英文例句, "zh": 中文翻译 }，句子与正文对应，覆盖正面和反面用法；',
     '- grammarQuestions 恰好 5 道单选题，每题 4 个选项，answerIndex 是正确选项下标（0-3）；',
     '- passage 120-180 词，配中文译文；readingQuestions 恰好 5 道选择题（不要翻译题）；',
-    '- passageGlossary 列出短文中未出现在 words 里的生词 5-10 个，给音标和中文释义；',
+    '- passageGlossary 列出短文中所有超出本课 words、也不属于最基础 1000 词的单词或短语，8-15 个，优先名词、动词、形容词、副词；宁可多列，不要漏掉影响理解的词；每个给音标和中文释义；',
     '- knowledgeLabels 3-5 条；',
     '- reviewQuestions 恰好 10 道，顺序固定：前 3 道改错、接着 2 道英译汉、最后 5 道汉译英；',
     '- 改错题用 {"kind":"translate","variant":"correct","prompt":"改正这个句子：<错误句>","instruction":"改写为正确的英文句子：考查 <语法点>","reference":"<正确句>","explanation":"<错因>","knowledge":n}；',

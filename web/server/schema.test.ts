@@ -71,6 +71,12 @@ describe('course schema', () => {
     ]);
   });
 
+  it('keeps up to twenty glossary entries', () => {
+    const many = Array.from({ length: 25 }, (_, index) => ({ term: `word${index}`, meaning: '释义' }));
+    const course = normalizeCourse({ ...raw, passageGlossary: many }, 'test');
+    expect(course.passageGlossary).toHaveLength(20);
+  });
+
   it('accepts a course without a glossary for older providers', () => {
     const course = normalizeCourse({ ...raw, passageGlossary: undefined }, 'test');
     expect(course.passageGlossary).toBeUndefined();

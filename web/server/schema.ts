@@ -222,7 +222,7 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
   const readingQuestions = raw.readingQuestions.map((question, index) =>
     rawQuestion(question, `${prefix}-rq${index + 1}`, true));
   const passageGlossary = Array.isArray(raw.passageGlossary)
-    ? raw.passageGlossary.slice(0, 12).map(item => {
+    ? raw.passageGlossary.slice(0, 20).map(item => {
       if (!item || typeof item !== 'object') badOutput();
       const entry = item as Record<string, unknown>;
       return {
