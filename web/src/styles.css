@@ -1839,6 +1839,47 @@ button {
   margin-top: 14px;
 }
 
+.word-action-dock {
+  position: fixed;
+  z-index: 20;
+  left: 50%;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  width: min(100%, 560px);
+  padding: 8px 20px 10px;
+  background: linear-gradient(to top, var(--page) 72%, rgba(255, 248, 241, 0));
+  transform: translateX(-50%);
+}
+
+.word-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.word-action-bar .primary-button {
+  flex: 1;
+}
+
+.word-action-bar .word-feedback {
+  flex: 1;
+  margin-top: 0;
+}
+
+.word-action-bar .dock-back {
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+}
+
+.dock-notice {
+  margin: 0 0 8px;
+}
+
+.word-module {
+  padding-bottom: 96px;
+}
+
 .word-feedback.two {
   grid-template-columns: repeat(2, 1fr);
 }

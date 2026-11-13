@@ -165,31 +165,31 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
         <WordSketchPad resetKey={word.id} />
       </article>
 
-      {revealed && (
-        <div className="word-feedback" role="group" aria-label="单词掌握程度">
-          <button type="button" className={`word-rate known${currentStatus === 'known' ? ' active' : ''}`} onClick={() => { void rate('known'); }} disabled={saving}>
-            认识
+      <div className={`word-action-dock${revealed ? ' revealed' : ''}`}>
+        {alreadyDone && <p className="notice dock-notice">这个模块已完成，可以随时回来重看。</p>}
+        <div className="word-action-bar">
+          <button type="button" className="ghost-button dock-back" onClick={() => setIndex(value => Math.max(0, value - 1))} disabled={isFirst || saving}>
+            上一个
           </button>
-          <button type="button" className={`word-rate fuzzy${currentStatus === 'fuzzy' ? ' active' : ''}`} onClick={() => { void rate('fuzzy'); }} disabled={saving}>
-            模糊
-          </button>
-          <button type="button" className={`word-rate unknown${currentStatus === 'unknown' ? ' active' : ''}`} onClick={() => { void rate('unknown'); }} disabled={saving}>
-            不认识
-          </button>
+          {revealed ? (
+            <div className="word-feedback" role="group" aria-label="单词掌握程度">
+              <button type="button" className={`word-rate known${currentStatus === 'known' ? ' active' : ''}`} onClick={() => { void rate('known'); }} disabled={saving}>
+                认识
+              </button>
+              <button type="button" className={`word-rate fuzzy${currentStatus === 'fuzzy' ? ' active' : ''}`} onClick={() => { void rate('fuzzy'); }} disabled={saving}>
+                模糊
+              </button>
+              <button type="button" className={`word-rate unknown${currentStatus === 'unknown' ? ' active' : ''}`} onClick={() => { void rate('unknown'); }} disabled={saving}>
+                不认识
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="primary-button" onClick={() => setRevealed(true)}>
+              显示答案
+            </button>
+          )}
         </div>
-      )}
-
-      <nav className="module-nav">
-        <button type="button" className="ghost-button" onClick={() => setIndex(value => Math.max(0, value - 1))} disabled={isFirst || saving}>
-          上一个
-        </button>
-        {!revealed && (
-          <button type="button" className="primary-button" onClick={() => setRevealed(true)}>
-            显示答案
-          </button>
-        )}
-      </nav>
-      {alreadyDone && <p className="notice">这个模块已完成，可以随时回来重看。</p>}
+      </div>
     </div>
   );
 }
