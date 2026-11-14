@@ -5,11 +5,19 @@ import { todayKey } from '../utils/date';
 export const DRILL_LIMIT = 10;
 export const DRILL_MASTER_STREAK = 2;
 
+export interface DrillHint {
+  title: string;
+  rule?: string;
+  pattern?: string;
+}
+
 export interface DrillItem {
   mistake: Mistake;
   question: ChoiceQuestion | FillQuestion;
   courseNumber: number;
   moduleKind: ModuleKind;
+  /** 语法错题：所属规则卡，做题前先看规则 */
+  hint?: DrillHint;
 }
 
 export interface DrillPlan {
@@ -79,9 +87,27 @@ export async function listDrillItems(): Promise<DrillItem[]> {
     const course = await db.courses.get(mistake.courseId);
     const module = await db.courseModules.get(mistake.moduleId);
     if (!course || !module || module.kind === 'reading') continue;
-    items.push({ mistake, question, courseNumber: course.number, moduleKind: module.kind });
+    items.push({
+      mistake,
+      question,
+      courseNumber: course.number,
+      moduleKind: module.kind,
+      hint: question.kind === 'choice' ? grammarHint(module, question) : undefined
+    });
   }
   return items;
+}
+
+/** 语法选择题带 sectionIndex 时，取出对应规则卡。 */
+function grammarHint(
+  module: { kind: ModuleKind; content: unknown },
+  question: ChoiceQuestion
+): DrillHint | undefined {
+  if (module.kind !== 'grammar' || question.sectionIndex === undefined) return undefined;
+  const content = module.content as { sections?: { title: string; rule?: string; pattern?: string }[] };
+  const section = content.sections?.[question.sectionIndex];
+  if (!section) return undefined;
+  return { title: section.title, rule: section.rule, pattern: section.pattern };
 }
 
 export async function drillSummary(): Promise<{ total: number; done: number }> {

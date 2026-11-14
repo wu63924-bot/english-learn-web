@@ -132,6 +132,13 @@ export function DrillPage() {
       </div>
 
       <article className="card question-card">
+        {item.hint && (
+          <div className="drill-hint">
+            <p className="drill-hint-title">规则提醒 · {item.hint.title}</p>
+            {item.hint.rule && <p className="drill-hint-rule">{item.hint.rule}</p>}
+            {item.hint.pattern && <p className="drill-hint-pattern">{item.hint.pattern}</p>}
+          </div>
+        )}
         <p className="question-prompt">{question.prompt}</p>
 
         {question.kind === 'choice' ? (

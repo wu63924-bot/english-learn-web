@@ -150,7 +150,7 @@ export function normalizePlan(value: unknown, count = PLAN_COUNT): PlanResult {
   };
 }
 
-function rawChoice(value: Record<string, unknown>, prefix: string): ChoiceQuestion {
+function rawChoice(value: Record<string, unknown>, prefix: string, withSection = false): ChoiceQuestion {
   if (value.kind !== 'choice') badOutput();
   if (!Array.isArray(value.options) || value.options.length !== 4) badOutput();
   if (typeof value.answerIndex !== 'number' || !Number.isSafeInteger(value.answerIndex) || value.answerIndex < 0 || value.answerIndex > 3) badOutput();
@@ -161,6 +161,9 @@ function rawChoice(value: Record<string, unknown>, prefix: string): ChoiceQuesti
   const knowledge = typeof value.knowledge === 'number' && Number.isSafeInteger(value.knowledge) && value.knowledge >= 0
     ? value.knowledge
     : undefined;
+  const section = withSection && typeof value.section === 'number' && Number.isSafeInteger(value.section) && value.section >= 0
+    ? value.section
+    : undefined;
   return {
     kind: 'choice',
     id: prefix,
@@ -168,6 +171,7 @@ function rawChoice(value: Record<string, unknown>, prefix: string): ChoiceQuesti
     options,
     answerId: `${prefix}-o${value.answerIndex}`,
     explanation: text(value.explanation, '解析', 600, false),
+    ...(section === undefined ? {} : { sectionIndex: section }),
     ...(knowledge === undefined ? {} : { knowledgeIndex: knowledge })
   };
 }
@@ -260,15 +264,33 @@ export function normalizeCourse(value: unknown, prefix: string): GeneratedCourse
         return { en: text(entry.en, '例句', 300, false), zh: text(entry.zh, '例句翻译', 300, false) };
       })
       : undefined;
+    const trapRaw = item.trap;
+    let trap;
+    if (trapRaw && typeof trapRaw === 'object') {
+      const entry = trapRaw as Record<string, unknown>;
+      if (entry.wrong !== undefined && entry.right !== undefined) {
+        trap = {
+          wrong: text(entry.wrong, '错句', 200, false),
+          right: text(entry.right, '正确句', 200, false),
+          note: optionalText(entry.note, 120, false) ?? ''
+        };
+      }
+    }
     return {
       title: text(item.title, '语法标题', 60, false),
       body: text(item.body, '语法讲解', 1200, false),
+      ...(optionalText(item.rule, 60, false) ? { rule: optionalText(item.rule, 60, false) } : {}),
+      ...(optionalText(item.pattern, 120, false) ? { pattern: optionalText(item.pattern, 120, false) } : {}),
+      ...(optionalText(item.signal, 80, false) ? { signal: optionalText(item.signal, 80, false) } : {}),
+      ...(trap ? { trap } : {}),
       ...(examples && examples.length ? { examples } : {})
     };
   });
   const grammarQuestions = raw.grammarQuestions.map((question, index) => {
-    const normalized = rawQuestion(question, `${prefix}-gq${index + 1}`, false);
-    if (normalized.kind !== 'choice') badOutput();
+    const normalized = rawChoice(question as unknown as Record<string, unknown>, `${prefix}-gq${index + 1}`, true);
+    if (normalized.sectionIndex !== undefined && normalized.sectionIndex >= grammarSections.length) {
+      delete normalized.sectionIndex;
+    }
     return normalized;
   });
 

@@ -66,6 +66,7 @@ export interface RawChoiceQuestion {
   options: string[];
   answerIndex: number;
   explanation: string;
+  section?: number;
   knowledge?: number;
 }
 
@@ -89,7 +90,15 @@ export interface RawCourse {
   level?: string;
   words: { term: string; phonetic?: string; meanings: string[]; example: string; exampleTranslation: string; examplePhrases?: { phrase: string; meaning: string }[] }[];
   phrases?: { phrase: string; meaning: string }[];
-  grammarSections: { title: string; body: string; examples?: { en: string; zh: string }[] }[];
+  grammarSections: {
+    title: string;
+    body: string;
+    rule?: string;
+    pattern?: string;
+    signal?: string;
+    trap?: { wrong: string; right: string; note?: string };
+    examples?: { en: string; zh: string }[];
+  }[];
   grammarQuestions: RawQuestion[];
   passage: string;
   passageTranslation?: string;

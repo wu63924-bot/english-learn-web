@@ -16,9 +16,13 @@ interface Props {
   questions: Question[];
   finishing: boolean;
   onFinish: () => void;
+  /** 语法模块：答错后跳回对应规则卡 */
+  onReviewRule?: (sectionIndex: number) => void;
+  /** 规则卡一句话规则，按 sectionIndex 取，用于按钮文案 */
+  ruleLabels?: (string | undefined)[];
 }
 
-export function QuizModule({ courseId, moduleId, moduleStatus, questions, finishing, onFinish }: Props) {
+export function QuizModule({ courseId, moduleId, moduleStatus, questions, finishing, onFinish, onReviewRule, ruleLabels }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [index, setIndex] = useState(0);
@@ -291,6 +295,16 @@ export function QuizModule({ courseId, moduleId, moduleStatus, questions, finish
         onBlur={() => blurText(question)}
         onSubmitText={question.kind === 'fill' ? () => { void submitFill(question); } : undefined}
         onAiGrade={question.kind === 'translate' ? () => { void requestAiGrade(question); } : undefined}
+        onReviewRule={
+          onReviewRule && question.kind === 'choice' && question.sectionIndex !== undefined
+            ? () => onReviewRule(question.sectionIndex!)
+            : undefined
+        }
+        ruleLabel={
+          question.kind === 'choice' && question.sectionIndex !== undefined
+            ? ruleLabels?.[question.sectionIndex]
+            : undefined
+        }
       />
 
       {queuedIds.has(question.id) && (

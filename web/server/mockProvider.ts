@@ -175,7 +175,11 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
     grammarSections: [
       {
         title: '一般现在时',
-        body: '一般现在时表示习惯、规律和事实。主语是第三人称单数时，动词要加 -s 或 -es（She practices every day.）。否定句用 do not / does not 加动词原形，不能用 -s。常见错误是在 does not 后面仍然加 -s。',
+        rule: '第三人称单数动词加 -s',
+        pattern: '主语 + 动词(-s/-es) · 否定 do/does not + 原形',
+        signal: 'every day / usually / often',
+        trap: { wrong: 'She does not practices on Sundays.', right: 'She does not practise on Sundays.', note: 'does not 后回原形，不再加 -s' },
+        body: '一般现在时表示习惯、规律和事实。加 -s 只发生在肯定句的第三人称单数上。否定和疑问一旦用了 does，后面就交回动词原形。',
         examples: [
           { en: 'She practices English every morning.', zh: '她每天早上练英语。' },
           { en: 'She does not practise on Sundays.', zh: '她周日不练习。' }
@@ -183,7 +187,11 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
       },
       {
         title: '频率副词',
-        body: '频率副词表示做某事的频繁程度。它们放在实义动词之前，放在 be 动词之后（I always review. / She is often tired.）。不要放在句末，也不要和 am/is/are 混在一起。',
+        rule: '实义动词前，be 动词后',
+        pattern: '主语 + always/often/never + 实义动词 · 主语 + be + often/never',
+        signal: 'always / usually / often / never',
+        trap: { wrong: 'She never is late for class.', right: 'She is never late for class.', note: '频率副词站到 be 后面' },
+        body: '频率副词表示做某事的频繁程度，位置固定：实义动词前，be 动词后。放在句末或 be 前面都是典型错误。',
         examples: [
           { en: 'I always review my notes.', zh: '我总是复习笔记。' },
           { en: 'She is often tired after work.', zh: '她下班后常常很累。' }
@@ -191,11 +199,11 @@ function buildRawCourse(request: GenerateCourseRequest): RawCourse {
       }
     ],
     grammarQuestions: [
-      { kind: 'choice', prompt: 'She ___ English every morning.', options: ['practice', 'practices', 'practicing', 'practiced'], answerIndex: 1, explanation: '主语 she 是第三人称单数，动词加 -s。', knowledge: 0 },
-      { kind: 'choice', prompt: 'He doesn’t ___ time for TV.', options: ['has', 'have', 'having', 'had'], answerIndex: 1, explanation: 'doesn’t 后用动词原形。', knowledge: 0 },
-      { kind: 'choice', prompt: 'I ___ review my notes before class.', options: ['always', 'am always', 'always am', 'review always'], answerIndex: 0, explanation: '频率副词放在实义动词前。', knowledge: 1 },
-      { kind: 'choice', prompt: 'They ___ study on Sundays.', options: ['don’t', 'doesn’t', 'aren’t', 'not'], answerIndex: 0, explanation: '复数主语用 don’t 加动词原形。', knowledge: 0 },
-      { kind: 'choice', prompt: 'She ___ late for class.', options: ['never is', 'is never', 'never be', 'be never'], answerIndex: 1, explanation: '频率副词放在 be 动词之后。', knowledge: 1 }
+      { kind: 'choice', prompt: 'She ___ English every morning.', options: ['practice', 'practices', 'practicing', 'practiced'], answerIndex: 1, explanation: '主语 she 是第三人称单数，动词加 -s。', section: 0, knowledge: 0 },
+      { kind: 'choice', prompt: 'He doesn’t ___ time for TV.', options: ['has', 'have', 'having', 'had'], answerIndex: 1, explanation: 'doesn’t 后用动词原形。', section: 0, knowledge: 0 },
+      { kind: 'choice', prompt: 'I ___ review my notes before class.', options: ['always', 'am always', 'always am', 'review always'], answerIndex: 0, explanation: '频率副词放在实义动词前。', section: 1, knowledge: 1 },
+      { kind: 'choice', prompt: 'They ___ study on Sundays.', options: ['don’t', 'doesn’t', 'aren’t', 'not'], answerIndex: 0, explanation: '复数主语用 don’t 加动词原形。', section: 0, knowledge: 0 },
+      { kind: 'choice', prompt: 'She ___ late for class.', options: ['never is', 'is never', 'never be', 'be never'], answerIndex: 1, explanation: '频率副词放在 be 动词之后。', section: 1, knowledge: 1 }
     ],
     passage: 'Mia practices English for twenty minutes every morning. She usually reads a short article and writes down three new words. Before class, she reviews her notes for five minutes. She does not study for long hours; instead, she keeps a steady habit. On busy days, she listens to a podcast while walking to work. Her teacher says progress comes from small steps, not from one long night of study.',
     passageTranslation: '米娅每天早上练二十分钟英语。她通常读一篇短文，记下三个新词。上课前，她用五分钟复习笔记。她不会长时间学习，而是保持稳定的习惯。忙碌的日子里，她走路去上班时听播客。老师说，进步来自小步积累，而不是熬一个长夜。',

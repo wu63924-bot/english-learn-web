@@ -18,6 +18,9 @@ interface Props {
   onBlur?: () => void;
   onSubmitText?: () => void;
   onAiGrade?: () => void;
+  /** 答错后回看对应规则卡 */
+  onReviewRule?: () => void;
+  ruleLabel?: string;
 }
 
 const GRADE_LABELS: Record<GradeStatus, string> = {
@@ -27,7 +30,7 @@ const GRADE_LABELS: Record<GradeStatus, string> = {
   uncertain: '暂无法判断'
 };
 
-export function QuestionCard({ question, value, grade, saved, error, disabled, grading, onChange, onChoose, onBlur, onSubmitText, onAiGrade }: Props) {
+export function QuestionCard({ question, value, grade, saved, error, disabled, grading, onChange, onChoose, onBlur, onSubmitText, onAiGrade, onReviewRule, ruleLabel }: Props) {
   const locked = Boolean(grade && grade.status !== 'uncertain');
   const isCorrectTask = question.kind === 'translate' && question.variant === 'correct';
 
@@ -123,6 +126,11 @@ export function QuestionCard({ question, value, grade, saved, error, disabled, g
           {'explanation' in question && !grade.feedback && question.explanation && <p className="explanation">{question.explanation}</p>}
           {question.kind === 'translate' && (
             <p className="explanation">参考：{question.reference}</p>
+          )}
+          {onReviewRule && grade.status !== 'correct' && (
+            <button type="button" className="ghost-button rule-jump" onClick={onReviewRule}>
+              回看规则{ruleLabel ? `：${ruleLabel}` : ''}
+            </button>
           )}
         </div>
       )}

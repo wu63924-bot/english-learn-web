@@ -46,6 +46,23 @@ describe('mistake drill', () => {
     expect(items.every(item => item.question.kind === 'choice' || item.question.kind === 'fill')).toBe(true);
   });
 
+  it('attaches the grammar rule to drill items', async () => {
+    const grammar = await db.courseModules.get('sample-1-grammar') as CourseModule<'grammar'>;
+    await db.courseModules.put({
+      ...grammar,
+      content: {
+        ...grammar.content,
+        sections: [{ title: '规则卡', rule: '第三人称单数加 -s', pattern: '主语 + 动词(-s)', body: '补充说明。' }],
+        questions: grammar.content.questions.map((question, index) =>
+          index === 0 ? { ...question, sectionIndex: 0 } : question)
+      }
+    });
+    const [first] = await seedMistakes();
+    const items = await listDrillItems();
+    const target = items.find(item => item.mistake.id === first.id);
+    expect(target?.hint).toEqual({ title: '规则卡', rule: '第三人称单数加 -s', pattern: '主语 + 动词(-s)' });
+  });
+
   it('reuses the same plan within a day and records answers', async () => {
     const [first] = await seedMistakes();
     const plan = await getOrCreateDrillPlan();

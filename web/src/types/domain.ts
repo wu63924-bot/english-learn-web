@@ -74,9 +74,23 @@ export interface GrammarExample {
   zh: string;
 }
 
+/** 典型错误对比：错句 → 正确句 + 一句原因 */
+export interface GrammarTrap {
+  wrong: string;
+  right: string;
+  note: string;
+}
+
 export interface GrammarSection {
   title: string;
   body: string;
+  /** 一句话规则，≤24 字 */
+  rule?: string;
+  /** 结构公式，如「主语 + have/has + 过去分词」 */
+  pattern?: string;
+  /** 判断信号词，如「since / for / already」 */
+  signal?: string;
+  trap?: GrammarTrap;
   examples?: GrammarExample[];
 }
 
@@ -92,6 +106,8 @@ export interface ChoiceQuestion {
   options: { id: string; label: string }[];
   answerId: string;
   explanation: string;
+  /** 语法题所属规则卡下标，用于答错后回看 */
+  sectionIndex?: number;
   knowledgeIds?: string[];
   /** Only present in AI payloads; mapped to knowledgeIds before saving. */
   knowledgeIndex?: number;

@@ -82,6 +82,34 @@ describe('course schema', () => {
     expect(course.passageGlossary).toBeUndefined();
   });
 
+  it('keeps grammar rule cards and question sections', () => {
+    const withCards = {
+      ...raw,
+      grammarSections: [{
+        title: 'Test',
+        rule: '第三人称单数加 -s',
+        pattern: '主语 + 动词(-s)',
+        signal: 'every day',
+        trap: { wrong: 'She go.', right: 'She goes.', note: '主语单数' },
+        body: 'Test body.'
+      }],
+      grammarQuestions: [
+        { ...choice('G1'), section: 0 },
+        { ...choice('G2'), section: 5 },
+        choice('G3'), choice('G4'), choice('G5')
+      ]
+    };
+    const course = normalizeCourse(withCards, 'test');
+    expect(course.grammarSections[0]).toMatchObject({
+      rule: '第三人称单数加 -s',
+      pattern: '主语 + 动词(-s)',
+      signal: 'every day',
+      trap: { wrong: 'She go.', right: 'She goes.', note: '主语单数' }
+    });
+    expect(course.grammarQuestions[0].sectionIndex).toBe(0);
+    expect(course.grammarQuestions[1].sectionIndex).toBeUndefined();
+  });
+
   it('rejects the wrong number of questions', () => {
     expect(() => normalizeCourse({ ...raw, grammarQuestions: raw.grammarQuestions.slice(0, 4) }, 'test')).toThrow();
     expect(() => normalizeCourse({ ...raw, readingQuestions: raw.readingQuestions.slice(0, 4) }, 'test')).toThrow();
