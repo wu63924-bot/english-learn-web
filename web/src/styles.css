@@ -402,6 +402,20 @@ button {
   gap: 8px;
 }
 
+.today-glance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 10px 0 16px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.today-glance a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
 .today-stats div {
   padding: 12px 10px;
   border-radius: 16px;
@@ -1669,6 +1683,30 @@ button {
   font-size: 0.72rem;
 }
 
+.data-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.danger-zone {
+  margin: 26px 0 12px;
+  padding: 14px 16px;
+  border: 1px dashed rgba(180, 35, 24, 0.35);
+  border-radius: 16px;
+}
+
+.danger-title {
+  margin: 0 0 4px;
+  color: #b42318;
+  font-size: 0.84rem;
+}
+
+.danger-zone .ghost-button {
+  margin-top: 10px;
+}
+
 .ai-connect {
   margin-bottom: 12px;
 }
@@ -1780,6 +1818,11 @@ button {
 .plan-badge.done {
   background: var(--chip-mint);
   color: var(--chip-mint-ink);
+}
+
+.plan-badge.generated {
+  background: var(--accent-pale);
+  color: var(--accent);
 }
 
 .form-field {

@@ -122,6 +122,53 @@ export async function markUnitDone(number: number, courseId: string): Promise<vo
   await savePlan(next);
 }
 
+/** 课程已生成但还没有学完；只有真正完成课程后才标记 done。 */
+export async function markUnitGenerated(number: number, courseId: string): Promise<void> {
+  const plan = await getLearningPlan();
+  if (!plan) return;
+  const unit = plan.units.find(item => item.number === number);
+  if (!unit || unit.status === 'done') return;
+  await savePlan({
+    ...plan,
+    units: plan.units.map(item => (item.number === number ? { ...item, status: 'generated', courseId } : item)),
+    ...(plan.currentNumber === number ? { currentNumber: undefined } : {})
+  });
+}
+
+/** 课程完成后回写路线；找不到对应单元就忽略。 */
+export async function markUnitDoneByCourse(courseId: string): Promise<void> {
+  const plan = await getLearningPlan();
+  if (!plan) return;
+  const unit = plan.units.find(item => item.courseId === courseId);
+  if (!unit || unit.status === 'done') return;
+  await savePlan({
+    ...plan,
+    units: plan.units.map(item => (item.courseId === courseId ? { ...item, status: 'done', courseId } : item)),
+    ...(plan.currentNumber === unit.number ? { currentNumber: undefined } : {})
+  });
+}
+
+/**
+ * 早期版本把“已生成”当成“已完成”。读取时按课程真实完成状态纠正一次，
+ * 只在确实不一致时写回，避免继续虚增学习进度。
+ */
+export async function reconcilePlanStatus(): Promise<LearningPlan | undefined> {
+  const plan = await getLearningPlan();
+  if (!plan) return undefined;
+  let changed = false;
+  const units = await Promise.all(plan.units.map(async unit => {
+    if (unit.status !== 'done' || !unit.courseId) return unit;
+    const course = await db.courses.get(unit.courseId);
+    if (course?.status === 'completed') return unit;
+    changed = true;
+    return { ...unit, status: 'generated' as const };
+  }));
+  if (!changed) return plan;
+  const next: LearningPlan = { ...plan, units };
+  await savePlan(next);
+  return next;
+}
+
 export async function markUnitSkipped(number: number): Promise<void> {
   const plan = await getLearningPlan();
   if (!plan) return;
@@ -152,6 +199,16 @@ export async function dropPendingFrom(fromNumber: number): Promise<LearningPlan 
   };
   await savePlan(next);
   return next;
+}
+
+/** 重新规划的替换计划：只保留真正完成的单元，新批次从其最大课号之后开始。 */
+export function planReplacement(plan: LearningPlan | undefined, courseNumber: number): {
+  keep: PlanUnit[];
+  startNumber: number;
+} {
+  const keep = (plan?.units ?? []).filter(unit => unit.status === 'done');
+  const keptMax = keep.reduce((max, unit) => Math.max(max, unit.number), 0);
+  return { keep, startNumber: Math.max(courseNumber, keptMax + 1) };
 }
 
 export async function planProgress(plan?: LearningPlan): Promise<{ done: number; total: number; nextNumber?: number }> {

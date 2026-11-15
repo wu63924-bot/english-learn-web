@@ -49,16 +49,17 @@ export async function gradeOrQueue(input: QueueGradeInput): Promise<QueueGradeRe
 /** Retries queued grades; returns how many were completed. Network failures keep them pending. */
 let processing: Promise<number> | null = null;
 
-export function processPendingGrades(): Promise<number> {
+export function processPendingGrades(options: { retryFailed?: boolean } = {}): Promise<number> {
   if (processing) return processing;
-  processing = runPendingGrades().finally(() => {
+  processing = runPendingGrades(options.retryFailed === true).finally(() => {
     processing = null;
   });
   return processing;
 }
 
-async function runPendingGrades(): Promise<number> {
+async function runPendingGrades(retryFailed: boolean): Promise<number> {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return 0;
+  if (retryFailed) await requeueFailedGrades();
   const pending = await db.pendingAi.where('status').equals('pending').toArray();
   let done = 0;
   for (const item of pending) {
@@ -84,7 +85,7 @@ async function runPendingGrades(): Promise<number> {
         await db.pendingAi.delete(item.id);
         continue;
       }
-      await saveAiGrade({
+      const saved = await saveAiGrade({
         courseId: item.courseId,
         moduleId: item.moduleId,
         question: { kind: 'translate', id: item.questionId, prompt: item.prompt, reference: item.reference, keyPoints: item.keyPoints },
@@ -92,6 +93,11 @@ async function runPendingGrades(): Promise<number> {
         status: grade.status,
         feedback: grade.feedback
       });
+      if (!saved) {
+        // The course or module was deleted while the response was in flight.
+        await db.pendingAi.delete(item.id);
+        continue;
+      }
       if (grade.status === 'correct' || grade.status === 'partial') {
         await recordKnowledgeAttempt(
           { kind: 'translate', id: item.questionId, prompt: item.prompt, reference: item.reference, knowledgeIds: item.knowledgeIds },
@@ -104,14 +110,31 @@ async function runPendingGrades(): Promise<number> {
       if (reason instanceof AiError && (reason.code === 'NETWORK' || reason.code === 'TIMEOUT')) {
         break;
       }
-      await db.pendingAi.put({ ...item, status: 'failed', error: reason instanceof Error ? reason.message : '批改失败' });
+      await db.pendingAi.put({
+        ...item,
+        status: 'failed',
+        error: reason instanceof Error ? reason.message : '批改失败',
+        failedAt: Date.now()
+      });
     }
   }
   return done;
 }
 
+/** User-triggered retry: failed items become pending again and keep their original text. */
+export async function requeueFailedGrades(): Promise<number> {
+  const failed = await db.pendingAi.where('status').equals('failed').toArray();
+  if (!failed.length) return 0;
+  await db.pendingAi.bulkPut(failed.map(item => ({ ...item, status: 'pending', error: undefined, failedAt: undefined })));
+  return failed.length;
+}
+
 export async function pendingGradeCount(): Promise<number> {
   return db.pendingAi.where('status').equals('pending').count();
+}
+
+export async function failedGradeCount(): Promise<number> {
+  return db.pendingAi.where('status').equals('failed').count();
 }
 
 export async function listPendingGrades(): Promise<PendingAiGrade[]> {

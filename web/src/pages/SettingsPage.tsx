@@ -3,16 +3,17 @@ import { Link, useNavigate } from 'react-router';
 import { Card, PageHeader } from '../components/UI';
 import { backupCounts, createBackup, parseBackup, restoreBackup } from '../services/backupService';
 import { generateCourse, getAiHealth, aiBaseUrl, AiError, type AiHealth } from '../services/aiClient';
-import { saveGeneratedCourse } from '../services/courseImport';
-import { nextCourseInput, ensurePlanBatch, nextPlanStartNumber } from '../services/nextCourse';
+import { saveGeneratedCourse, nextCourseNumber } from '../services/courseImport';
+import { nextCourseInput, ensurePlanBatch, nextPlanStartNumber, courseFocus } from '../services/nextCourse';
 import {
   appendPlanUnits,
   createPlan,
-  dropPendingFrom,
   getLearningPlan,
   LEVEL_LABELS,
-  markUnitDone,
+  markUnitGenerated,
   markUnitSkipped,
+  planReplacement,
+  reconcilePlanStatus,
   removePlanUnit,
   setPlanCurrent,
   updateUnitTopic
@@ -24,7 +25,7 @@ import { generatePlan } from '../services/aiClient';
 import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
-import { pendingGradeCount, processPendingGrades } from '../services/aiQueue';
+import { failedGradeCount, listPendingGrades, pendingGradeCount, processPendingGrades } from '../services/aiQueue';
 import { getAiAccessToken, setAiAccessToken } from '../repositories/settingsRepository';
 import { resetAllData } from '../services/resetService';
 import {
@@ -70,6 +71,8 @@ export function SettingsPage() {
   const [historyText, setHistoryText] = useState('');
   const [weakLabels, setWeakLabels] = useState<string[]>([]);
   const [pendingGrades, setPendingGrades] = useState(0);
+  const [failedGrades, setFailedGrades] = useState(0);
+  const [lastFailedGrade, setLastFailedGrade] = useState<{ error?: string } | null>(null);
   const [resetting, setResetting] = useState(false);
   const [accessToken, setAccessToken] = useState('');
   const [tokenStatus, setTokenStatus] = useState('');
@@ -84,7 +87,7 @@ export function SettingsPage() {
 
   useEffect(() => {
     let active = true;
-    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseInput(), getHistorySummary(), listWeakLabels(), pendingGradeCount(), getAiAccessToken(), getLearningPlan()]).then(([healthResult, usageResult, next, historyResult, weak, pending, token, savedPlan]) => {
+    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseInput(), getHistorySummary(), listWeakLabels(), getAiAccessToken(), reconcilePlanStatus(), failedGradeCount(), listPendingGrades()]).then(([healthResult, usageResult, next, historyResult, weak, token, savedPlan, failed, queued]) => {
       if (!active) return;
       setHealth(healthResult);
       setUsage(usageResult);
@@ -93,7 +96,10 @@ export function SettingsPage() {
       setNextLevel(next.level);
       setHistorySummary(historyResult);
       setWeakLabels(weak);
-      setPendingGrades(pending);
+      setPendingGrades(queued.filter(item => item.status === 'pending').length);
+      setFailedGrades(failed);
+      setLastFailedGrade(queued.filter(item => item.status === 'failed')
+        .sort((a, b) => (b.failedAt ?? 0) - (a.failedAt ?? 0))[0] ?? null);
       setAccessToken(token);
       if (savedPlan) {
         setPlan(savedPlan);
@@ -232,18 +238,18 @@ export function SettingsPage() {
     setPlanBusy(true);
     setPlanError('');
     try {
-      const kept = await dropPendingFrom(1);
-      const startNumber = await nextPlanStartNumber();
-      const learned = (kept?.units ?? plan?.units ?? [])
-        .filter(unit => unit.status === 'done')
-        .map(unit => `${unit.topic}（${unit.grammar}）`);
+      // Keep the finished units untouched until the new route is valid. A failed
+      // request must not leave the learner without the existing pending plan.
+      const current = await getLearningPlan() ?? plan ?? undefined;
+      const { keep, startNumber } = planReplacement(current, await nextCourseNumber());
+      const learned = keep.map(unit => `${unit.topic}（${unit.grammar}）`);
       const units = await generatePlan({ startNumber, startLevel, targetLevel, learned });
       const created = await createPlan({
         startLevel,
         targetLevel,
         startNumber,
         units,
-        keep: kept?.units ?? []
+        keep
       });
       setPlan(created);
       await refreshNext();
@@ -297,6 +303,15 @@ export function SettingsPage() {
     await refreshNext();
   }
 
+  async function refreshGradeCounts(work?: Promise<number>) {
+    if (work) await work;
+    const [pending, failed, items] = await Promise.all([pendingGradeCount(), failedGradeCount(), listPendingGrades()]);
+    setPendingGrades(pending);
+    setFailedGrades(failed);
+    setLastFailedGrade(items.filter(item => item.status === 'failed')
+      .sort((a, b) => (b.failedAt ?? 0) - (a.failedAt ?? 0))[0] ?? null);
+  }
+
   async function refreshNext() {
     const next = await nextCourseInput();
     setNextNumber(next.number);
@@ -317,10 +332,10 @@ export function SettingsPage() {
         topic: input.topic,
         level: input.level,
         goal: input.goal,
-        focus: weakLabels.length ? weakLabels.join('；') : undefined
+        focus: courseFocus(input, weakLabels)
       });
       const saved = await saveGeneratedCourse({ number: input.number, payload: course, provider });
-      if (input.planUnitNumber !== undefined) await markUnitDone(input.planUnitNumber, saved.course.id);
+      if (input.planUnitNumber !== undefined) await markUnitGenerated(input.planUnitNumber, saved.course.id);
       setGeneratedId(saved.course.id);
       setAiMessage(saved.existing
         ? `第 ${input.number} 课已存在，没有重复生成。`
@@ -427,18 +442,14 @@ export function SettingsPage() {
 
       <Card title="数据">
         <p className="muted">数据只保存在这台设备的浏览器里。换设备或清理浏览器前先导出备份。</p>
-        <div className="button-row">
+        <div className="data-actions">
           <button type="button" className="ghost-button" onClick={() => { void handleExport(); }} disabled={busy}>
             导出备份
           </button>
           <button type="button" className="ghost-button" onClick={() => fileInput.current?.click()} disabled={busy}>
             导入备份
           </button>
-          <button type="button" className="ghost-button danger" onClick={() => { void handleResetAll(); }} disabled={busy || resetting}>
-            {resetting ? '正在清空…' : '清空全部数据'}
-          </button>
         </div>
-        <p className="muted">清空不可恢复，会删除全部学习数据并重新写入两节示例课程；操作前自动下载备份。</p>
         <input
           ref={fileInput}
           type="file"
@@ -619,6 +630,14 @@ export function SettingsPage() {
                             )}
                           </>
                         )}
+                        {unit.status === 'generated' && (
+                          <>
+                            <span className="plan-badge generated">已生成</span>
+                            {unit.courseId && (
+                              <button type="button" className="ghost-button" onClick={() => { void handlePinUnit(unit); }}>设为当前</button>
+                            )}
+                          </>
+                        )}
                         {unit.status === 'skipped' && <span className="plan-badge">已跳过</span>}
                         {unit.status === 'pending' && (
                           <>
@@ -689,18 +708,35 @@ export function SettingsPage() {
           {savingToken ? '正在保存…' : '保存访问口令'}
         </button>
         {tokenStatus && <p className="status-text">{tokenStatus}</p>}
-        {pendingGrades > 0 && (
+        {(pendingGrades > 0 || failedGrades > 0) && (
           <p className="ai-status">
-            待批改 {pendingGrades} 条（离线排队）。联网后会自动处理。
-            <button
-              type="button"
-              className="ghost-button"
-              style={{ marginLeft: 8, minHeight: 34, padding: '0 10px' }}
-              onClick={() => { void processPendingGrades().then(async () => setPendingGrades(await pendingGradeCount())); }}
-            >
-              立即处理
-            </button>
+            {pendingGrades > 0 ? `待批改 ${pendingGrades} 条（离线排队）` : '暂无排队批改'}
+            {failedGrades > 0 ? ` · 失败 ${failedGrades} 条` : ''}
+            。联网后会自动处理。
+            {pendingGrades > 0 && (
+              <button
+                type="button"
+                className="ghost-button"
+                style={{ marginLeft: 8, minHeight: 34, padding: '0 10px' }}
+                onClick={() => { void refreshGradeCounts(processPendingGrades()); }}
+              >
+                立即处理
+              </button>
+            )}
+            {failedGrades > 0 && (
+              <button
+                type="button"
+                className="ghost-button"
+                style={{ marginLeft: 8, minHeight: 34, padding: '0 10px' }}
+                onClick={() => { void refreshGradeCounts(processPendingGrades({ retryFailed: true })); }}
+              >
+                重试失败
+              </button>
+            )}
           </p>
+        )}
+        {failedGrades > 0 && lastFailedGrade?.error && (
+          <p className="error-text">最近一次失败：{lastFailedGrade.error}</p>
         )}
         </details>
 
@@ -728,6 +764,14 @@ export function SettingsPage() {
       </Card>
 
       <p className="settings-foot">英语学习 0.1.0 · 数据只在本机</p>
+
+      <section className="danger-zone">
+        <p className="danger-title">清空全部数据</p>
+        <p className="muted">清空不可恢复，会删除全部学习数据并重新写入两节示例课程；操作前自动下载备份。</p>
+        <button type="button" className="ghost-button danger" onClick={() => { void handleResetAll(); }} disabled={busy || resetting}>
+          {resetting ? '正在清空…' : '清空全部数据'}
+        </button>
+      </section>
     </>
   );
 }

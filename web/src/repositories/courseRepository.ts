@@ -1,6 +1,7 @@
 import { db } from '../db/db';
 import type { Course, CourseModule, ModuleKind, ModuleStatus, PhraseItem } from '../types/domain';
 import { todayKey } from '../utils/date';
+import { markUnitDoneByCourse } from './planRepository';
 
 /** 取若干单词模块的短语表，用于复习卡片给例句做搭配注释。 */
 export async function listModulePhrases(moduleIds: string[]): Promise<Record<string, PhraseItem[]>> {
@@ -55,7 +56,7 @@ export async function getCurrentCourse(): Promise<Course | undefined> {
   const settings = await db.settings.get('app');
   if (settings?.currentCourseId) {
     const pinned = await db.courses.get(settings.currentCourseId);
-    if (pinned) return pinned;
+    if (pinned && pinned.status !== 'completed') return pinned;
   }
   const started = await db.courses.where('status').equals('in_progress').toArray();
   if (started.length) {
@@ -70,7 +71,8 @@ export async function getCurrentCourse(): Promise<Course | undefined> {
 }
 
 export async function completeCourse(id: string): Promise<void> {
-  await db.transaction('rw', db.courses, async () => {
+  let completed = false;
+  await db.transaction('rw', [db.courses, db.settings], async () => {
     const course = await db.courses.get(id);
     if (!course || course.status === 'completed') return;
     await db.courses.put({
@@ -79,7 +81,15 @@ export async function completeCourse(id: string): Promise<void> {
       completedDate: todayKey(),
       updatedAt: Date.now()
     });
+    // A pinned course must stop being "current" once it is finished.
+    const settings = await db.settings.get('app');
+    if (settings?.currentCourseId === id) {
+      await db.settings.put({ ...settings, currentCourseId: undefined, updatedAt: Date.now() });
+    }
+    completed = true;
   });
+  // Only a real course completion may mark the planned unit as learned.
+  if (completed) await markUnitDoneByCourse(id);
 }
 
 export async function startCourse(id: string): Promise<Course | undefined> {

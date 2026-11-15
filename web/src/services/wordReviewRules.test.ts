@@ -44,17 +44,41 @@ describe('word review rules', () => {
   });
 
   it('updates streaks and lapses on rating', () => {
-    const known = applyWordRating({ review: review(), status: 'known', now });
-    expect(known.streak).toBe(1);
-    expect(known.lapses).toBe(0);
-    expect(known.intervalDays).toBe(1);
+    const first = applyWordRating({ review: review(), status: 'known', now });
+    expect(first.streak).toBe(1);
+    expect(first.lapses).toBe(0);
+    expect(first.intervalDays).toBe(1);
 
-    const fuzzy = applyWordRating({ review: { ...known, streak: 3 }, status: 'fuzzy', now });
+    const nextDay = new Date(2026, 10, 11, 8, 0, 0);
+    const fuzzy = applyWordRating({ review: { ...first, streak: 3 }, status: 'fuzzy', now: nextDay });
     expect(fuzzy.streak).toBe(0);
 
-    const unknown = applyWordRating({ review: fuzzy, status: 'unknown', now });
+    const unknown = applyWordRating({ review: { ...fuzzy, lastReviewedAt: nextDay.getTime() }, status: 'unknown', now: nextDay });
     expect(unknown.lapses).toBe(1);
     expect(unknown.intervalDays).toBe(0);
-    expect(unknown.dueAt).toBe(now.getTime());
+    expect(unknown.dueAt).toBe(nextDay.getTime());
+  });
+
+  it('keeps the interval when the same word is rated twice in one day', () => {
+    const first = applyWordRating({ review: review(), status: 'known', now });
+    let current = first;
+    for (let index = 0; index < 5; index += 1) {
+      current = applyWordRating({ review: current, status: 'known', now: new Date(now.getTime() + (index + 1) * 60000) });
+    }
+    expect(current.intervalDays).toBe(1);
+    expect(current.streak).toBe(1);
+    expect(current.dueAt).toBe(first.dueAt);
+
+    const inferred = applyWordRating({ review: current, status: 'fuzzy', now: new Date(now.getTime() + 120000) });
+    expect(inferred.status).toBe('fuzzy');
+    expect(inferred.intervalDays).toBe(1);
+  });
+
+  it('still resets a word marked unknown on the same day', () => {
+    const first = applyWordRating({ review: review(), status: 'known', now });
+    const reset = applyWordRating({ review: first, status: 'unknown', now: new Date(now.getTime() + 60000) });
+    expect(reset.intervalDays).toBe(0);
+    expect(reset.dueAt).toBe(new Date(now.getTime() + 60000).getTime());
+    expect(reset.lapses).toBe(1);
   });
 });

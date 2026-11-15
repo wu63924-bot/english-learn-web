@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { db } from '../db/db';
 import { initializeDatabase, seedSampleCourses } from '../db/seed';
-import { getCourseModules, getCurrentCourse, listCourses, startCourse, updateModuleStatus, completeCourse } from './courseRepository';
+import { getCourseModules, getCurrentCourse, listCourses, pinCourse, startCourse, updateModuleStatus, completeCourse } from './courseRepository';
 import { todayKey } from '../utils/date';
 
 describe('course repository', () => {
@@ -75,6 +75,23 @@ describe('course repository', () => {
     expect((await getCourseModules('sample-1'))[0].status).toBe('graded');
     await updateModuleStatus('sample-1-word', 'graded');
     expect(await db.courseModules.count()).toBe(8);
+  });
+
+  it('stops pinning a course once it is completed', async () => {
+    await startCourse('sample-1');
+    await pinCourse('sample-1');
+    expect((await getCurrentCourse())?.id).toBe('sample-1');
+
+    await completeCourse('sample-1');
+    expect((await db.settings.get('app'))?.currentCourseId).toBeUndefined();
+    expect((await getCurrentCourse())?.id).toBe('sample-2');
+  });
+
+  it('ignores a pinned course that is already completed', async () => {
+    await completeCourse('sample-1');
+    const settings = await db.settings.get('app');
+    await db.settings.put({ ...settings!, currentCourseId: 'sample-1', updatedAt: Date.now() });
+    expect((await getCurrentCourse())?.id).toBe('sample-2');
   });
 
   it('completes a course and moves on to the next one', async () => {

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { db } from '../db/db';
 import { initializeDatabase } from '../db/seed';
 import type { KnowledgePoint } from '../types/domain';
-import { gradeOrQueue, listPendingGrades, pendingGradeCount, processPendingGrades } from './aiQueue';
+import { failedGradeCount, gradeOrQueue, listPendingGrades, pendingGradeCount, processPendingGrades } from './aiQueue';
 
 const input = {
   courseId: 'ai-9',
@@ -46,6 +46,15 @@ describe('offline AI grading queue', () => {
     await db.delete();
     await initializeDatabase();
     await db.knowledge.put(point());
+    // The queue now refuses grades whose course or module no longer exists.
+    await db.courses.put({
+      id: 'ai-9', number: 9, title: '测试课', topic: '测试', goal: '测试',
+      source: 'ai', status: 'in_progress', createdAt: 0, updatedAt: 0
+    });
+    await db.courseModules.put({
+      id: 'ai-9-reading', courseId: 'ai-9', kind: 'reading', order: 3, status: 'todo',
+      content: { passage: 'Small steps matter.', questions: [] }
+    });
   });
 
   it('queues a grade when the proxy is unreachable', async () => {
@@ -105,5 +114,39 @@ describe('offline AI grading queue', () => {
     expect(await processPendingGrades()).toBe(0);
     const queued = await listPendingGrades();
     expect(queued[0]?.status).toBe('failed');
+  });
+
+  it('counts failed items separately and retries them on request', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    await gradeOrQueue(input);
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: { code: 'AI_BAD_RESPONSE', message: '口令无效' } })
+    } as Response));
+    await processPendingGrades();
+
+    expect(await pendingGradeCount()).toBe(0);
+    expect(await failedGradeCount()).toBe(1);
+    expect((await listPendingGrades())[0]?.error).toContain('口令无效');
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(envelope('correct')));
+    expect(await processPendingGrades({ retryFailed: true })).toBe(1);
+    expect(await failedGradeCount()).toBe(0);
+    expect((await db.grades.get('grade:ai-9:ai-9-reading:ai-9-rq2'))?.status).toBe('correct');
+  });
+
+  it('drops a returned grade when the course was deleted while grading', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    await gradeOrQueue(input);
+
+    await db.courseModules.delete('ai-9-reading');
+    await db.courses.delete('ai-9');
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(envelope('correct')));
+    expect(await processPendingGrades()).toBe(0);
+    expect(await db.answers.count()).toBe(0);
+    expect(await db.grades.count()).toBe(0);
+    expect(await pendingGradeCount()).toBe(0);
   });
 });

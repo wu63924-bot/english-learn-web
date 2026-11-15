@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Card, ErrorState, LoadingState, Notice, PageHeader } from '../components/UI';
 import { getCourseModules, getCurrentCourse, startCourse } from '../repositories/courseRepository';
 import { getLastAnsweredModuleId } from '../repositories/answerRepository';
 import { getStudySummary } from '../repositories/studyRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
+import { countWordReviews } from '../repositories/wordReviewRepository';
 import { generateCourse } from '../services/aiClient';
 import { saveGeneratedCourse } from '../services/courseImport';
-import { nextCourseInput, ensurePlanBatch } from '../services/nextCourse';
-import { markUnitDone } from '../repositories/planRepository';
+import { nextCourseInput, ensurePlanBatch, courseFocus } from '../services/nextCourse';
+import { markUnitGenerated } from '../repositories/planRepository';
 import type { StudySummary } from '../repositories/studyRepository';
 import type { Course, CourseModule } from '../types/domain';
 import { moduleLabels, moduleOrder, moduleProgress } from '../utils/course';
@@ -23,20 +24,26 @@ export function TodayPage() {
   const [starting, setStarting] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState('');
+  const [reviewDue, setReviewDue] = useState(0);
+  const [weakCount, setWeakCount] = useState(0);
 
   useEffect(() => {
     let active = true;
     void (async () => {
       try {
         const current = await getCurrentCourse();
-        const [list, study] = await Promise.all([
+        const [list, study, reviews, weak] = await Promise.all([
           current ? getCourseModules(current.id) : Promise.resolve([]),
-          getStudySummary()
+          getStudySummary(),
+          countWordReviews(),
+          listWeakLabels()
         ]);
         if (!active) return;
         setCourse(current);
         setModules(list);
         setSummary(study);
+        setReviewDue(reviews.due);
+        setWeakCount(weak.length);
       } catch (reason) {
         if (active) setError(reason instanceof Error ? reason.message : '读取课程失败');
       } finally {
@@ -65,10 +72,10 @@ export function TodayPage() {
           topic: input.topic,
           level: input.level,
           goal: input.goal,
-          focus: weak.slice(0, 3).join('、').slice(0, 80) || undefined
+          focus: courseFocus(input, weak)
         });
         const saved = await saveGeneratedCourse({ number: input.number, payload, provider });
-        if (input.planUnitNumber !== undefined) await markUnitDone(input.planUnitNumber, saved.course.id);
+        if (input.planUnitNumber !== undefined) await markUnitGenerated(input.planUnitNumber, saved.course.id);
         navigate(`/course/${saved.course.id}`);
       } catch (reason) {
         setGenerateError(reason instanceof Error ? reason.message : '生成失败');
@@ -97,6 +104,8 @@ export function TodayPage() {
     ?? modules[0];
   const today = new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' }).format(new Date());
   const doneCount = progress.completed;
+  const remainingModules = Math.max(0, progress.total - progress.completed);
+  const estimateMinutes = remainingModules === 0 ? 0 : Math.max(3, Math.round((remainingModules / Math.max(1, progress.total)) * 25));
   const ringLength = 113;
 
   async function handleStart() {
@@ -190,12 +199,20 @@ export function TodayPage() {
         <div><b>{progress.completed}/{progress.total}</b><span>模块完成</span></div>
       </div>
 
+      <div className="today-glance">
+        <Link to="/review">到期单词 {reviewDue}</Link>
+        <span>薄弱点 {weakCount}</span>
+        <span>预计 {estimateMinutes} 分钟</span>
+      </div>
+
       <section className="today-goal">
         <p className="today-goal-label">今天的目标</p>
         <p>{course.goal}</p>
       </section>
 
-      {course.source === 'sample' && <Notice>这是一节示例课程，用于验证流程，不计入正式学习记录。</Notice>}
+      {course.source === 'sample' && (
+        <Notice>这是一节示例课程，用于体验流程；作答会记入本机学习记录，但不计入正式课程进度。</Notice>
+      )}
     </div>
   );
 }

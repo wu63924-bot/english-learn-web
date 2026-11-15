@@ -88,7 +88,7 @@ export interface SaveAiGradeInput extends SaveAnswerInput {
 }
 
 /** Saves an AI grade; a correct verdict clears the mistake, a partial one keeps it. */
-export async function saveAiGrade(input: SaveAiGradeInput): Promise<void> {
+export async function saveAiGrade(input: SaveAiGradeInput): Promise<boolean> {
   const answer = recordOf(input);
   const now = Date.now();
   const grade: Grade = {
@@ -100,7 +100,15 @@ export async function saveAiGrade(input: SaveAiGradeInput): Promise<void> {
     gradedAt: now,
     knowledgeIds: []
   };
-  await db.transaction('rw', [db.answers, db.grades, db.mistakes], async () => {
+  let saved = false;
+  await db.transaction('rw', [db.answers, db.grades, db.mistakes, db.courses, db.courseModules], async () => {
+    // The course may be deleted while the grading request is still in flight.
+    // Never recreate an answer that no longer has an owner.
+    const [course, module] = await Promise.all([
+      db.courses.get(answer.courseId),
+      db.courseModules.get(answer.moduleId)
+    ]);
+    if (!course || !module) return;
     await db.answers.put(answer);
     await db.grades.put(grade);
     if (input.status === 'correct') {
@@ -117,7 +125,9 @@ export async function saveAiGrade(input: SaveAiGradeInput): Promise<void> {
         updatedAt: now
       });
     }
+    saved = true;
   });
+  return saved;
 }
 
 export interface ModuleAnswers {

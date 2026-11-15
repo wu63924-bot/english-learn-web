@@ -5,7 +5,7 @@ export type CourseSource = 'sample' | 'ai' | 'import';
 export type CourseStatus = 'not_started' | 'in_progress' | 'completed';
 
 export type LevelKey = 'junior' | 'senior' | 'cet4' | 'cet6';
-export type PlanUnitStatus = 'pending' | 'skipped' | 'done';
+export type PlanUnitStatus = 'pending' | 'generated' | 'skipped' | 'done';
 
 export interface PlanUnit {
   number: number;
@@ -256,6 +256,7 @@ export interface PendingAiGrade {
   status: 'pending' | 'failed';
   createdAt: Timestamp;
   error?: string;
+  failedAt?: Timestamp;
 }
 
 export type ReviewState = 'pending' | 'done';

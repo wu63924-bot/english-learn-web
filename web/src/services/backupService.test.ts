@@ -27,6 +27,23 @@ describe('backup service', () => {
     expect(backupCounts(parsed)).toEqual({ courses: 2, answers: 0, mistakes: 0, studyDays: 0, historyDays: 0 });
   });
 
+  it('accepts planned routes in the usage table after a real planning call', async () => {
+    await db.aiUsage.put({
+      id: '2026-11-15-plan',
+      dateKey: '2026-11-15',
+      kind: 'plan',
+      model: 'deepseek-flash',
+      tokensIn: 1200,
+      tokensOut: 800,
+      status: 'ok',
+      createdAt: Date.now()
+    });
+    const backup = await createBackup();
+    expect(backup.data.aiUsage.some(record => record.kind === 'plan')).toBe(true);
+    const parsed = parseBackup(JSON.stringify(backup));
+    expect(parsed.data.aiUsage.some(record => record.kind === 'plan')).toBe(true);
+  });
+
   it('accepts a version 2 backup and fills the pending queue table', async () => {
     const legacy = JSON.parse(await freshBackupText());
     legacy.version = 2;

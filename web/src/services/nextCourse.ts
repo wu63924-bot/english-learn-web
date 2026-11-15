@@ -35,8 +35,21 @@ export interface NextCourseInput {
   topic: string;
   level: string;
   goal?: string;
-  /** 对应学习路线里的课号，生成成功后标记完成 */
+  /** 路线里这一课的语法点与词汇方向，生成时带入 */
+  grammar?: string;
+  vocabulary?: string;
+  /** 对应学习路线里的课号，生成成功后标记为已生成 */
   planUnitNumber?: number;
+}
+
+/** 把路线要点与薄弱点合成生成提示，服务端上限 300 字。 */
+export function courseFocus(input: NextCourseInput, weak: string[] = []): string | undefined {
+  const text = [
+    input.grammar ? `本课语法点：${input.grammar}` : '',
+    input.vocabulary ? `词汇方向：${input.vocabulary}` : '',
+    weak.length ? `需侧重：${weak.slice(0, 3).join('；')}` : ''
+  ].filter(Boolean).join('；');
+  return text.slice(0, 280) || undefined;
 }
 
 /**
@@ -51,6 +64,8 @@ export async function nextCourseInput(): Promise<NextCourseInput> {
       topic: unit.topic,
       level: unit.level ?? LEVEL_CEFR[plan.targetLevel as LevelKey],
       goal: unit.goal,
+      grammar: unit.grammar,
+      vocabulary: unit.vocabulary,
       planUnitNumber: unit.number
     };
   }
