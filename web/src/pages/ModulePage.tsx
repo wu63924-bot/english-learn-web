@@ -125,7 +125,7 @@ export function ModulePage() {
         />
       )}
 
-      <TutorPanel context={tutorContext(course, module)} />
+      {module.kind !== 'word' && <TutorPanel context={tutorContext(course, module)} />}
     </>
   );
 }

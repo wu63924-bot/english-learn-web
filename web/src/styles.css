@@ -2366,23 +2366,20 @@ body.sketching * {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin: 6px 0 12px;
-  padding: 12px 10px;
-  border-radius: 18px;
-  border: 1px solid var(--line);
-  background: var(--card);
+  margin: 4px 0 10px;
+  padding: 0 2px;
   text-align: center;
 }
 
 .word-session-stats span {
   display: block;
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: 0.62rem;
 }
 
 .word-session-stats b {
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 500;
@@ -2400,6 +2397,21 @@ body.sketching * {
   cursor: pointer;
 }
 
+.word-module .word-card,
+.word-session .word-card {
+  box-shadow: none;
+  border-radius: 22px;
+}
+
+.word-module .word-term {
+  font-size: 2.4rem;
+}
+
+.word-module > .word-progress-track {
+  margin: 0 0 14px;
+  height: 3px;
+}
+
 .word-card-tap.revealed {
   cursor: default;
 }
@@ -2407,6 +2419,8 @@ body.sketching * {
 .word-reveal-hint {
   text-align: center;
   line-height: 1.9;
+  color: #ad9c90;
+  font-size: 0.76rem;
 }
 
 .word-action-bar-large {
@@ -2415,8 +2429,8 @@ body.sketching * {
 
 .word-action-bar-large .word-rate.big {
   flex: 1;
-  min-height: 58px;
-  border-radius: 16px;
+  min-height: 62px;
+  border-radius: 18px;
   font-size: 0.95rem;
   font-weight: 600;
 }
@@ -2424,20 +2438,23 @@ body.sketching * {
 .word-action-bar-large .word-rate.unknown.big {
   color: #c4693c;
   border-color: rgba(196, 105, 60, 0.45);
+  background: #fff;
 }
 
 .word-action-bar-large .word-rate.known.big {
-  color: #2f8f5b;
-  border-color: rgba(47, 143, 91, 0.45);
+  color: var(--chip-mint-ink);
+  border-color: rgba(47, 143, 91, 0.35);
+  background: var(--chip-mint);
 }
 
 .word-action-bar-large .word-rate.small {
   flex: 0 0 auto;
-  min-height: 44px;
-  padding: 0 14px;
+  width: 54px;
+  min-height: 58px;
+  padding: 0;
   align-self: center;
-  border-radius: 14px;
-  font-size: 0.78rem;
+  border-radius: 18px;
+  font-size: 0.74rem;
 }
 
 .module-nav {
