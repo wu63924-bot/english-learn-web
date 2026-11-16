@@ -126,7 +126,7 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
         <i style={{ width: `${(progress.mastered / Math.max(1, total)) * 100}%` }} />
       </div>
 
-      <p className="word-age">{currentAge}</p>
+      <p className="word-age"><span>{currentAge}</span></p>
 
       <article
         className={`card word-card word-card-tap${revealed ? ' revealed' : ''}`}

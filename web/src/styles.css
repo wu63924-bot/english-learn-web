@@ -2366,20 +2366,23 @@ body.sketching * {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin: 4px 0 10px;
-  padding: 0 2px;
+  margin: 6px 0 12px;
+  padding: 12px 10px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--card);
   text-align: center;
 }
 
 .word-session-stats span {
   display: block;
   color: var(--muted);
-  font-size: 0.62rem;
+  font-size: 0.66rem;
 }
 
 .word-session-stats b {
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
   font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 500;
@@ -2387,10 +2390,18 @@ body.sketching * {
 }
 
 .word-age {
-  margin: 14px 0 6px;
+  margin: 14px 0 8px;
   text-align: center;
   color: var(--muted);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
+}
+
+.word-age span {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: #f6ece2;
+  color: var(--ink-soft);
 }
 
 .word-card-tap {
@@ -2399,7 +2410,6 @@ body.sketching * {
 
 .word-module .word-card,
 .word-session .word-card {
-  box-shadow: none;
   border-radius: 22px;
 }
 
@@ -2442,9 +2452,20 @@ body.sketching * {
 }
 
 .word-action-bar-large .word-rate.known.big {
-  color: var(--chip-mint-ink);
-  border-color: rgba(47, 143, 91, 0.35);
-  background: var(--chip-mint);
+  color: #fff;
+  border-color: #2f8f5b;
+  background: #2f8f5b;
+}
+
+.word-action-bar-large .word-rate.known.big:active {
+  background: #27794d;
+  border-color: #27794d;
+}
+
+.word-action-bar-large .word-rate.known.big.active {
+  color: #fff;
+  background: #2f8f5b;
+  border-color: #2f8f5b;
 }
 
 .word-action-bar-large .word-rate.small {
