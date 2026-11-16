@@ -99,6 +99,19 @@ function ossConfig(env: NodeJS.ProcessEnv): ApiConfig['oss'] {
     accessKeyId,
     accessKeySecret,
     key: env.SYNC_OSS_KEY?.trim() || 'english-learn/snapshot.json',
-    endpoint: env.SYNC_OSS_ENDPOINT?.trim() || undefined
+    endpoint: endpoint(env.SYNC_OSS_ENDPOINT)
   };
+}
+
+/**
+ * 允许直接粘贴域名；占位符里的尖括号、协议和末尾斜杠都清掉。
+ * 清完仍然不像域名时返回 undefined，让默认地址生效。
+ */
+function endpoint(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const cleaned = value.trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/[<>"'\s]/g, '')
+    .replace(/\/+$/, '');
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(cleaned) ? cleaned : undefined;
 }
