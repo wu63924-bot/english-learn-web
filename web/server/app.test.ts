@@ -109,6 +109,27 @@ describe('device sync', () => {
     }
   });
 
+  it('reports storage failures with a readable code', async () => {
+    const failing: SyncStore = {
+      driver: () => 'oss',
+      async read() { throw new Error('OSS 读取失败（403）'); },
+      async write() { throw new Error('OSS 写入失败（403）'); }
+    };
+    const app = await start({ syncToken: 'sync-secret' }, new MockProvider({ mockLatencyMs: 0 }), { syncStore: failing });
+    try {
+      const upload = await post(app.url, '/api/sync', snapshot, { 'X-Sync-Token': 'sync-secret' });
+      expect(upload.status).toBe(502);
+      const payload = await upload.json() as { error: { code: string; message: string } };
+      expect(payload.error.code).toBe('SYNC_STORAGE_ERROR');
+      expect(payload.error.message).toContain('403');
+
+      const download = await fetch(`${app.url}/api/sync`, { headers: { 'X-Sync-Token': 'sync-secret' } });
+      expect(download.status).toBe(502);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('rejects files that are not an app backup', async () => {
     const app = await start({ syncToken: 'sync-secret' }, new MockProvider({ mockLatencyMs: 0 }), { syncStore: memorySyncStore() });
     try {

@@ -81,7 +81,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
         ? 'default'
         : 'disabled',
     syncToken: env.SYNC_TOKEN?.trim() || '',
-    syncStorePath: env.SYNC_STORE_PATH?.trim() || '.sync/snapshot.json',
+    syncStorePath: env.SYNC_STORE_PATH?.trim() || '',
     oss: ossConfig(env)
   };
 }

@@ -9,6 +9,7 @@ export type ApiErrorCode =
   | 'BUSY'
   | 'SYNC_DISABLED'
   | 'SYNC_EMPTY'
+  | 'SYNC_STORAGE_ERROR'
   | 'BUDGET_EXCEEDED'
   | 'AI_AUTH_ERROR'
   | 'AI_RATE_LIMIT'
@@ -28,6 +29,7 @@ const STATUS: Record<ApiErrorCode, number> = {
   BUSY: 503,
   SYNC_DISABLED: 501,
   SYNC_EMPTY: 404,
+  SYNC_STORAGE_ERROR: 502,
   BUDGET_EXCEEDED: 402,
   AI_AUTH_ERROR: 502,
   AI_RATE_LIMIT: 429,

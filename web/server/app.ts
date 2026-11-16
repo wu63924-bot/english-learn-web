@@ -7,6 +7,8 @@ import type { AiProvider, TokenUsage } from './provider.ts';
 import { RateLimiter } from './rateLimiter.ts';
 import { parseDrillRequest, parseGenerateRequest, parseGradeRequest, parsePlanRequest, parseTutorRequest } from './schema.ts';
 import { createFileSyncStore, createOssSyncStore, type SyncStore } from './syncStore.ts';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { UsageLedger } from './usage.ts';
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -103,7 +105,7 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
         }
         if (!hasSyncAccess(req)) throw new ApiError('UNAUTHORIZED', '同步口令不正确');
         if (req.method === 'GET') {
-          const snapshot = await syncStore.read();
+          const snapshot = await withSyncErrors(() => syncStore.read());
           if (!snapshot) throw new ApiError('SYNC_EMPTY', '云端还没有快照');
           res.writeHead(200, {
             'Content-Type': 'application/json; charset=utf-8',
@@ -118,7 +120,7 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
         }
         const text = await readText(req, MAX_SYNC_BYTES);
         const parsed = parseSnapshot(text);
-        const written = await syncStore.write(JSON.stringify(parsed));
+        const written = await withSyncErrors(() => syncStore.write(JSON.stringify(parsed)));
         send(res, 200, { ok: true, bytes: written.bytes, updatedAt: written.updatedAt, driver: syncStore.driver() });
         return;
       }
@@ -269,8 +271,20 @@ function parseSnapshot(text: string): unknown {
   return parsed;
 }
 
+/** 把 OSS 的 403、超时等底层错误转成可读错误码，避免只看到 INTERNAL_ERROR。 */
+async function withSyncErrors<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (reason) {
+    const detail = reason instanceof Error ? reason.message : '同步存储不可用';
+    throw new ApiError('SYNC_STORAGE_ERROR', detail.slice(0, 180));
+  }
+}
+
 function createConfiguredSyncStore(config: ApiConfig): SyncStore | undefined {
   if (!config.syncToken) return undefined;
   if (config.oss) return createOssSyncStore(config.oss);
-  return createFileSyncStore(config.syncStorePath);
+  // FC 的代码目录只读，本地回退必须写到系统临时目录。
+  const path = config.syncStorePath || join(tmpdir(), 'english-learn-sync', 'snapshot.json');
+  return createFileSyncStore(path);
 }
