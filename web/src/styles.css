@@ -2362,6 +2362,84 @@ body.sketching * {
   background: rgba(180, 35, 24, 0.08);
 }
 
+.word-session-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 6px 0 12px;
+  padding: 12px 10px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  text-align: center;
+}
+
+.word-session-stats span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.word-session-stats b {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.word-age {
+  margin: 14px 0 6px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.word-card-tap {
+  cursor: pointer;
+}
+
+.word-card-tap.revealed {
+  cursor: default;
+}
+
+.word-reveal-hint {
+  text-align: center;
+  line-height: 1.9;
+}
+
+.word-action-bar-large {
+  gap: 10px;
+}
+
+.word-action-bar-large .word-rate.big {
+  flex: 1;
+  min-height: 58px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.word-action-bar-large .word-rate.unknown.big {
+  color: #c4693c;
+  border-color: rgba(196, 105, 60, 0.45);
+}
+
+.word-action-bar-large .word-rate.known.big {
+  color: #2f8f5b;
+  border-color: rgba(47, 143, 91, 0.45);
+}
+
+.word-action-bar-large .word-rate.small {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+  align-self: center;
+  border-radius: 14px;
+  font-size: 0.78rem;
+}
+
 .module-nav {
   display: flex;
   gap: 10px;

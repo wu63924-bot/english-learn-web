@@ -37,8 +37,9 @@ export function applyWordRating({ review, status, now = new Date() }: WordRating
   const sameDay = review.lastReviewedAt > 0
     && todayKeyOf(review.lastReviewedAt) === todayKeyOf(now.getTime());
   // 同一天反复点「认识/模糊」只记录反馈，不推进间隔与连续次数；
-  // 「不认识」仍立即重置，保证当天还能把它放进复习。
-  if (sameDay && status !== 'unknown') {
+  // 「不认识」仍立即重置；当天从「不认识」学到「认识」允许排到明天。
+  const graduating = review.status === 'unknown' && status === 'known' && review.intervalDays === 0;
+  if (sameDay && status !== 'unknown' && !graduating) {
     return { ...review, status, lastReviewedAt: now.getTime(), updatedAt: now.getTime() };
   }
   const intervalDays = nextIntervalDays(status, review.intervalDays);

@@ -7,6 +7,28 @@ export type CourseStatus = 'not_started' | 'in_progress' | 'completed';
 export type LevelKey = 'junior' | 'senior' | 'cet4' | 'cet6';
 export type PlanUnitStatus = 'pending' | 'generated' | 'skipped' | 'done';
 
+export interface SessionEntry {
+  /** 连续答对次数，达到 2 即毕业 */
+  correctStreak: number;
+  /** 累计答错次数，达到 3 就当天放行 */
+  wrongCount: number;
+  /** 模糊只回插一次 */
+  fuzzyUsed: boolean;
+  /** 当天放行，不在队列里但明天优先 */
+  passed?: boolean;
+}
+
+/** 一次单词会话的队列，存进设置以便刷新后继续。 */
+export interface WordSession {
+  scope: string;
+  dateKey: string;
+  queue: string[];
+  entries: Record<string, SessionEntry>;
+  mastered: number;
+  total: number;
+  startedAt: number;
+}
+
 export interface PlanUnit {
   number: number;
   topic: string;
@@ -329,6 +351,8 @@ export interface AppSettings {
   learningPlan?: LearningPlan;
   /** 用户手动设为当前课程的课程 id */
   currentCourseId?: string;
+  /** 进行中的单词会话队列（当天有效） */
+  wordSession?: WordSession;
   aiAccessToken?: string;
   knowledgeUnifiedAt?: Timestamp;
   wordReviewsMigratedAt?: Timestamp;

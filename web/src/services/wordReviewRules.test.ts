@@ -81,4 +81,13 @@ describe('word review rules', () => {
     expect(reset.dueAt).toBe(new Date(now.getTime() + 60000).getTime());
     expect(reset.lapses).toBe(1);
   });
+
+  it('schedules a word learned later the same day for tomorrow', () => {
+    const missed = applyWordRating({ review: review(), status: 'unknown', now });
+    expect(missed.intervalDays).toBe(0);
+    const learned = applyWordRating({ review: missed, status: 'known', now: new Date(now.getTime() + 60000) });
+    expect(learned.status).toBe('known');
+    expect(learned.intervalDays).toBe(1);
+    expect(learned.dueAt).toBe(new Date(2026, 10, 11, 0, 0, 0).getTime());
+  });
 });

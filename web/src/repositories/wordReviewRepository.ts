@@ -80,8 +80,19 @@ export async function wordStatusesForModule(
   return result;
 }
 
-/** 到期单词：不认识的排前面，其余按到期时间。 */
-export async function listDueWordReviews(now: Date = new Date()): Promise<WordReview[]> {
+/** 模块内每个词的完整复习记录，键是课程里的 wordId。 */
+export async function wordReviewsForModule(
+  words: Pick<WordItem, 'id' | 'term'>[]
+): Promise<Record<string, WordReview>> {
+  const records = await db.wordReviews.bulkGet(words.map(word => wordReviewId(word.term)));
+  const result: Record<string, WordReview> = {};
+  records.forEach((record, index) => {
+    if (record) result[words[index].id] = record;
+  });
+  return result;
+}
+
+/** 到期单词：不认识的排前面，其余按到期时间。 */export async function listDueWordReviews(now: Date = new Date()): Promise<WordReview[]> {
   const items = await db.wordReviews.where('dueAt').belowOrEqual(now.getTime()).toArray();
   return items.sort((a, b) => RANK[a.status] - RANK[b.status] || a.dueAt - b.dueAt);
 }
