@@ -23,6 +23,7 @@ export async function createBackup(): Promise<BackupFile> {
     db.settings.toArray().then(items => items.map(setting => {
       const clone = { ...setting };
       delete clone.aiAccessToken;
+      delete clone.syncToken;
       return clone;
     }))
   ]);

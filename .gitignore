@@ -16,3 +16,7 @@ web/api-dist/
 web/*.zip
 web/*.tgz
 web/fc-code.zip
+
+# 本机同步调试快照
+web/.sync/
+.sync/

@@ -17,6 +17,18 @@ export async function setAiAccessToken(token: string): Promise<void> {
   });
 }
 
+/** 设备同步口令；只保存在本机，随备份导出前会被剔除。 */
+export async function getSyncToken(): Promise<string> {
+  const settings = await db.settings.get('app');
+  return settings?.syncToken?.trim() ?? '';
+}
+
+export async function setSyncToken(token: string): Promise<void> {
+  const settings = await db.settings.get('app');
+  if (!settings) return;
+  await db.settings.put({ ...settings, syncToken: token.trim() || undefined, updatedAt: Date.now() });
+}
+
 export async function getAutoSpeakWord(): Promise<boolean> {
   const settings = await db.settings.get('app');
   return settings?.autoSpeakWord === true;

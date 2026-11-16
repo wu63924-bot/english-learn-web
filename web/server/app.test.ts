@@ -4,6 +4,7 @@ import type { ApiConfig } from './config.ts';
 import { MockProvider } from './mockProvider.ts';
 import type { AiProvider } from './provider.ts';
 import { ApiError } from './errors.ts';
+import type { SyncStore } from './syncStore.ts';
 
 const base: ApiConfig = {
   provider: 'mock',
@@ -23,11 +24,17 @@ const base: ApiConfig = {
   mockLatencyMs: 0,
   maxOutputTokens: 1_000,
   jsonMode: true,
-  thinking: 'disabled'
+  thinking: 'disabled',
+  syncToken: '',
+  syncStorePath: '.sync/test-snapshot.json'
 };
 
-async function start(overrides: Partial<ApiConfig> = {}, provider: AiProvider = new MockProvider({ mockLatencyMs: 0 })) {
-  const server = createApiServer({ ...base, ...overrides }, { provider, log: () => undefined });
+async function start(
+  overrides: Partial<ApiConfig> = {},
+  provider: AiProvider = new MockProvider({ mockLatencyMs: 0 }),
+  deps: { syncStore?: SyncStore } = {}
+) {
+  const server = createApiServer({ ...base, ...overrides }, { provider, log: () => undefined, ...deps });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   const address = server.address();
   const port = typeof address === 'object' && address ? address.port : 0;
@@ -37,6 +44,27 @@ async function start(overrides: Partial<ApiConfig> = {}, provider: AiProvider = 
   };
 }
 
+function memorySyncStore(): SyncStore {
+  let text: string | null = null;
+  return {
+    driver: () => 'file',
+    async read() {
+      return text ? { text, updatedAt: '2026-11-16T00:00:00.000Z' } : null;
+    },
+    async write(value) {
+      text = value;
+      return { bytes: Buffer.byteLength(value), updatedAt: '2026-11-16T00:00:00.000Z' };
+    }
+  };
+}
+
+const snapshot = {
+  app: 'EnglishLearn',
+  version: 5,
+  exportedAt: '2026-11-16T00:00:00.000Z',
+  data: { courses: [], answers: [], mistakes: [], studyDays: [], historyDays: [], aiUsage: [], pendingAi: [], wordReviews: [], settings: [] }
+};
+
 function post(url: string, path: string, body: unknown, headers: Record<string, string> = {}) {
   return fetch(`${url}${path}`, {
     method: 'POST',
@@ -44,6 +72,55 @@ function post(url: string, path: string, body: unknown, headers: Record<string, 
     body: JSON.stringify(body)
   });
 }
+
+describe('device sync', () => {
+  it('is disabled until a sync token is configured', async () => {
+    const app = await start({}, new MockProvider({ mockLatencyMs: 0 }), { syncStore: memorySyncStore() });
+    try {
+      const response = await fetch(`${app.url}/api/sync`, { headers: { 'X-Sync-Token': 'x' } });
+      expect(response.status).toBe(501);
+      expect((await response.json() as { error: { code: string } }).error.code).toBe('SYNC_DISABLED');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects a wrong token and round-trips a snapshot', async () => {
+    const store = memorySyncStore();
+    const app = await start({ syncToken: 'sync-secret' }, new MockProvider({ mockLatencyMs: 0 }), { syncStore: store });
+    try {
+      const denied = await fetch(`${app.url}/api/sync`, { headers: { 'X-Sync-Token': 'wrong' } });
+      expect(denied.status).toBe(401);
+
+      const empty = await fetch(`${app.url}/api/sync`, { headers: { 'X-Sync-Token': 'sync-secret' } });
+      expect(empty.status).toBe(404);
+
+      const upload = await post(app.url, '/api/sync', snapshot, { 'X-Sync-Token': 'sync-secret' });
+      expect(upload.status).toBe(200);
+      const saved = await upload.json() as { ok: boolean; bytes: number };
+      expect(saved.ok).toBe(true);
+      expect(saved.bytes).toBeGreaterThan(0);
+
+      const download = await fetch(`${app.url}/api/sync`, { headers: { 'X-Sync-Token': 'sync-secret' } });
+      expect(download.status).toBe(200);
+      expect(await download.json()).toEqual(snapshot);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('rejects files that are not an app backup', async () => {
+    const app = await start({ syncToken: 'sync-secret' }, new MockProvider({ mockLatencyMs: 0 }), { syncStore: memorySyncStore() });
+    try {
+      const response = await post(app.url, '/api/sync', { hello: 'world' }, { 'X-Sync-Token': 'sync-secret' });
+      expect(response.status).toBe(400);
+      const payload = await response.json() as { error: { code: string } };
+      expect(payload.error.code).toBe('INVALID_REQUEST');
+    } finally {
+      await app.close();
+    }
+  });
+});
 
 describe('AI proxy', () => {
   it('reports health and usage', async () => {

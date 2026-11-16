@@ -62,6 +62,25 @@ AI_ACCESS_TOKEN=<随机口令>
 [Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(24)).ToLower()
 ```
 
+## 设备同步（可选）
+
+手机和平板同步靠一份整库快照。启用需要三类变量：
+
+```text
+SYNC_TOKEN=<独立随机口令>
+SYNC_OSS_BUCKET=<bucket>
+SYNC_OSS_REGION=oss-cn-beijing
+SYNC_OSS_KEY=english-learn/snapshot.json
+# 可选：自定义域名或内网端点
+# SYNC_OSS_ENDPOINT=<bucket>.oss-cn-beijing.aliyuncs.com
+```
+
+- 密钥优先读 `SYNC_OSS_ACCESS_KEY_ID/SECRET`，缺省时复用 `ALIBABA_CLOUD_ACCESS_KEY_ID/SECRET`。
+- RAM 权限只需该 bucket 的 `oss:GetObject`、`oss:PutObject`（对象限定 `english-learn/*`）。
+- 不配 `SYNC_OSS_*` 时写入 FC 本地临时目录，实例重启即丢，仅适合本机调试；不配 `SYNC_TOKEN` 则 `/api/sync` 返回 501。
+- 设置页「设备同步」填同一个 `SYNC_TOKEN`，两台设备上传/恢复；快照不含 AI 口令和同步口令本身。
+- 恢复是整库覆盖，确认前会自动下载一份本机备份。
+
 说明：
 
 - `ALLOWED_ORIGINS` 只写来源，不带仓库路径；例如 `https://wu63924-bot.github.io`，不要写 `/english-web/`。

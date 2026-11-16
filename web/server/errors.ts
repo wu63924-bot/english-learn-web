@@ -7,6 +7,8 @@ export type ApiErrorCode =
   | 'PAYLOAD_TOO_LARGE'
   | 'RATE_LIMITED'
   | 'BUSY'
+  | 'SYNC_DISABLED'
+  | 'SYNC_EMPTY'
   | 'BUDGET_EXCEEDED'
   | 'AI_AUTH_ERROR'
   | 'AI_RATE_LIMIT'
@@ -24,6 +26,8 @@ const STATUS: Record<ApiErrorCode, number> = {
   PAYLOAD_TOO_LARGE: 413,
   RATE_LIMITED: 429,
   BUSY: 503,
+  SYNC_DISABLED: 501,
+  SYNC_EMPTY: 404,
   BUDGET_EXCEEDED: 402,
   AI_AUTH_ERROR: 502,
   AI_RATE_LIMIT: 429,

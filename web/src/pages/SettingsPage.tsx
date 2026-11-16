@@ -26,7 +26,8 @@ import { getTodayUsage } from '../repositories/aiUsageRepository';
 import type { AiUsageSummary } from '../repositories/aiUsageRepository';
 import { listWeakLabels } from '../repositories/knowledgeRepository';
 import { failedGradeCount, listPendingGrades, pendingGradeCount, processPendingGrades } from '../services/aiQueue';
-import { getAiAccessToken, setAiAccessToken } from '../repositories/settingsRepository';
+import { getAiAccessToken, getSyncToken, setAiAccessToken, setSyncToken } from '../repositories/settingsRepository';
+import { downloadSnapshot, uploadSnapshot } from '../services/syncClient';
 import { resetAllData } from '../services/resetService';
 import {
   applyHistoryImport,
@@ -84,10 +85,14 @@ export function SettingsPage() {
   const [planError, setPlanError] = useState('');
   const [editingUnit, setEditingUnit] = useState<{ number: number; topic: string } | null>(null);
   const [planMessage, setPlanMessage] = useState('');
+  const [syncToken, setSyncTokenState] = useState('');
+  const [syncBusy, setSyncBusy] = useState(false);
+  const [syncStatus, setSyncStatus] = useState('');
+  const [syncError, setSyncError] = useState('');
 
   useEffect(() => {
     let active = true;
-    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseInput(), getHistorySummary(), listWeakLabels(), getAiAccessToken(), reconcilePlanStatus(), failedGradeCount(), listPendingGrades()]).then(([healthResult, usageResult, next, historyResult, weak, token, savedPlan, failed, queued]) => {
+    void Promise.all([getAiHealth(), getTodayUsage(), nextCourseInput(), getHistorySummary(), listWeakLabels(), getAiAccessToken(), reconcilePlanStatus(), failedGradeCount(), listPendingGrades(), getSyncToken()]).then(([healthResult, usageResult, next, historyResult, weak, token, savedPlan, failed, queued, sync]) => {
       if (!active) return;
       setHealth(healthResult);
       setUsage(usageResult);
@@ -101,6 +106,7 @@ export function SettingsPage() {
       setLastFailedGrade(queued.filter(item => item.status === 'failed')
         .sort((a, b) => (b.failedAt ?? 0) - (a.failedAt ?? 0))[0] ?? null);
       setAccessToken(token);
+      setSyncTokenState(sync);
       if (savedPlan) {
         setPlan(savedPlan);
         setStartLevel(savedPlan.startLevel);
@@ -123,6 +129,65 @@ export function SettingsPage() {
       setError(reason instanceof Error ? reason.message : '导出失败');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleSaveSyncToken() {
+    await setSyncToken(syncToken);
+    setSyncStatus(syncToken.trim() ? '同步口令已保存在本机。' : '已清除同步口令。');
+  }
+
+  async function handleUploadSnapshot() {
+    if (syncBusy) return;
+    if (!syncToken.trim()) {
+      setSyncError('先填写并保存同步口令。');
+      return;
+    }
+    setSyncBusy(true);
+    setSyncError('');
+    setSyncStatus('');
+    try {
+      const backup = await createBackup();
+      const result = await uploadSnapshot(JSON.stringify(backup), syncToken.trim());
+      setSyncStatus(`已上传本机快照（${Math.round(result.bytes / 1024)} KB）。另一台设备可以在这里恢复。`);
+    } catch (reason) {
+      setSyncError(reason instanceof Error ? reason.message : '上传失败');
+    } finally {
+      setSyncBusy(false);
+    }
+  }
+
+  async function handleDownloadSnapshot() {
+    if (syncBusy) return;
+    if (!syncToken.trim()) {
+      setSyncError('先填写并保存同步口令。');
+      return;
+    }
+    setSyncBusy(true);
+    setSyncError('');
+    setSyncStatus('');
+    try {
+      const cloud = await downloadSnapshot(syncToken.trim());
+      const parsed = parseBackup(cloud.text);
+      const counts = backupCounts(parsed);
+      const when = new Date(cloud.updatedAt);
+      const stamp = Number.isNaN(when.getTime()) ? cloud.updatedAt : when.toLocaleString('zh-CN');
+      const confirmed = window.confirm(
+        `云端快照：${stamp}\n${counts.courses} 节课程 · ${counts.answers} 条作答 · ${counts.mistakes} 条错题\n\n恢复会覆盖本机全部数据。确认前会自动下载一份本机备份。继续？`
+      );
+      if (!confirmed) {
+        setSyncStatus('已取消恢复，本机数据未改变。');
+        return;
+      }
+      const local = await createBackup();
+      downloadJson(`english-learning-before-sync-${todayKey()}.json`, local);
+      await restoreBackup(parsed);
+      setSyncStatus('已从云端恢复，正在重新加载…');
+      window.setTimeout(() => window.location.reload(), 700);
+    } catch (reason) {
+      setSyncError(reason instanceof Error ? reason.message : '恢复失败');
+    } finally {
+      setSyncBusy(false);
     }
   }
 
@@ -477,6 +542,42 @@ export function SettingsPage() {
 
         {status && <p className="status-text">{status}</p>}
         {error && <p className="error-text">{error}</p>}
+      </Card>
+
+      <Card title="设备同步">
+        <p className="muted">
+          手机和平板用同一个同步口令，把整份快照上传到你的云端；另一台设备点「从云端恢复」。
+          快照不含 AI 口令和同步口令本身。
+        </p>
+        <label className="form-field">
+          <span>同步口令（只保存在本机）</span>
+          <input
+            className="text-input"
+            type="password"
+            value={syncToken}
+            onChange={event => setSyncTokenState(event.target.value)}
+            placeholder="与服务端 SYNC_TOKEN 一致"
+            aria-label="同步口令"
+          />
+        </label>
+        <div className="data-actions">
+          <button type="button" className="ghost-button" onClick={() => { void handleSaveSyncToken(); }} disabled={syncBusy}>
+            保存口令
+          </button>
+          <button type="button" className="ghost-button" onClick={() => { void handleUploadSnapshot(); }} disabled={syncBusy || !syncToken.trim()}>
+            {syncBusy ? '请稍候…' : '上传本机'}
+          </button>
+        </div>
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => { void handleDownloadSnapshot(); }}
+          disabled={syncBusy || !syncToken.trim()}
+        >
+          从云端恢复
+        </button>
+        {syncStatus && <p className="status-text">{syncStatus}</p>}
+        {syncError && <p className="error-text">{syncError}</p>}
       </Card>
 
       <Card title="历史导入">

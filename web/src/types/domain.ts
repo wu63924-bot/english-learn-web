@@ -356,6 +356,8 @@ export interface AppSettings {
   /** 按模块/复习会话分别保存队列，键为 scope */
   wordSessions?: Record<string, WordSession>;
   aiAccessToken?: string;
+  /** 设备同步口令；只保存在本机，导出备份时剔除 */
+  syncToken?: string;
   knowledgeUnifiedAt?: Timestamp;
   wordReviewsMigratedAt?: Timestamp;
   samplesSeededAt?: Timestamp;

@@ -21,7 +21,9 @@ const config: ApiConfig = {
   mockLatencyMs: 0,
   maxOutputTokens: 1_000,
   jsonMode: true,
-  thinking: 'disabled'
+  thinking: 'disabled',
+  syncToken: '',
+  syncStorePath: '.sync/test-snapshot.json'
 };
 
 function respond(content: unknown, status = 200, usage = { prompt_tokens: 12, completion_tokens: 30 }): typeof fetch {

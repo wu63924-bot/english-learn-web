@@ -6,15 +6,19 @@ import { ApiError } from './errors.ts';
 import type { AiProvider, TokenUsage } from './provider.ts';
 import { RateLimiter } from './rateLimiter.ts';
 import { parseDrillRequest, parseGenerateRequest, parseGradeRequest, parsePlanRequest, parseTutorRequest } from './schema.ts';
+import { createFileSyncStore, createOssSyncStore, type SyncStore } from './syncStore.ts';
 import { UsageLedger } from './usage.ts';
 
 const MAX_BODY_BYTES = 64 * 1024;
+const MAX_SYNC_BYTES = 8 * 1024 * 1024;
 const IDEMPOTENCY_TTL_MS = 10 * 60 * 1000;
 
 export interface ApiDeps {
   provider: AiProvider;
   log?: (entry: Record<string, unknown>) => void;
   now?: () => number;
+  /** 设备同步存储；测试注入内存实现，生产按配置使用 OSS 或本地文件 */
+  syncStore?: SyncStore;
 }
 
 interface RouteResult {
@@ -39,6 +43,15 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
     return actual.length === expected.length && timingSafeEqual(actual, expected);
   };
   const log = deps.log ?? ((entry: Record<string, unknown>) => console.info(JSON.stringify(entry)));
+  const syncStore = deps.syncStore ?? createConfiguredSyncStore(config);
+  const hasSyncAccess = (req: IncomingMessage): boolean => {
+    if (!config.syncToken) return false;
+    const provided = headerValue(req, 'x-sync-token');
+    if (!provided) return false;
+    const expected = Buffer.from(config.syncToken);
+    const actual = Buffer.from(provided);
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
+  };
   let active = 0;
 
   const routes: Record<string, RouteHandler> = {
@@ -64,13 +77,14 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
       if (origin) {
         if (!allowedOrigins.has(origin)) throw new ApiError('ORIGIN_NOT_ALLOWED', '来源不在允许列表中');
         res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Expose-Headers', 'X-Snapshot-Updated-At');
         res.setHeader('Vary', 'Origin');
       }
       res.setHeader('Cache-Control', 'no-store');
 
       if (req.method === 'OPTIONS') {
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotency-Key, X-Access-Token');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Idempotency-Key, X-Access-Token, X-Sync-Token');
         res.setHeader('Access-Control-Max-Age', '600');
         status = 204;
         code = 'PREFLIGHT';
@@ -80,6 +94,32 @@ export function createApiServer(config: ApiConfig, deps: ApiDeps) {
 
       if (path === '/health' && req.method === 'GET') {
         send(res, 200, { ok: true, provider: config.provider, authRequired: Boolean(accessToken), usage: ledger.snapshot() });
+        return;
+      }
+
+      if (path === '/api/sync') {
+        if (!config.syncToken || !syncStore) {
+          throw new ApiError('SYNC_DISABLED', '服务端未配置同步口令或存储');
+        }
+        if (!hasSyncAccess(req)) throw new ApiError('UNAUTHORIZED', '同步口令不正确');
+        if (req.method === 'GET') {
+          const snapshot = await syncStore.read();
+          if (!snapshot) throw new ApiError('SYNC_EMPTY', '云端还没有快照');
+          res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-Snapshot-Updated-At': snapshot.updatedAt
+          });
+          res.end(snapshot.text);
+          return;
+        }
+        if (req.method !== 'POST') {
+          res.setHeader('Allow', 'GET, POST, OPTIONS');
+          throw new ApiError('METHOD_NOT_ALLOWED', '只支持 GET 或 POST');
+        }
+        const text = await readText(req, MAX_SYNC_BYTES);
+        const parsed = parseSnapshot(text);
+        const written = await syncStore.write(JSON.stringify(parsed));
+        send(res, 200, { ok: true, bytes: written.bytes, updatedAt: written.updatedAt, driver: syncStore.driver() });
         return;
       }
 
@@ -185,23 +225,52 @@ function headerValue(req: IncomingMessage, name: string): string {
 async function readJson(req: IncomingMessage): Promise<unknown> {
   const type = String(req.headers['content-type'] ?? '');
   if (!type.includes('application/json')) throw new ApiError('INVALID_REQUEST', 'Content-Type 必须是 application/json');
+  const text = await readText(req, MAX_BODY_BYTES);
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new ApiError('INVALID_REQUEST', '请求体不是有效 JSON');
+  }
+}
+
+async function readText(req: IncomingMessage, limit: number): Promise<string> {
+  const type = String(req.headers['content-type'] ?? '');
+  if (!type.includes('application/json')) throw new ApiError('INVALID_REQUEST', 'Content-Type 必须是 application/json');
   const declared = Number(req.headers['content-length']);
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) throw new ApiError('PAYLOAD_TOO_LARGE', '请求体过大');
+  if (Number.isFinite(declared) && declared > limit) throw new ApiError('PAYLOAD_TOO_LARGE', '请求体过大');
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     size += buffer.length;
-    if (size > MAX_BODY_BYTES) {
+    if (size > limit) {
       req.resume();
       throw new ApiError('PAYLOAD_TOO_LARGE', '请求体过大');
     }
     chunks.push(buffer);
   }
   if (!chunks.length) throw new ApiError('INVALID_REQUEST', '请求体为空');
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+/** 服务端只做结构核对，真正的字段校验仍由客户端 parseBackup 完成。 */
+function parseSnapshot(text: string): unknown {
+  let parsed: unknown;
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    parsed = JSON.parse(text);
   } catch {
-    throw new ApiError('INVALID_REQUEST', '请求体不是有效 JSON');
+    throw new ApiError('INVALID_REQUEST', '快照不是有效 JSON');
   }
+  if (!parsed || typeof parsed !== 'object') throw new ApiError('INVALID_REQUEST', '快照结构不正确');
+  const record = parsed as Record<string, unknown>;
+  if (record.app !== 'EnglishLearn' || typeof record.version !== 'number' || !record.data || typeof record.data !== 'object') {
+    throw new ApiError('INVALID_REQUEST', '不是本应用导出的备份');
+  }
+  return parsed;
+}
+
+function createConfiguredSyncStore(config: ApiConfig): SyncStore | undefined {
+  if (!config.syncToken) return undefined;
+  if (config.oss) return createOssSyncStore(config.oss);
+  return createFileSyncStore(config.syncStorePath);
 }

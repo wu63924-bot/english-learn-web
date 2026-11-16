@@ -17,6 +17,18 @@ export interface ApiConfig {
   maxOutputTokens: number;
   jsonMode: boolean;
   thinking: 'enabled' | 'disabled' | 'default';
+  /** 设备同步口令；为空时同步接口关闭 */
+  syncToken: string;
+  /** 本地开发时的快照文件 */
+  syncStorePath: string;
+  oss?: {
+    bucket: string;
+    region: string;
+    accessKeyId: string;
+    accessKeySecret: string;
+    key: string;
+    endpoint?: string;
+  };
 }
 
 const DEFAULT_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
@@ -67,6 +79,26 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
       ? 'enabled'
       : env.AI_THINKING?.trim() === 'default'
         ? 'default'
-        : 'disabled'
+        : 'disabled',
+    syncToken: env.SYNC_TOKEN?.trim() || '',
+    syncStorePath: env.SYNC_STORE_PATH?.trim() || '.sync/snapshot.json',
+    oss: ossConfig(env)
+  };
+}
+
+/** 只有 bucket、区域和一对密钥齐全时才启用 OSS；缺任何一项就回落到本地文件。 */
+function ossConfig(env: NodeJS.ProcessEnv): ApiConfig['oss'] {
+  const bucket = env.SYNC_OSS_BUCKET?.trim();
+  const region = env.SYNC_OSS_REGION?.trim();
+  const accessKeyId = env.SYNC_OSS_ACCESS_KEY_ID?.trim() || env.ALIBABA_CLOUD_ACCESS_KEY_ID?.trim();
+  const accessKeySecret = env.SYNC_OSS_ACCESS_KEY_SECRET?.trim() || env.ALIBABA_CLOUD_ACCESS_KEY_SECRET?.trim();
+  if (!bucket || !region || !accessKeyId || !accessKeySecret) return undefined;
+  return {
+    bucket,
+    region,
+    accessKeyId,
+    accessKeySecret,
+    key: env.SYNC_OSS_KEY?.trim() || 'english-learn/snapshot.json',
+    endpoint: env.SYNC_OSS_ENDPOINT?.trim() || undefined
   };
 }
