@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import type { NewWordCandidate } from '../repositories/wordReviewRepository';
 import { saveWordRating } from '../repositories/wordReviewRepository';
-import type { WordReview, WordReviewStatus } from '../types/domain';
+import { getWordSession, saveWordSession } from '../repositories/settingsRepository';
+import type { WordReview, WordReviewStatus, WordSession } from '../types/domain';
 import type { PhraseItem } from '../types/domain';
+import { rateSessionWord, resumeWordSession, sessionProgress } from '../services/wordSession';
+import { todayKey } from '../utils/date';
 import { useWordSpeech } from '../hooks/useWordSpeech';
 import { examplePhrasesFor } from '../utils/phrases';
 import { SpeakerIcon } from './SpeakerIcon';
@@ -20,13 +23,18 @@ interface QueueItem {
   courseId?: string;
   moduleId?: string;
   wordId?: string;
-  /** 已经在本轮里出现过一次，不再重复排队 */
-  attempt: number;
+  /** 上次复习距今的天数，用于卡片顶部的提示 */
+  ageDays?: number;
 }
 
 export interface SessionResult {
   rated: number;
   known: number;
+}
+
+function daysSince(timestamp: number | undefined, now: Date): number | undefined {
+  if (!timestamp) return undefined;
+  return Math.max(0, Math.floor((now.getTime() - timestamp) / 86_400_000));
 }
 
 function fromReview(review: WordReview): QueueItem {
@@ -41,7 +49,7 @@ function fromReview(review: WordReview): QueueItem {
     courseId: review.courseId,
     moduleId: review.moduleId,
     wordId: review.wordId,
-    attempt: 0
+    ageDays: daysSince(review.lastReviewedAt, new Date())
   };
 }
 
@@ -56,8 +64,7 @@ function fromCandidate(word: NewWordCandidate): QueueItem {
     examplePhrases: word.examplePhrases,
     courseId: word.courseId,
     moduleId: word.moduleId,
-    wordId: word.wordId,
-    attempt: 0
+    wordId: word.wordId
   };
 }
 
@@ -70,14 +77,31 @@ interface Props {
 }
 
 export function WordReviewSession({ due, fresh, modulePhrases, onFinish, onExit }: Props) {
-  const [queue, setQueue] = useState<QueueItem[]>(() => [...due.map(fromReview), ...fresh.map(fromCandidate)]);
+  const items = useMemo(() => [...due.map(fromReview), ...fresh.map(fromCandidate)], [due, fresh]);
+  const byKey = useMemo(() => new Map(items.map(item => [item.key, item])), [items]);
+  const scope = `review:${todayKey()}`;
+  const keys = useMemo(() => items.map(item => item.key), [items]);
+  const keySignature = keys.join('|');
+
+  const [session, setSession] = useState<WordSession | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [rated, setRated] = useState(0);
-  const [known, setKnown] = useState(0);
-  const total = due.length + fresh.length;
-  const current = queue[0];
+
+  useEffect(() => {
+    let active = true;
+    void getWordSession(scope).then(saved => {
+      if (!active) return;
+      let next = resumeWordSession(saved, scope, keySignature ? keySignature.split('|') : []);
+      if (!next.queue.length) next = resumeWordSession(undefined, scope, keySignature ? keySignature.split('|') : []);
+      setSession(next);
+    });
+    return () => {
+      active = false;
+    };
+  }, [scope, keySignature]);
+
+  const current = session ? byKey.get(session.queue[0]) : undefined;
   const speech = useWordSpeech(current?.term);
   const examplePhrases = current
     ? examplePhrasesFor(
@@ -86,11 +110,19 @@ export function WordReviewSession({ due, fresh, modulePhrases, onFinish, onExit 
     )
     : [];
 
+  useEffect(() => {
+    setRevealed(false);
+  }, [current?.key]);
+
   async function rate(status: WordReviewStatus) {
-    if (!current || busy) return;
+    if (!session || !current || busy) return;
     setBusy(true);
     setError('');
     try {
+      const result = rateSessionWord(session, current.key, status);
+      setSession(result.session);
+      setRevealed(false);
+      await saveWordSession(result.session);
       await saveWordRating({
         term: current.term,
         status,
@@ -102,12 +134,6 @@ export function WordReviewSession({ due, fresh, modulePhrases, onFinish, onExit 
         example: current.example,
         exampleTranslation: current.exampleTranslation
       });
-      const rest = queue.slice(1);
-      const replay = status === 'unknown' && current.attempt === 0;
-      setQueue(replay ? [...rest, { ...current, attempt: 1 }] : rest);
-      if (status === 'known') setKnown(value => value + 1);
-      setRated(value => value + 1);
-      setRevealed(false);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '保存失败，请重试');
     } finally {
@@ -115,14 +141,19 @@ export function WordReviewSession({ due, fresh, modulePhrases, onFinish, onExit 
     }
   }
 
+  if (!session) {
+    return <section className="word-session card"><p className="muted">正在准备复习…</p></section>;
+  }
+
   if (!current) {
+    const progress = sessionProgress(session);
     return (
       <section className="word-session card">
         <p className="word-session-done">这一轮过完了。</p>
         <div className="today-stats">
-          <div><b>{rated}</b><span>评过</span></div>
-          <div><b>{known}</b><span>认识</span></div>
-          <div><b>{rated - known}</b><span>再看</span></div>
+          <div><b>{progress.mastered}</b><span>已掌握</span></div>
+          <div><b>{progress.total}</b><span>本轮</span></div>
+          <div><b>{session.queue.length}</b><span>还剩</span></div>
         </div>
         <button type="button" className="primary-button" onClick={() => onFinish()}>
           返回复习
@@ -131,27 +162,48 @@ export function WordReviewSession({ due, fresh, modulePhrases, onFinish, onExit 
     );
   }
 
-  const position = total - queue.length + 1;
+  const progress = sessionProgress(session);
+  const ageText = current.ageDays === undefined
+    ? '新词'
+    : current.ageDays <= 0 ? '今天学过' : `${current.ageDays} 天前学过`;
 
   return (
     <section className="word-session">
-      <div className="word-session-top">
-        <button type="button" className="word-session-exit" onClick={onExit}>退出</button>
-        <span>还剩 {queue.length} 个</span>
-        <span>{position} / {total}</span>
-      </div>
-      <div className="word-progress-track word-session-track" aria-hidden="true">
-        <i style={{ width: `${((position - 1) / Math.max(1, total)) * 100}%` }} />
+      <div className="word-session-stats">
+        <div><span>本轮</span><b>{progress.mastered}/{progress.total}</b></div>
+        <div><span>还剩</span><b>{progress.remaining}</b></div>
+        <div><span>到期</span><b>{due.length}</b></div>
       </div>
 
-      <article className="card word-card">
+      <div className="word-session-top">
+        <button type="button" className="word-session-exit" onClick={onExit}>退出</button>
+        <span>{ageText}</span>
+      </div>
+
+      <div className="word-progress-track word-session-track" aria-hidden="true">
+        <i style={{ width: `${(progress.mastered / Math.max(1, progress.total)) * 100}%` }} />
+      </div>
+
+      <article
+        className={`card word-card word-card-tap${revealed ? ' revealed' : ''}`}
+        onClick={() => { if (!revealed) setRevealed(true); }}
+        role="button"
+        tabIndex={0}
+        aria-label={revealed ? `${current.term} 的释义` : '点击查看答案'}
+        onKeyDown={event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            setRevealed(true);
+          }
+        }}
+      >
         <div className="word-card-top">
           <p className="word-tag">{revealed ? '已揭示' : '先回忆'}</p>
           {speech.supported && (
             <button
               type="button"
               className={`auto-speak${speech.autoSpeak ? ' on' : ''}`}
-              onClick={speech.toggle}
+              onClick={event => { event.stopPropagation(); speech.toggle(); }}
               aria-pressed={speech.autoSpeak}
             >
               自动读{speech.autoSpeak ? '开' : '关'}
@@ -162,7 +214,12 @@ export function WordReviewSession({ due, fresh, modulePhrases, onFinish, onExit 
         <div className="word-sound">
           {current.phonetic && <span className="word-phonetic">{current.phonetic}</span>}
           {speech.supported && (
-            <button type="button" className="speak-button" onClick={speech.speak} aria-label={`朗读 ${current.term}`}>
+            <button
+              type="button"
+              className="speak-button"
+              onClick={event => { event.stopPropagation(); speech.speak(); }}
+              aria-label={`朗读 ${current.term}`}
+            >
               <SpeakerIcon />
             </button>
           )}
@@ -192,31 +249,48 @@ export function WordReviewSession({ due, fresh, modulePhrases, onFinish, onExit 
               <Link
                 className="word-source-link"
                 to={`/course/${current.courseId}/module/word?word=${encodeURIComponent(current.wordId)}`}
+                onClick={event => event.stopPropagation()}
               >
                 看原文
               </Link>
             )}
           </div>
         ) : (
-          <p className="word-reveal-hint">还记得它的意思吗？想起来后点“显示答案”。</p>
+          <p className="word-reveal-hint">尝试回想释义<br />点击卡片查看答案</p>
         )}
         <WordSketchPad resetKey={current.key} />
       </article>
 
       {error && <p className="error-text">{error}</p>}
 
-      <div className="word-session-actions">
-        {revealed ? (
-          <div className="word-feedback" role="group" aria-label="单词掌握程度">
-            <button type="button" className="word-rate known" onClick={() => { void rate('known'); }} disabled={busy}>认识</button>
-            <button type="button" className="word-rate fuzzy" onClick={() => { void rate('fuzzy'); }} disabled={busy}>模糊</button>
-            <button type="button" className="word-rate unknown" onClick={() => { void rate('unknown'); }} disabled={busy}>不认识</button>
-          </div>
-        ) : (
-          <button type="button" className="primary-button" onClick={() => setRevealed(true)}>
-            显示答案
+      <div className="word-action-dock">
+        <div className="word-action-bar word-action-bar-large">
+          <button
+            type="button"
+            className="word-rate unknown big"
+            onClick={() => { if (!revealed) { setRevealed(true); return; } void rate('unknown'); }}
+            disabled={busy}
+          >
+            不认识
           </button>
-        )}
+          <button
+            type="button"
+            className="word-rate fuzzy small"
+            onClick={() => { setRevealed(true); void rate('fuzzy'); }}
+            disabled={busy}
+            aria-label="模糊"
+          >
+            模糊
+          </button>
+          <button
+            type="button"
+            className="word-rate known big"
+            onClick={() => { void rate('known'); }}
+            disabled={busy}
+          >
+            我认识
+          </button>
+        </div>
       </div>
     </section>
   );

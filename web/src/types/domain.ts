@@ -353,6 +353,8 @@ export interface AppSettings {
   currentCourseId?: string;
   /** 进行中的单词会话队列（当天有效） */
   wordSession?: WordSession;
+  /** 按模块/复习会话分别保存队列，键为 scope */
+  wordSessions?: Record<string, WordSession>;
   aiAccessToken?: string;
   knowledgeUnifiedAt?: Timestamp;
   wordReviewsMigratedAt?: Timestamp;

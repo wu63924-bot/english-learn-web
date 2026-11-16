@@ -47,7 +47,7 @@ export function WordModule({ module, alreadyDone, onFinish }: Props) {
     void Promise.all([
       wordStatusesForModule(words),
       wordReviewsForModule(words),
-      getWordSession(),
+      getWordSession(module.id),
       getStudySummary(),
       countWordReviews()
     ]).then(([statuses, recordsResult, saved, study, counts]) => {
